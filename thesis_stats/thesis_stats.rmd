@@ -1,0 +1,349 @@
+---
+title: statistics stuff you should think about
+author: Ben Bolker
+date:  10 November 2015
+bibliography: stats.bib
+csl: apa.csl
+output:
+  ioslides_presentation:
+     css: tmp.css
+---
+<!-- would have liked to incorporate css for .refs style internally, but didn't get it working (yet) -->
+<style>
+h2 { 
+ color: #3399ff;		
+}
+h3 { 
+ color: #3399ff;		
+}
+</style>
+<!-- Limit image width and height -->
+<style type="text/css">
+img {     
+  max-height: 560px;     
+  max-width: 800px; 
+}
+</style>
+
+
+
+
+```{r setup,echo=FALSE,message=FALSE}
+library("ggplot2"); theme_set(theme_classic())
+library("reshape2")
+library("ggExtra")
+library("MASS")
+library("knitr")
+opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
+```
+
+## outline
+
+- experimental design
+- data exploration
+- statistical tests & assumptions
+- analysis platforms
+
+# experimental design
+
+## the most important thing {.build}
+
+> - Design your experiment well and execute it well:  
+you needn't worry too much in advance about statistics
+> - Don't: you're doomed - statistics can't save you ![](skullcross_tiny.png)
+> - "To consult the statistician after an experiment is finished is often merely to ask him to conduct a *post mortem* examination. He can perhaps say what the experiment died of." (Fisher)
+> - "The combination of some data and an aching desire for an answer does not ensure that a reasonable answer can be extracted from a given body of data." (Tukey)
+> - *randomization*, *replication*, *control*
+
+## randomization
+
+- random *assignment to treatments*
+- poorer alternative: *haphazard* assignment
+- stratification  
+(i.e., randomize within groups)
+- related: experimental *blinding*
+
+## replication {.build}
+
+> - how big does your experiment need to be?
+- **power**: probability of detecting an effect of a particular size,  
+if one exists
+    - more generally: how much information? what kinds of mistakes? [@gelman_beyond_2014] 
+> - *underpowered* studies
+    - failure is likely
+    - cheating is likely
+    - *significance filter* $\to$ biased estimates
+- *overpowered* studies waste time, lives, $
+> - **pseudoreplication** [@hurlbert_pseudoreplication_1984;@davies_dont_2015]
+confounding sampling units with treatment units
+
+## power analysis
+
+- need to guess *effect size* and variability
+    - biological common sense
+    - previous studies
+    - ask your supervisor
+- OK to simplify design (e.g. ANOVA $\to$ $t$-test)
+- methods
+    - seat-of-the-pants
+    - [web calculators](http://homepage.stat.uiowa.edu/~rlenth/Power/)
+    - in R
+```{r pow,eval=FALSE,echo=TRUE}
+apropos("^power")  ## base-R functions
+library("sos"); findFn("{power analysis}")
+```
+
+## control
+
+> - maximize *desired* variation
+    - e.g. large doses  (tradeoff with biological realism)
+> - minimize *undesired* variation
+    - within-subjects designs
+         - e.g. paired, randomized-block, crossover
+    - minimize environmental variation
+         - tradeoff with generality
+         - e.g. environmental chambers;  
+clonal or inbred lines
+> - isolate desired effects: **positive/negative controls**  
+(vehicle-only, cage treatments, etc.)
+> - control for variation statistically (e.g. ANCOVA)
+
+# data exploration 
+
+## descriptive statistics
+
+- check that values are reasonable
+  - categorical
+      - tabulation, cross-tabulation
+  - univariate
+      - mean, standard deviation
+      - median, minimum, maximum
+  - bivariate
+      - correlations
+  
+## graphics
+
+- univariate
+    - histogram
+- grouped
+    - box-and-whisker (violin)
+- bivariate
+    - scatterplots
+- multivariate
+    - scatterplot matrices
+   
+-----
+<div class="columns-2">
+```{r graphex,echo=FALSE,fig.width=6,fig.height=6,message=FALSE}
+th_clean <- 
+  theme(panel.margin=grid::unit(0,"lines"),
+        axis.ticks.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.y=element_blank(),
+        axis.text.y=element_blank()
+        )
+set.seed(101)
+dd <- as.data.frame(mvrnorm(100,mu=c(0,0),
+              Sigma=matrix(c(1,0.8,0.8,1),2)))
+dd <- setNames(rbind(dd,c(-2,2)),c("x","y"))
+dd$special <- c(rep("no",100),"yes")
+p <- ggplot(dd, aes(x, y,
+                    colour=special)) + geom_point(size=5)+
+  scale_colour_manual(values=c("black","red"),guide=FALSE)+th_clean+labs(x="",y="")
+ggMarginal(p, type = "histogram")
+```
+
+```{r echo=FALSE,message=FALSE,fig.width=3.5,fig.height=3.5}
+library("reshape2")
+ ff <- function(x,v) 
+     setNames(transform(
+        melt(as.matrix(x)),
+             v1=substr(Var2,1,1),
+             v2=substr(Var2,2,2))[,c(3,5)],
+          c(v,"s"))
+ f1 <- ff(anscombe[,1:4],"x")
+ f2 <- ff(anscombe[,5:8],"y")
+ f12 <- cbind(f1,f2)[,c("s","x","y")]
+## or:
+## library("data.table"); dat <- as.data.table(anscombe); melt(dat, measure.vars = patterns(c("x", "y")), value.name=c('x', 'y'))
+ggplot(f12,aes(x,y))+geom_point()+
+  facet_wrap(~s)+labs(x="",y="")+
+  th_clean
+
+```
+</div>
+
+# statistical tests
+
+## assumptions
+
+- independence (hard to test!)
+- homogeneity of variance (vs. *heteroscedasticity*)
+- linearity
+- Normality (*least* important)
+    - outliers; skew; "fat tails" [@student_errors_1927]
+    - distributional assumptions apply to the *conditional distribution* of the response variable
+
+<div style="width:300px">
+![](student_cartoon.png)
+</div>
+
+## diagnostics
+
+- hypothesis tests are **not** generally appropriate:  
+they answer the wrong question
+- graphical diagnostics
+    - residuals plots (linearity, heteroscedasticity)
+    - influence plots (outliers)
+    - Q-Q plots (Normality)
+    - Box-Cox plots (transformations)
+
+## diagnostics  {.centered}
+
+```{r diag_ex,fig.width=7,fig.height=7,out.width=600}
+set.seed(101)
+n <- 50
+dd_bad <- data.frame(x=1:n)
+dd_bad <- transform(dd_bad,y=0.1*x^2+x*rt(n,4))
+m1 <- lm(y~x,dd_bad)
+par(mfrow=c(2,2),las=1,mgp=c(2,1,0),mar=c(4,3,0.5,0.5),oma=c(0,0,2,0))
+plot(m1)
+```
+
+## (the data set)  {.centered}
+
+```{r data_bad}
+ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm")
+```
+
+## dealing with violations
+
+- drop outliers (report both analyses)
+- transform (e.g. log transform: *Box-Cox* analysis)
+- non-parametric (rank-based) tests  
+(e.g. Mann-Whitney-Wilcoxon, Kruskal-Wallis)
+- relax assumptions/do fancier stats, e.g.
+    - logistic regression (0/1 outcomes)
+    - quadratic regression (nonlinearity)
+
+## what should you use?
+
+ - try to connect scientific & statistical questions
+ - data type
+    - see [decision tree](http://www.tnstate.edu/eduadmin/StatisticsDecisionTree%20Use.pdf)  or [table](http://www.ats.ucla.edu/stat/mult_pkg/whatstat/default.htm)
+    - if your question *doesn't* fit in this tree,  
+think about how much you like statistics ...
+ - nonparametric stats
+     - slight loss of power
+     - stronger assumptions than you think
+     - $p$-values only - no effect size
+ 
+## interpretation
+
+<div class="columns-2">
+<!-- spacing? -->
+
+- focus on effect sizes/CIs
+- eschew vacuous hypothesis statements
+- don't accept the null hypothesis
+- "the difference between significant and non-significant is not significant"
+[@gelman_difference_2006]
+- avoid snooping/$p$-hacking [@simmons_false-positive_2011]:   
+**preregister** your analyses
+```{r CIplot}
+dd <- data.frame(x=1:4,
+                 y=c(0.1,0.15,1.2,1.1),
+            err=c(0.09,0.17,1.3,0.6),
+            special=c("yes","no","no","yes"))
+dd <- transform(dd,
+        pval=signif(2*pnorm(-y/(err/1.96),
+                     lower.tail=TRUE),1))
+oldOpt <- options(scipen=1000)
+ggplot(dd,aes(x,y,ymin=y-err,ymax=y+err,
+              colour=special))+
+  geom_pointrange()+
+  geom_hline(xintercept=0,lty=2)+
+  th_clean+labs(x="",y="")+
+  scale_colour_manual(values=c("black","red"),
+                      guide=FALSE)+
+  geom_text(aes(x=x,y=y+err+0.1,colour=special,
+                label=paste0("p=",pval)))+
+  expand_limits(x=c(0.5,4.3))
+
+```
+
+</div>
+
+# computational platforms
+
+## Criteria
+
+- simple/weak vs. complex/powerful
+- GUI vs command-line
+- **default:** use what your lab uses
+
+## Excel
+
+- ubiquitous
+- open alternatives (Open Office)
+- data in plain sight
+- good enough for simple stuff
+- occasional traps [@mccullough_accuracy_2008]
+- archive your data as CSV, not XLSX
+    
+## stats packages
+
+- SPSS, JMP, SAS, ...
+- more reliable than Excel
+- more powerful than Excel
+- point & click (mostly)
+
+## R
+
+- powerful; free & open
+- reproducible: script-based
+- hardest to learn
+- [R Commander](http://socserv.mcmaster.ca/jfox/Misc/Rcmdr/) if you need a GUI
+- great for data manipulation, graphics  
+(once you learn how)
+
+<blockquote>
+<div style="font-size:18px">
+<p>
+Using this analogy programs like SPSS are busses, easy to use for the standard things, but very frustrating if you want to do something that is not already
+preprogrammed.
+</p>
+<p>
+R is a 4-wheel drive SUV (though environmentally friendly) with a bike on the
+back, a kayak on top, good walking and running shoes in the passenger seat, and
+mountain climbing and spelunking gear in the back. R can take you anywhere you
+want to go if you take time to learn how to use the equipment, but that is
+going to take longer than learning where the bus stops are in SPSS.
+</p>
+</div>
+Greg Snow, R-help (May 2006)
+</blockquote>
+
+## t-test (R)
+
+```{r ttest,echo=TRUE}
+x1 = c(1.5,2.5,2.1)
+x2 = c(1.1,1.4,1.5)
+t.test(x1,x2)
+```
+
+## t-test (Excel)
+
+![](excel_ex.png)
+
+## Further resources
+
+- *Nature* web collection, ["Statistics for Biologists"](http://www.nature.com/collections/qghhqm)
+- [UCLA statistics consulting](http://www.ats.ucla.edu/stat/) (many examples in SAS, SPSS, R ...)
+- [CrossValidated](http://stats.stackexchange.com)
+
+<!-- http://stackoverflow.com/questions/30990262/applying-css-to-make-code-smaller-in-ioslides-style -->
+
+## References {.refs}
+
+
