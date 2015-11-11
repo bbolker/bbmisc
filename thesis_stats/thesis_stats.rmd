@@ -5,18 +5,29 @@ date:  10 November 2015
 bibliography: stats.bib
 csl: apa.csl
 output:
-  ioslides_presentation:
-     css: tmp.css
+  ioslides_presentation
 ---
-<!-- would have liked to incorporate css for .refs style internally, but didn't get it working (yet) -->
+<!-- 
+apa.csl is a slightly hacked version of APA 
+  (modified for "et al" after 2 authors in text)
+-->
+<!-- .refs is style for reference page (small text) -->
 <style>
+.refs {
+   font-size: 16px;
+}
 h2 { 
  color: #3399ff;		
 }
 h3 { 
  color: #3399ff;		
 }
+.title-slide {
+   background-color: #55bbff;
+}
 </style>
+<!--    content: url(https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
+>
 <!-- Limit image width and height -->
 <style type="text/css">
 img {     
@@ -24,9 +35,6 @@ img {
   max-width: 800px; 
 }
 </style>
-
-
-
 
 ```{r setup,echo=FALSE,message=FALSE}
 library("ggplot2"); theme_set(theme_classic())
@@ -43,6 +51,11 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 - data exploration
 - statistical tests & assumptions
 - analysis platforms
+
+[source code](https://github.com/bbolker/bbmisc/tree/master/thesis_stats)
+
+![](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
+
 
 # experimental design
 
