@@ -1,0 +1,98 @@
+---
+title: Power-logistic regression link
+author: Ben Bolker
+bibliography: nestsurv.bib
+---
+
+R code for a link function of the form 
+$$
+\mu = (1+\exp(-\eta))^{-\theta}
+$$
+(i.e., a logistic function raised to the power $\theta$, where
+$\theta$ is a measure of the exposure).
+This code was
+originally adapted from Mark Herzog's code at `http://www.npwrc.usgs.gov/resource/birds/nestsurv/download/CreateLogisticExposureFamily.R`, which
+in turn translated Shaffer's SAS code,
+but this page is now only available via the
+[Wayback machine](https://web.archive.org/web/*/http://www.npwrc.usgs.gov/resource/birds/nestsurv/download/CreateLogisticExposureFamily.R)
+
+Shaffer's original paper [@shaffer_unified_2004] references
+[@burhans_habitat_1999] for data on yellow-breasted chat nest
+survival, and references http://www.npwrc.usgs.gov/resource/tools/nestsurv/nestsurv.htm ; I managed to retrieve the data and SAS code via the
+Wayback machine.
+
+```{r logexp_fun}
+##' @param exposure (vector of) exposure times
+##' @param fast (logical): use R-coded functions for stability,
+##' or call internal C code for speed?
+logexp <- function(exposure = 1, fast=FALSE)
+{
+    linkfun <- function(mu) qlogis(mu^(1/exposure))
+    ## FIXME: is there some trick we can play here to allow
+    ##   evaluation in the context of the 'data' argument?
+    linkinv <- function(eta)  plogis(eta)^exposure
+    logit_mu_eta <- function(eta) {
+        if (FALSE) {
+            ifelse(abs(eta)>30,.Machine$double.eps,
+                   exp(eta)/(1+exp(eta))^2)
+        } else {
+            .Call(stats:::C_logit_mu_eta, eta, PACKAGE = "stats")
+        }
+    }
+    mu.eta <- function(eta) {       
+        exposure * plogis(eta)^(exposure-1) *
+            logit_mu_eta(eta)
+    }
+    valideta <- function(eta) TRUE
+    link <- paste("logexp(", deparse(substitute(exposure)), ")",
+                   sep="")
+    structure(list(linkfun = linkfun, linkinv = linkinv,
+                   mu.eta = mu.eta, valideta = valideta, 
+                   name = link),
+              class = "link-glm")
+}
+```
+
+Here is an example using the chat data from Shaffer (2004),
+but these data are now unavailable ...
+
+```{r eval=FALSE}
+nestdata<-read.table("http://data.prbo.org/tools/NestSurvival/chat.txt")
+chat.glm.logexp <- glm(survive/trials~parastat+nest_ht*patsize,
+                       family=binomial(logexp(days=nestdata$expos)),
+                       data=nestdata)
+# if you have MASS installed
+library("MASS")
+chat.step<-stepAIC(chat.glm.logexp,
+                   scope=list(upper=~parastat+nest_ht*patsize,lower=~1))
+chat.step$anova
+summary(chat.step)
+```
+
+SAS results:
+
+```
+              Criteria For Assessing Goodness Of Fit
+
+    Criterion                 DF           Value        Value/DF
+    Deviance                 289        193.9987          0.6713
+    Scaled Deviance          289        193.9987          0.6713
+    Pearson Chi-Square       289        537.8609          1.8611
+    Scaled Pearson X2        289        537.8609          1.8611
+    Log Likelihood                      -96.9994
+    Algorithm converged.
+                       Analysis Of Parameter Estimates
+
+                                Standard Wald 95%   Chi-
+Parameter   DF  Estimate Error        Limits       Square Pr > ChiSq
+#Intercept   1  2.6973   0.2769   2.1546  3.2399   94.92  <.0001
+parastat0    1 -1.0350   0.5201  -2.0544  -0.0155  3.96   0.0466
+parastat1    0  0.0000   0.0000   0.0000  0.0000     .      .
+patsizelarge 1  1.0844   0.5094   0.0861  2.0827   4.53   0.0333
+patsizesmall 0  0.0000   0.0000   0.0000  0.0000     .       .
+Scale        0  1.0000   0.0000   1.0000  1.0000
+
+#NOTE: The scale parameter was held fixed.
+```
+
+## References
