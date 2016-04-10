@@ -1,0 +1,85 @@
+---
+title: Distribution approximation via quantiles
+date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
+---
+
+Problem statement: given a small number of quantiles (3-5?), find a good approximation to a univariate distribution that can be used for various tasks (e.g. generating random deviates for Bayesian calculations)
+
+Start with a baseline distribution with an appropriate domain. For example, for a distribution that has support on the whole real line ($(-\infty,\infty)$), we might use the Normal distribution or, more conveniently (see below), the logistic distribution. Call the cumulative distribution function (CDF) of this distribution $g^{-1}$: in other words, we will treat the CDF as an *inverse link function* in the sense of generalized models, and its inverse $g$ as a link function. For the logistic distribution, $g$ is the logit function $\log(x/(1-x))$.
+
+Now, given a vector of quantiles $q$ and a vector of values $x$,
+
+- set up a graph $\{g(x),q\}$ on the scale of the CDF.
+- fit a **monotonic** interpolation spline $S(g(x))$ through the values $\{g(x),q\}$, augmented by the anchoring points at (0,0) and (1,1) defining the domain of the distribution.  This is the estimate of the (link-scale) CDF we want.
+
+Now we can get:
+
+- random deviates: pick uniform deviates $u$ and transform them via $g^{-1}(S^{-1}(u)
+- cumulative distribution function on the original scale: $S(x)$ transformed appropriately (multiply/divide by the derivative of the (inverse?) link function)
+- density function on the original scale: $S'(x)$ transformed appropriately
+
+What's nice about this approach is that the null case (*no* quantiles given) reverts to the specified baseline distribution, while additional information will allow us to deviate from the baseline.
+
+The only concerns I have about this approach are (1) it won't give any kind of interpretable analytic form (although I didn't think that was high on the list of desiderata); (2) I'm not sure what the implications are about tail behavior; (3) I don't really have much sense about the mathematical/statistical properties of a function that is piecewise cubic on the link scale.
+
+## Example
+
+Use logistic distribution as a baseline, specify that the median is at 0.2 (rather than 0):
+
+```{r fit1}
+xvec <- 0.2
+lxvec <- plogis(xvec) ## apply link function
+qvec <- 0.5
+q_aug <- c(0,qvec,1)
+x_aug <- c(0,lxvec,1)
+par(las=1,bty="l",xaxs="i",yaxs="i")
+plot(x_aug,q_aug,xlab="g(x)",ylab="quantile",pch=16,xpd=NA)
+abline(a=0,b=1)
+library(splines)
+## save values
+xx <- xspline(x_aug,q_aug,shape=-1,draw=FALSE)
+lines(xx)
+if (FALSE) {
+    ## fails: minimum number of points?
+    ii <- interpSpline(x_aug,q_aug)
+}
+```
+
+Now we just need to be able to invert the results of xspline ...
+Crudely:
+
+```{r plot1}
+par(las=1,bty="l")
+xspline_inv <- approxfun(xx$y,xx$x)
+ry <- qlogis(xspline_inv(runif(10000)))
+hist(ry,breaks=100,col="gray",prob=TRUE)
+curve(dlogis(x),add=TRUE,col=2,lwd=2)
+```
+
+Try more quantiles:
+```{r fit2}
+xvec <- c(0,0.2,0.5)
+lxvec <- plogis(xvec) ## apply link function
+qvec <- c(0.25,0.5,0.75)
+q_aug <- c(0,qvec,1)
+x_aug <- c(0,lxvec,1)
+par(las=1,bty="l",xaxs="i",yaxs="i")
+plot(x_aug,q_aug,xlab="g(x)",ylab="quantile",pch=16,xpd=NA)
+abline(a=0,b=1)
+library(splines)
+## tweak shape parameter until CDF is monotonic ...
+xx <- xspline(x_aug,q_aug,shape=-0.3,draw=FALSE)
+lines(xx,col=4)
+all(diff(xx$x)>=0)  ##  OK
+ii <- interpSpline(x_aug,q_aug)
+x_aug2 <- seq(0,1,length=101)
+lines(predict( ii, x_aug2), col=2)
+```
+
+```{r plot2}
+par(las=1,bty="l")
+xspline_inv <- approxfun(xx$y,xx$x)
+ry <- qlogis(xspline_inv(runif(10000)))
+hist(ry,breaks=100,col="gray",prob=TRUE)
+curve(dlogis(x),add=TRUE,col=2,lwd=2)
+```
