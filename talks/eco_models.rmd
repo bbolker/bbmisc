@@ -1,0 +1,223 @@
+---
+title: "Many uses for simple dynamical models"
+author: "Ben Bolker"
+date:  26 February 2016
+output:
+  tufte::tufte_html: default
+  tufte::tufte_handout:
+    citation_package: natbib
+    latex_engine: xelatex
+  tufte::tufte_book:
+    citation_package: natbib
+    latex_engine: xelatex
+bibliography: eco_models.bib
+link-citations: yes
+---
+<!-- 
+apa.csl is a slightly hacked version of APA 
+  (modified for "et al" after 2 authors in text)
+-->
+<!-- .refs is style for reference page (small text) -->
+<style>
+.refs {
+   font-size: 16px;
+}
+h2 { 
+ color: #3399ff;		
+}
+h3 { 
+ color: #3399ff;		
+}
+.title-slide {
+   background-color: #55bbff;
+}
+</style>
+<!-- Limit image width and height -->
+<style type="text/css">
+img {     
+  max-height: 560px;     
+  max-width: 800px; 
+}
+</style>
+
+```{r setup,echo=FALSE,message=FALSE}
+library("ggplot2"); theme_set(theme_classic())
+library("reshape2")
+library("ggExtra")
+library("MASS")
+library("knitr")
+opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
+```
+
+# outline
+
+- many applications of the logistic equation (single species)
+- multispecies models
+
+# the logistic equation
+
+$$
+\frac{dN}{dt} = rN \left( 1- \frac{N}{K} \right)
+$$
+
+- solve by separating variables, partial fractions
+$$
+N(t) = \frac{K}{1+\left(\frac{K}{N(0)}-1 \right) e^{-rt}}
+$$
+- widely used in statistics (with $K=1$) to describe sigmoidal patterns, especially of probability
+- *non-dimensional form* (with $r=K=1$, $N(0)=1/2$):
+$$
+f(x) = \frac{1}{1+ \exp(-x)}
+$$
+
+## ecology
+
+- usual interpretation: $r$=exponential growth rate when rare (*per capita* birth-death); $K$=carrying capacity
+$$
+\frac{d \, \log(N)}{dt} = \frac{dN/dt}{N} = r(1-N/K)
+$$
+- or could write it as
+$$
+\frac{dN/dt}{N} = b - (d + \alpha N)
+$$
+i.e., death rate increases linearly; $\alpha$ is sensitivity to competition.
+- what is $K$ in this parameterization?
+- what's wrong with assuming birth rate decreases linearly?
+
+## metapopulation ecology
+
+- instead of tracking birth & death of individuals, think about **patches** [@hanski_metapopulation_1991]
+- patches either occupied or unoccupied
+(*separation of time scales*)
+- infinite dispersal/all patches are equally far away from each other ("island model")
+- *per capita* extinction probability ($e$) is constant
+- *per capita* colonization probability decreases linearly with occupancy:
+can't colonize an already-colonized patch
+$$
+\frac{dp}{dt} = cp (1-p) - ep
+$$
+- same as logistic with $K=?$
+
+## epidemic models
+
+- now consider an epidemic
+- everyone's initially susceptible
+- *per capita* probability of infection $\propto$ number of infected individuals
+- no-one ever recovers
+$$
+\frac{dI}{dt} = S (\beta I) = (N-I) (\beta I)
+$$
+
+- same equation, $K=?$
+- can also consider individual hosts as patches
+(good for considering competition between diseases)
+
+## mathematical extensions
+
+- we have the general form
+$$
+\frac{dx}{dt} = bx + cx^2 = x \cdot (b + c x)
+$$
+- what is $K$ now?
+- sign of $b$ determines stability of $x=0$ equilibrium
+- $c$ usually $<0$ (why?)
+- what does it mean if we add a constant term ($a + bx+cx^2$) ?
+- what else could we do?
+
+## ecological extensions
+
+- theta-logistic ($(dN/dt)/N = r (1-(N/K)^\theta)$)
+- most useful to think about *per capita* term
+- *Allee effects*
+- constant terms (unrealistic)
+- harvesting? maximum sustainable yield
+- graphical analysis 
+
+## epidemiological extensions
+
+- also consider recovery (SIS model)
+    - what is the equivalent model?
+- can also frame the model as being about zombies [@smith?_mathematical_2014], rumors, memes, ...
+- what does this change?
+
+## lazy person's math (single-population models)
+
+- find equilibria
+- assess stability of equilibria (maybe graphically)
+- especially: when is 0 equilibrium stable/unstable?
+- solve analytically???
+- solve numerically (Excel, R, MATLAB, ...)
+
+## multi-species models (ecology: competition)
+
+- one equation per species, still quadratic
+- *system of equations*
+- can still find equilibria, compute stability
+$$
+\begin{split}
+\frac{dN_i/dt}{N_i} & = r_i\left(1-\left(\sum_j \alpha_{ij} N_j /K \right)\right) \\
+& = b_i - (d_i + \sum_j \gamma_{ij} N_j)
+\end{split}
+$$
+- can find equilibria, analyze stability, etc. for arbitrarily many species
+- metapopulation equivalent
+$$
+\frac{dp_i}{dt} = c_i p_i \left(1- \sum_j p_j\right) - e_i p_i
+$$
+often make assumptions about *competitive dominance*
+
+## multi-species models (epidemiology: I)
+
+- between-strain interactions as competition for patches (hosts): @may_superinfection_1994
+- need to think about *superinfection* and *coinfection*
+- helps us think about vaccine-induced *strain replacement* [@martcheva_vaccineinduced_2008,@murall_revising_2014]
+
+## multi-species models (epidemiology: II)
+
+- single strain of disease
+- divide people into "species" according to disease status
+- **S**usceptible, **I**nfected, **R**ecovered
+- now disease takes off but dies away again
+- 
+
+## natural enemies
+
+- predators, parasites ...
+- *Lotka-Volterra predator-prey model*
+$$
+\begin{split}
+\frac{dV}{dt} & = rV - a V P \\
+\frac{dP}{dt} & = a c V P - d P
+\end{split}
+$$
+- cycles (neutral)
+- can add self-limitation, *functional response*
+- phase plane analysis
+
+## ecological communities
+
+- put together as many pieces as you need
+   - many prey, many predators, diseases, many *trophic levels* ...
+   - maybe include nutrient dynamics
+   - seasonality
+   - evolution
+   - hard to handle!
+
+## Estimating parameters
+
+- direct measurement
+- allometric scaling
+- estimation from time series
+   
+
+## Further resources
+
+- @case_illustrated_1999
+- @ellner_dynamic_2006
+- @kokko_modelling_2007
+- @otto_biologists_2007
+- @keeling_modeling_2008
+<!-- http://stackoverflow.com/questions/30990262/applying-css-to-make-code-smaller-in-ioslides-style -->
+
+## References {.refs}
+
