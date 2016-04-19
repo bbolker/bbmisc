@@ -3,27 +3,9 @@ title: Distribution approximation via quantiles
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 output:
   html_document:
-    code_folding: hide
+     code_folding: show
+bibliography: distrib.bib
 ---
-
-Problem statement: given a small number of quantiles (3-5?), find a good approximation to a univariate distribution that can be used for various tasks (e.g. generating random deviates for Bayesian calculations)
-
-Start with a baseline distribution with an appropriate domain. For example, for a distribution that has support on the whole real line ($(-\infty,\infty)$), we might use the Normal distribution or, more conveniently (see below), the logistic distribution. Call the cumulative distribution function (CDF) of this distribution $g^{-1}$: in other words, we will treat the CDF as an *inverse link function* in the sense of generalized models, and its inverse $g$ as a link function. For the logistic distribution, $g$ is the logit function $\log(x/(1-x))$.
-
-Now, given a vector of quantiles $q$ and a vector of values $x$,
-
-- set up a graph $\{g(x),q\}$ on the scale of the CDF.
-- fit a **monotonic** interpolation spline $S(g(x))$ through the values $\{g(x),q\}$, augmented by the anchoring points at (0,0) and (1,1) defining the domain of the distribution.  This is the estimate of the (link-scale) CDF we want.
-
-Now we can get:
-
-- random deviates: pick uniform deviates $u$ and transform them via $g^{-1}(S^{-1}(u)
-- cumulative distribution function on the original scale: $S(x)$ transformed appropriately. In this case we don't need to mess with derivative scaling.
-- density function on the original scale: $S'(x)$ times the base distribution (i.e. the derivative of the base CDF, which is the inverse-link function). Not 100% clear whether it's easier to take numerical derivatives or get them directly from the spline definition, although the latter is certainly more elegant.
-
-What's nice about this approach is that the null case (*no* quantiles given) reverts to the specified baseline distribution, while additional information allows us to deviate from the baseline.
-
-The only concerns I have about this approach are (1) it won't give any kind of interpretable analytic form (although I didn't think that was high on the list of desiderata); (2) I'm not sure what the implications are about tail behavior; (3) I don't really have much sense about the mathematical/statistical properties of a function that is piecewise cubic on the link scale.
 
 ## Stuff about splines
 
@@ -35,6 +17,7 @@ The only concerns I have about this approach are (1) it won't give any kind of i
 ```{r pkgs,message=FALSE}
 library(pracma)
 library(splines)
+library(SuppDists) ## Johnson distribution
 library(plyr)     ## misc. manipulation
 library(ggplot2); theme_set(theme_bw())
 library(gridExtra)
@@ -225,3 +208,23 @@ da <- approxfun((x0[-1]+x0[-length(x0)])/2,
                 )
 plot(qx_aug,ex2_funs[[i]]$d(qx_aug))
 ```
+
+## Johnson distributions
+
+In principle it's possible to estimate the parameters of a Johnson distribution from quantiles [@wheeler_quantile_1980], but it looks like the current R implementation is hard-coded based on a *specific* 5 quantiles. (Looking at the Wheeler paper I'm a bit puzzled - Wheeler selects a set of 5 symmetric quantiles, but the particular values below aren't given. I'm not yet clear where they come from. (The code below is a *snippet* from the guts of `SuppDists::JohnsonFit()` - it doesn't do anything by itself ...)
+
+```{r eval=FALSE}
+input <- quantile(t, probs = c(0.05, 0.206, 0.5, 0.794, 
+                               0.95), names = FALSE)
+x5 <- input[[1]]
+x20.6 <- input[[2]]
+x50 <- input[[3]]
+x79.4 <- input[[4]]
+x95 <- input[[5]]
+value <- .C("JohnsonFitR", as.double(x95), as.double(x79.4), 
+            as.double(x50), as.double(x20.6), as.double(x5), 
+            gamma = double(1), delta = double(1), xi = double(1), 
+            lambda = double(1), type = integer(1), PACKAGE = "SuppDists")
+```
+
+## References
