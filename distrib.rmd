@@ -1,6 +1,9 @@
 ---
 title: Distribution approximation via quantiles
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
+output:
+  html_document:
+    code_folding: hide
 ---
 
 Problem statement: given a small number of quantiles (3-5?), find a good approximation to a univariate distribution that can be used for various tasks (e.g. generating random deviates for Bayesian calculations)
@@ -15,71 +18,210 @@ Now, given a vector of quantiles $q$ and a vector of values $x$,
 Now we can get:
 
 - random deviates: pick uniform deviates $u$ and transform them via $g^{-1}(S^{-1}(u)
-- cumulative distribution function on the original scale: $S(x)$ transformed appropriately (multiply/divide by the derivative of the (inverse?) link function)
-- density function on the original scale: $S'(x)$ transformed appropriately
+- cumulative distribution function on the original scale: $S(x)$ transformed appropriately. In this case we don't need to mess with derivative scaling.
+- density function on the original scale: $S'(x)$ times the base distribution (i.e. the derivative of the base CDF, which is the inverse-link function). Not 100% clear whether it's easier to take numerical derivatives or get them directly from the spline definition, although the latter is certainly more elegant.
 
-What's nice about this approach is that the null case (*no* quantiles given) reverts to the specified baseline distribution, while additional information will allow us to deviate from the baseline.
+What's nice about this approach is that the null case (*no* quantiles given) reverts to the specified baseline distribution, while additional information allows us to deviate from the baseline.
 
 The only concerns I have about this approach are (1) it won't give any kind of interpretable analytic form (although I didn't think that was high on the list of desiderata); (2) I'm not sure what the implications are about tail behavior; (3) I don't really have much sense about the mathematical/statistical properties of a function that is piecewise cubic on the link scale.
 
+## Stuff about splines
+
+- `splines::interpSpline` is not very practical (it doesn't impose monotonicity and is finicky about working with very small numbers of points)
+- `graphics::xspline` is not bad, but requires adjustment of the shape parameter. The spline interpolates when shape $\leq 0$; when shape equals 0, it is a piecewise linear interpolant. When shape $<0$, is it smoother (how smooth?) but not necessarily monotonic.
+
 ## Example
 
-Use logistic distribution as a baseline, specify that the median is at 0.2 (rather than 0):
-
-```{r fit1}
-xvec <- 0.2
-lxvec <- plogis(xvec) ## apply link function
-qvec <- 0.5
-q_aug <- c(0,qvec,1)
-x_aug <- c(0,lxvec,1)
-par(las=1,bty="l",xaxs="i",yaxs="i")
-plot(x_aug,q_aug,xlab="g(x)",ylab="quantile",pch=16,xpd=NA)
-abline(a=0,b=1)
+```{r pkgs,message=FALSE}
+library(pracma)
 library(splines)
-## save values
-xx <- xspline(x_aug,q_aug,shape=-1,draw=FALSE)
-lines(xx)
-if (FALSE) {
-    ## fails: minimum number of points?
-    ii <- interpSpline(x_aug,q_aug)
+library(plyr)     ## misc. manipulation
+library(ggplot2); theme_set(theme_bw())
+library(gridExtra)
+n_list <- lme4:::namedList
+set.seed(101)
+```
+
+```{r funs}
+##' @param q quantiles (on original scale)
+##' @param p probabilities [0,1]
+get_aug <- function(q,p,linkfun=plogis) {
+    lq <- linkfun(q) ## apply link function
+    ## augment with (0,0) and (1,1)
+    list(q=c(0,lq,1),p=c(0,p,1))
+}
+##' @param y0 CDF values
+##' @param x0 response values (on link scale)
+##' @param nmin minimum number of values
+dfun <- function(y0,x0,
+         link=plogis,  ## transform from (-inf,inf) to [0,1]
+         invlink=qlogis,  ## transform from [0,1] to (-inf,inf)
+         d_invlink=dlogis,
+         nmin=51) {
+    if (length(y0)<nmin) {
+        ## linear interpolation
+        x0_new <- seq(min(x0),max(x0),length=nmin)
+        y0 <- approx(x0,y0,x0_new)$y
+        x0 <- x0_new
+    }
+    a <- approxfun(y0,x0)   ## approx. inverse CDF (constrained scale)
+    ## approximation of derivative (constrained scale)
+    da <- approxfun((x0[-1]+x0[-length(x0)])/2,
+                    diff(y0)/diff(x0))
+    p <- function(q) {  ## PDF
+        a(link(q))
+    }
+    d <- function(x,log=FALSE) {  ## 
+        r <- d_invlink(x)*da(link(x))
+        if (log) log(r) else r
+    }
+    r <- function(n) {
+        invlink(a(runif(n)))
+    }
+    list(p=p,d=d,r=r,a=a,da=da)
+}
+## test:
+plotfun <- function(dd,n=10000,add_logist=FALSE) {
+    hist(dd$r(n),main="",freq=FALSE,col="gray",breaks=100)
+    curve(dd$d(x),add=TRUE,lwd=2)
+    if (add_logist) curve(dlogis(x),add=TRUE,lty=2,col=2,lwd=2)
+    curve(dd0$p(x),from=-5,to=5,ylim=c(0,1))
+    if (add_logist) curve(plogis(x),add=TRUE,lty=2,col=2)
+    return(invisible(NULL))
 }
 ```
 
-Now we just need to be able to invert the results of xspline ...
-Crudely:
+Use logistic distribution as a baseline, specify that the median is at 0.2 (rather than 0):
 
-```{r plot1}
-par(las=1,bty="l")
-xspline_inv <- approxfun(xx$y,xx$x)
-ry <- qlogis(xspline_inv(runif(10000)))
-hist(ry,breaks=100,col="gray",prob=TRUE)
-curve(dlogis(x),add=TRUE,col=2,lwd=2)
+```{r fit1,fig.keep="none"}
+aug0 <- get_aug(0.2,0.5)
+plot(0:1,0:1,type="n")
+s_xspline3 <- with(aug0,xspline(q,p,shape=-0.3,draw=FALSE))
+s_xspline0 <- with(aug0,xspline(q,p,shape=0,draw=FALSE))
+q_aug <- seq(0,1,length=101)
+## pracma::spinterp doesn't work with only 3 points:
+## s_pracma <- with(aug0,spinterp(q,p,xp=q_aug))
+s_const_L <- with(aug0,approx(q,p,xout=q_aug,method="constant"))
+s_const_R <- with(aug0,approx(q,p,xout=q_aug,method="constant",f=1))
+ex1_xy <- n_list(s_xspline3,s_xspline0,s_const_L,s_const_R)
+ex1_df <- ldply(ex1_xy,data.frame)  ## put the pieces together
+```
+
+```{r ex1_gg_spline,echo=FALSE}
+ex1_gg_spline <- ggplot(ex1_df,aes(x,y,colour=.id))+geom_line()+
+     geom_abline(intercept=0,slope=1,lty=2)+
+     scale_y_continuous(expand=c(0.005,0))
+ex1_gg_spline+
+    geom_point(data=data.frame(aug0),aes(x=q,y=p),colour="black",size=2)
+```
+
+```{r ex1_calcs}
+## compute functions based on x/y values for each spline
+ex1_funs <- llply(ex1_xy,function(d) with(d,dfun(y,x)))
+qx_aug <- seq(-4,4,length=101)  ## quantiles on original scale
+## densities
+ex1_dens <- ldply(ex1_funs,
+                  function(f) data.frame(x=qx_aug,
+                                         y=f$d(qx_aug)))
+## cumulative dist. functions
+ex1_pdf <- ldply(ex1_funs,
+                  function(f) data.frame(x=qx_aug,
+                                         y=f$p(qx_aug)))
+## random samples
+ex1_rand <- ldply(ex1_funs,
+                  function(f) data.frame(x=f$r(10000)))
+```
+
+The plots look reasonable, but the constant/stepwise distribution
+functions reveal a bit of pathology when we look closely (the
+histograms of their random draws are excluded for this reason):
+the points at [0,1] on
+the link scale move off to $\pm \infty$, so disappear from the PDF
+and density functions ...
+
+```{r ex1_plots,fig.width=10,echo=FALSE,warning=FALSE}
+ex1_gg_pdf <- ggplot(ex1_pdf,aes(x,y,colour=.id))+geom_line()+
+    stat_function(fun=plogis,colour="black",lty=2)
+ex1_gg_histdens <- ggplot(ex1_dens,aes(x))+
+    geom_line(lwd=1.5,aes(y=y,colour=.id))+
+    stat_function(fun=dlogis,colour="black",lty=2)+
+    geom_histogram(data=subset(ex1_rand,!grepl("const",.id)),
+                   aes(fill=.id,y=..density..),position="identity",
+                   alpha=0.3,binwidth=0.2)
+grid.arrange(ex1_gg_pdf,ex1_gg_histdens +
+             scale_y_continuous(limit=c(0,0.3),oob=scales::squish)+
+             scale_x_continuous(limit=c(-7,7)),
+             nrow=1)
 ```
 
 Try more quantiles:
-```{r fit2}
-xvec <- c(0,0.2,0.5)
-lxvec <- plogis(xvec) ## apply link function
-qvec <- c(0.25,0.5,0.75)
-q_aug <- c(0,qvec,1)
-x_aug <- c(0,lxvec,1)
-par(las=1,bty="l",xaxs="i",yaxs="i")
-plot(x_aug,q_aug,xlab="g(x)",ylab="quantile",pch=16,xpd=NA)
-abline(a=0,b=1)
-library(splines)
-## tweak shape parameter until CDF is monotonic ...
-xx <- xspline(x_aug,q_aug,shape=-0.3,draw=FALSE)
-lines(xx,col=4)
-all(diff(xx$x)>=0)  ##  OK
-ii <- interpSpline(x_aug,q_aug)
-x_aug2 <- seq(0,1,length=101)
-lines(predict( ii, x_aug2), col=2)
+```{r fit2,fig.keep="none"}
+plot(0:1,0:1,type="n")
+aug2 <- get_aug(c(0,0.2,0.5),c(0.25,0.5,0.75))
+## DRY! but good enough for now ...
+s_xspline3 <- with(aug2,xspline(q,p,shape=-0.3,draw=FALSE))
+s_xspline0 <- with(aug2,xspline(q,p,shape=0,draw=FALSE))
+s_pracma   <- with(aug2,list(x=q_aug,y=spinterp(q,p,xp=q_aug)))
+s_const_L <- with(aug2,approx(q,p,xout=q_aug,method="constant"))
+s_const_R <- with(aug2,approx(q,p,xout=q_aug,method="constant",f=1))
+ex2_xy <- n_list(s_xspline3,s_xspline0,s_const_L,s_const_R,s_pracma)
+ex2_df <- ldply(ex2_xy,data.frame)  ## put the pieces together
 ```
 
-```{r plot2}
-par(las=1,bty="l")
-xspline_inv <- approxfun(xx$y,xx$x)
-ry <- qlogis(xspline_inv(runif(10000)))
-hist(ry,breaks=100,col="gray",prob=TRUE)
-curve(dlogis(x),add=TRUE,col=2,lwd=2)
+```{r gg_ex2,echo=FALSE}
+ex1_gg_spline %+% ex2_df +
+    geom_point(data=data.frame(aug2),aes(x=q,y=p),colour="black",size=2)
+```
+
+```{r ex2_calcs,echo=FALSE}
+## DRY ...
+## compute functions based on x/y values for each spline
+ex2_funs <- llply(ex2_xy,function(d) with(d,dfun(y,x)))
+## densities
+ex2_dens <- ldply(ex2_funs,
+                  function(f) data.frame(x=qx_aug,
+                                         y=f$d(qx_aug)))
+## cumulative dist. functions
+ex2_pdf <- ldply(ex2_funs,
+                  function(f) data.frame(x=qx_aug,
+                                         y=f$p(qx_aug)))
+## random samples
+ex2_rand <- ldply(ex2_funs,
+                  function(f) data.frame(x=f$r(10000)))
+```
+
+```{r ex2_plots,fig.width=10,echo=FALSE,warning=FALSE}
+ex2_gg_pdf <- ex1_gg_pdf %+% ex2_pdf
+inc_vals <- c("s_xspline0","s_pracma","s_xspline3")
+ex2_gg_histdens <- ggplot(subset(ex2_dens,.id %in% inc_vals),
+                                aes(x))+
+    geom_line(lwd=1,aes(y=y,colour=.id))+
+    stat_function(fun=dlogis,colour="black",lty=2)+
+    geom_histogram(data=subset(ex2_rand,.id %in% inc_vals),
+                   aes(fill=.id,y=..density..),position="identity",
+                   alpha=0.3,binwidth=0.2)
+grid.arrange(ex2_gg_pdf,ex2_gg_histdens +
+             scale_y_continuous(limit=c(0,2),oob=scales::squish)+
+             scale_x_continuous(limit=c(-7,7)),
+             nrow=1)
+```
+
+
+- `gdm` package for monotonic *interpolation* splines?
+
+
+Do we need the splines to be convex as well as unimodal ... ?
+
+```{r troubleshooting,fig.keep="none",echo=FALSE}
+i <- "s_xspline0"
+curve(ex2_funs[[i]]$a(x),from=0,to=1)
+curve(ex2_funs[[i]]$da(x),from=0,to=1)
+curve(ex2_funs[[i]]$d(x),from=-2,to=2)
+curve(ex2_funs[[i]]$da(plogis(x))*dlogis(x),from=-2,to=2)
+x0 <- s_xspline0$x
+y0 <- s_xspline0$y
+dyx <- diff(y0)/diff(x0)
+da <- approxfun((x0[-1]+x0[-length(x0)])/2,
+                )
+plot(qx_aug,ex2_funs[[i]]$d(qx_aug))
 ```
