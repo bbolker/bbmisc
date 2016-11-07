@@ -1,8 +1,16 @@
 ## https://www.freesound.org/people/primordiality/sounds/78823/
 ## https://www.freesound.org/people/kirbydx/sounds/175409/
 
+linux_and_play_available <- function() {
+    (R.version$os=="linux-gnu" &&
+     length(suppressWarnings(
+         system2("which",args="play",stdout=TRUE,stderr=TRUE)))>0)
+}
+
 .onLoad <- function(libname,pkgname) {
-  options(celebrate.sounds=list(
+  options(
+    celebrate.player=if (linux_and_play_available()) "system_play" else "audio",
+    celebrate.sounds=list(
     success=system.file("sounds",
       "78822__primordiality__fanfare-1.wav",
       package="celebrate"),
@@ -31,8 +39,19 @@ load_sounds <- function(sound_files=getOption("celebrate.sounds")) {
   assign("sound_list",sound_list,environment(print.summary.lm))
 }
 
-##' @importFrom stats coef
+
 ##' @importFrom audio play
+play_cmd <- function(outcome) {
+    player <- getOption("celebrate.player")
+    if (player=="audio") {
+        audio::play(sound_list[[outcome]])
+    } else if (player=="system_play") {
+        system2("play",args=getOption("celebrate.sounds")[[outcome]],stderr=TRUE,stdout=TRUE)
+    } else stop("unknown player option")
+    return(NULL)
+}        
+    
+##' @importFrom stats coef
 ##' @export
 print.summary.lm <- function(x,...) {
     ## CRAN will never be happy about this, but then again
@@ -42,11 +61,7 @@ print.summary.lm <- function(x,...) {
     cc <- coef(x)
     cc <- cc[rownames(cc)!="(Intercept)",,drop=FALSE]
     pvals <- cc[,"Pr(>|t|)"]
-    if (any(pvals<0.05)) {
-        audio::play(sound_list$success)
-    } else {
-        audio::play(sound_list$failure)
-    }
+    play_cmd(if (any(pvals<0.05)) "success" else "failure")
     return(invisible(x))
 }
 
