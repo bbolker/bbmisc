@@ -45,16 +45,16 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 
 # intro
 
-## acknowledgements
-
-<div class="columns-2">
+## acknowledgements {.columns-2}
 
 - "when I say 'we' ..."
 - Guillaume Blanchet
 - Anna Norberg (
 - Otso Ovaskainen (NTNU, )
+- NSERC
+- NimBIOS
 
-</div>
+
 
 # data sets
 
@@ -125,6 +125,20 @@ sp 3
 </table>
 </div>
 
+## Australian plants
+
+- 30,000 locations (600)
+- 2729 species
+- salinity, wetness, rainfall
+
+## US trees
+
+- 100,000 locations (600)
+- 590 species
+- first 3 PCA axes (out of 38 climate and soil variables)
+
+
+## 
 # model types
 
 # results
