@@ -7,6 +7,7 @@ csl: apa.csl
 output:
   ioslides_presentation
 ---
+<!-- was ioslides_presentation -->
 <!-- 
 apa.csl is a slightly hacked version of APA 
   (modified for "et al" after 2 authors in text)
@@ -74,6 +75,7 @@ library("MASS")
 library("knitr")
 library(viridis)
 opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
+knitr::opts_knit$set(rmarkdown.runtime="shiny")
 ```
 
 ## outline
@@ -92,7 +94,7 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 > - something bad about an infectious disease (*media/general public*)
 > - infectivity (*plant/molecular biology*)
 > - decrease in host fitness (*evolutionary biology*)
-> - *rate* of disease-induced mortality (*link host, parasite fitness*)
+> - *rate* of disease-induced mortality (*links host & parasite fitness*)
 
 ## other properties {.build}
 
@@ -264,34 +266,110 @@ solutions (calicivirus).
 
 Maximizing $R_0$:
 
-```{r tradeoff,fig.width=5,out.width=600}
-par(cex=1.5,lwd=2,bty="l",yaxs="i",las=1,mgp=c(2,0.5,0),
-    mar=c(3,3,1,1))
-tmpf <- function(c=5,gamma=1/3) {
-    curve(c*(pmax(0,x))^gamma,from=-2,to=5,axes=FALSE,
-          xlab="             Disease-induced mortality",ylab="",
-          xaxs="i",yaxs="i")
-    abline(v=0)
-    rect(-1,7,1,10,col="white",border=NA)
-    text("Transmission\nrate",x=0,y=8,xpd=NA)
-    axis(side=1,at=c(-2,0:5),labels=c(expression(mu),0:5))
+```{r}
+include_app("https://bbolker.shinyapps.io/virul_evol/")
+```
+            
+```{r shinyapp,eval=FALSE,message=FALSE}
+library(shiny)
+
+# Define UI for application that draws a histogram
+ui <- shinyUI(fluidPage(
+   
+   # Application title
+   titlePanel("Virulence evolution: tradeoff model"),
+   
+   # Sidebar with a slider input for number of bins 
+   sidebarLayout(
+      sidebarPanel(
+        sliderInput("c",
+                    "scale",
+                    min = 1,
+                    max = 10,
+                    value = 5),
+        sliderInput("gamma",
+                    "curvature",
+                    min = 0,
+                    max = 1,
+                    value = 1/3),
+        sliderInput("mu",
+                    "natural mortality",
+                    min = 0,
+                    max = 4,
+                    value = 2),
+        sliderInput("R0",
+                    "R0",
+                    min = 0,
+                    max = 10,
+                    value = 0),
+        checkboxInput("showOpt","showOpt",value=TRUE)
+      ),
+      
+      # Show a plot of the generated distribution
+      mainPanel(
+         plotOutput("distPlot")
+      )
+   )
+))
+
+optR0 <- function(c,gamma,mu) {
+  ## c*alpha^gamma/(mu+alpha) = c*gamma*alpha^(gamma-1)
+  ## alpha^gamma/(mu+alpha) = gamma*alpha^(gamma-1)
+  ## alpha/(mu+alpha) = gamma
+  ## alpha = gamma*(mu+alpha)
+  ## alpha*(1-gamma) = mu*gamma
+  ## alpha = mu*gamma/(1-gamma)
+  a_opt <- mu*gamma/(1-gamma)
+  R0_opt <- c*a_opt^gamma/(mu+a_opt)
+  return(c(alpha=a_opt,R0=R0_opt))
 }
-tmpf()
-Rcol <- "blue"
-rcol <- "red"
-abline(a=2,b=1,col=Rcol)
-## what is the optimal slope here?
-abline(a=2*4/3,b=4/3,col=Rcol)
-abline(a=2*5/3,b=5/3,col=Rcol)
-``` 
+tmpf <- function(c=5,gamma=1/3,mu=2) {
+  curve(c*(pmax(0,x))^gamma,from=-4,to=5,axes=FALSE,
+        xlab="             Disease-induced mortality",ylab="",
+        xaxs="i",yaxs="i",n=501,
+        ylim=c(0,10))
+  abline(v=0)
+  rect(-1,7,1,10,col="white",border=NA)
+  text("Transmission\nrate",x=0,y=8,xpd=NA)
+  axis(side=1,at=c(-mu,0:5),labels=c(expression(mu),0:5))
+}
 
-## beyond the tradeoff theory <br> [@EbertBull2003] {.build}
+server <- shinyServer(function(input, output) {
+   
+   output$distPlot <- renderPlot({
+     par(cex=1.5,lwd=2,bty="l",yaxs="i",las=1,mgp=c(2,0.5,0),
+         mar=c(3,3,1,1))
+     
+     tmpf(input$c,input$gamma,input$mu)
+     Rcol <- "blue"
+     rcol <- "red"
+     if (input$showOpt) {
+     oo <- optR0(input$c,input$gamma,input$mu)
+     abline(a=input$mu*oo["R0"],b=oo["R0"],col=Rcol,lty=2)
+     segments(oo["alpha"],0,
+              oo["alpha"],oo["R0"]*(oo["alpha"]+input$mu),
+              col=Rcol,lty=2)
+     }
+     abline(a=input$mu*input$R0,b=input$R0,col=Rcol)
+    
+     
+   })
+})
 
-> - *within-host competition* will generally increase virulence  
-(*when is this likely to happen?*)
-> - *coincidental virulence*: spillover epidemics
-> - *short-sighted evolution*: e.g. meningitis [@LevinBull1994]
-> - spatial structure/limited dispersal [@BootsMealor2007]
+# Run the application 
+shinyApp(ui = ui, server = server)
+```
+
+## the tradeoff theory and beyond {.build}
+
+> - tradeoff theory seems useful in many cases [@alizon_virulence_2009]
+> - but ... critics [@EbertBull2003]
+> - **within-host competition** will generally increase virulence  
+> -   (*when is this likely to be important?*)
+> - **coincidental virulence**: spillover epidemics
+> - **short-sighted evolution**: e.g. meningitis [@LevinBull1994]
+> - **spatial structure** [@BootsMealor2007]
+> - **transient virulence** [@bolker_transient_2010]
 > - the devil is often in the details
 
 ## testing theories
