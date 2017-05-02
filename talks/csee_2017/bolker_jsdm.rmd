@@ -93,6 +93,38 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 <img src="pix/fungus_sites.png" style="width:400px">
 </div>
 
+## UK butterflies
+
+<div style="float: left; width: 40%;">
+- 2841 10 km $\times$ 10 km grid cells
+- 55 species
+- *predictors*: # growing days > 5 C, % broadleaf woodland, % coniferous woodland, % calcareous substrates
+
+</div>
+
+<div style="float: left; width: 60%;">
+<table>
+<tr>
+<td>
+<img src="pix/butterfly1.png" style="width:150px">
+<br>
+sp 1
+<br>
+<img src="pix/butterfly2.png" style="width:150px">
+<br>
+sp 2
+<br>
+<img src="pix/butterfly3.png" style="width:150px">
+<br>
+sp 3
+</td>
+<td>
+<img src="pix/butterfly_sites.png" style="width:250px">
+</td>
+</tr>
+</table>
+</div>
+
 # model types
 
 # results
