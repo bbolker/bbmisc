@@ -138,8 +138,17 @@ sp 3
 - first 3 PCA axes (out of 38 climate and soil variables)
 
 
-## 
-# model types
+# models
+
+## Univariate (stacked)
+
+boosted regression trees, random forest, support vector machine, multivariate regression trees, MARS, gradient nearest neighbour, (mvabund)?
+
+## Joint
+
+- species archetype models
+- neural networks (MISTNET)
+- hierarchical GLM
 
 # results
 

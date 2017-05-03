@@ -7,4 +7,9 @@
 - discuss?
     - ter Braak (quadratic models)
 	- semimechanistic (still doesn't happen very much?)
-	- Dennis, Taper, Ponciano
+	- Dennis, Taper, Ponciano demography stuff
+
+## Questions for FGB
+
+- why 300 points subsampled from the big data sets? (computational limitations?)
+- want to talk about tuning decisions etc.
