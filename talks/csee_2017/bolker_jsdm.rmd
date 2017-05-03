@@ -48,13 +48,11 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 ## acknowledgements {.columns-2}
 
 - "when I say 'we' ..."
-- Guillaume Blanchet
-- Anna Norberg (
-- Otso Ovaskainen (NTNU, )
+- Guillaume Blanchet (Sherbrooke)
+- Anna Norberg (Univ of Helsinki)
+- Otso Ovaskainen (NTNU, Univ of Helsinki)
 - NSERC
 - NimBIOS
-
-
 
 # data sets
 
@@ -137,14 +135,21 @@ sp 3
 - 590 species
 - first 3 PCA axes (out of 38 climate and soil variables)
 
-
 # models
+
+## sampling {.columns-2}
+
+- hierarchical (discrete) vs. spatially explicit
+- interpolation vs extrapolation
+- large data sets subsampled
+
+<img src="pix/bakeoff_cartoon1A.png" style="width:350px">
 
 ## Univariate (stacked)
 
-boosted regression trees, random forest, support vector machine, multivariate regression trees, MARS, gradient nearest neighbour, (mvabund)?
-
-## Joint
+- **algorithmic**: boosted regression trees, random forest, support vector machine, multivariate regression trees, MARS, gradient nearest neighbour, (mvabund)?
+- 
+## Joint SDMs
 
 - species archetype models
 - neural networks (MISTNET)
