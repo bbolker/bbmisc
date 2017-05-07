@@ -48,11 +48,13 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 ## acknowledgements {.columns-2}
 
 - "when I say 'we' ..."
-- Guillaume Blanchet (Sherbrooke)
-- Anna Norberg (Univ of Helsinki)
-- Otso Ovaskainen (NTNU, Univ of Helsinki)
-- NSERC
-- NimBIOS
+- **People** 
+    - Guillaume Blanchet (Sherbrooke)
+    - Anna Norberg (Univ of Helsinki)
+    - Otso Ovaskainen (NTNU, Univ of Helsinki)
+- **Institutions** ($$$)
+    - NSERC
+    - NimBIOS
 
 # data sets
 
@@ -155,7 +157,19 @@ sp 3
 - neural networks (MISTNET)
 - hierarchical GLM
 
+## assessment statistics {.columns-2}
+
+- joint models *could* improve individual predictions ...
+- ... but more obvious effects on community-level response
+
+<img src="pix/bakeoff_cartoon2B.png" style="width:350px">
+
 # results
+
+## summary (terciles)
+
+<img src="pix/bakeoff_summ_all_A.png" style="width:700px">
+<img src="pix/bakeoff_summ_all_B.png" style="width:700px">
 
 # discussion
 
