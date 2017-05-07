@@ -61,12 +61,12 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 ## diatoms
 
 <div style="float: left; width: 40%;">
-- 7 stream systems $\times$  
+- 7 stream systems $\times$
 15 samples  
 (105 samples total)
 - 499 species
 - *predictors*: shading, % particles, moss cover, water velocity, conductance, pH, water colour, total P
-- first 4 PCA axes
+- use first 4 PCA axes
 
 </div>
 
@@ -106,15 +106,15 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 <table>
 <tr>
 <td>
-<img src="pix/butterfly1.png" style="width:150px">
+<img src="pix/butterfly1.png" style="width:150px;padding:10px">
 <br>
 sp 1
 <br>
-<img src="pix/butterfly2.png" style="width:150px">
+<img src="pix/butterfly2.png" style="width:150px;padding:10px">
 <br>
 sp 2
 <br>
-<img src="pix/butterfly3.png" style="width:150px">
+<img src="pix/butterfly3.png" style="width:150px;padding:10px">
 <br>
 sp 3
 </td>
@@ -139,23 +139,30 @@ sp 3
 
 # models
 
+## Univariate (stacked SDMs)
+
+- fit each species independently
+    - **algorithmic**: boosted regression trees, random forest, support vector machine, multivariate regression trees, MARS, gradient nearest neighbour ...
+    - **model-based**: GLM, GAM
+- community-level predictions simply aggregate individual-species results
+
+## Multivariate (joint SDMs)
+
+- fit all species simultaneously, allow +/- dependencies
+    - species archetype models (SAM)
+    - neural networks (MISTNET)
+    - hierarchical GLM (HMSC)
+- potential improvement in accuracy
+- more direct community-level predictions
+
 ## sampling {.columns-2}
 
 - hierarchical (discrete) vs. spatially explicit
 - interpolation vs extrapolation
-- large data sets subsampled
+- some large data sets subsampled
 
 <img src="pix/bakeoff_cartoon1A.png" style="width:350px">
 
-## Univariate (stacked)
-
-- **algorithmic**: boosted regression trees, random forest, support vector machine, multivariate regression trees, MARS, gradient nearest neighbour, (mvabund)?
-- 
-## Joint SDMs
-
-- species archetype models
-- neural networks (MISTNET)
-- hierarchical GLM
 
 ## assessment statistics {.columns-2}
 
@@ -171,25 +178,46 @@ sp 3
 <img src="pix/bakeoff_summ_all_A.png" style="width:700px">
 <img src="pix/bakeoff_summ_all_B.png" style="width:700px">
 
+## summary (species occupancy: Tjur $R^2$)
+
+## summary<br>(species occupancy: deviance)
+
+## summary<br>(species richness: rank correlation)
+
+## timings
+
 # discussion
+
+## SDM extensions
+
+- phylogenetic information
+- dispersal
+- multi-trophic models
 
 ## phenomenological/mechanistic
 
-- definition is context-dependent:
-the same function can be either
+- definition is context-dependent, e.g.
     - linear, quadratic
     - Michaelis-Menten/Monod/Beverton-Holt
-	- many mechanisms per phenomenon:  
+- many mechanisms per phenomenon:  
 cf. the  *Strong Law of Small Numbers* [@guy_strong_1988]
+- **semimechanistic** models
+- semimechanistic approaches (e.g @merow_developing_2011)
 
-## model-based statistics
+## model-based statistics {.columns-2}
 
-- 
 - ecological-mechanistic $\leftrightarrow$  
 model-based-statistical $\leftrightarrow$  
 algorithmic-statistical
+- tradeoffs
+     - identifiability
+	 - computational efficiency
+	 - interpretability
+	 - flexibility
 
-[CITE Breiman]
+<img src="pix/breiman.png" style="width:400px"><br>
+<img src="pix/peters2.png" style="width:150px">
+
 
 ## References {.refs}
 

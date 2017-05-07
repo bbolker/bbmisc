@@ -53,3 +53,14 @@ On the response side, probably something like overall + Tjur + Species richness 
 
 + timings.
 
+
+## GB ideas ...
+
+- mech tells us how to understand the system
+- e.g. L-V: r, K, alpha
+- we're going to focus on statistical -- which ones are good at linking?
+- want good prediction AND good understanding
+
+- extensions: phylogeny, multi-trophic, dispersal
+
+semi-mechanistic models
