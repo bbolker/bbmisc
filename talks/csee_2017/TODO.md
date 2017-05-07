@@ -13,17 +13,43 @@
 - extensions: dynamic movement (cites).
 - guilds
 - fundamental vs realized niche
+- Peters, Breiman clip
+- methodological attribution fallacy
+- "hypotheses" from paper:
+     - flexibility good for common species, doesn't help/hurts with rare species
+     - JSDMs improve community-level prediction, not indiv-level prediction (but why not? sharing strength)
+	 - spatial/hierachical structure improves prediction
 
-## formatting
+- do I have to worry about Tjur vs deviance?
+
+## formatting etc.
 
 - data pix
 - make MathJaX self-contained
+- break up new bakeoff paper picture into separate cartoons
 
 ## Questions for FGB
 
 - why subsample predictors? doesn't this handicap algorithmic approaches unduly?
-- why 300 points subsampled from the big data sets? (computational limitations?)
+- why 300 points subsampled from the big data sets? (computational limitations?) same question about 
 - want to talk about tuning decisions etc.
 - what is the purpose of using lower PC1 values for training set than validation set in butterfly data?
 - PM4 (bias in coverage): doesn't use |f-0.95| penalize undercoverage more? is this intentional?
 - how exactly do the spatial version (GAM+, GLM+) work?
+
+## Questions on new draft
+
+## To do for FGB (if code available)
+
+- pick a *subset* of methods and responses to draw graphs for: e.g.
+
+(HMSCx, MISTNET, GLMx, GAMx, BRT) -- e.g. something like the best (according to overall? criteria) method for each broad category of methods (e.g. algorithmic vs model-based, joint vs. SS). I don't yet know what all the variants of the different methods are.
+
+On the response side, probably something like overall + Tjur + Species richness rank. I don't yet know what all the variants of the different methods are.
+
+On the response side, probably something like overall + Tjur + Species richness rank. I don't yet know what all the variants of the different methods are.
+
+On the response side, probably something like overall + Tjur + Species richness rank
+
++ timings.
+
