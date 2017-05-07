@@ -178,21 +178,24 @@ sp 3
 <img src="pix/bakeoff_summ_all_A.png" style="width:700px">
 <img src="pix/bakeoff_summ_all_B.png" style="width:700px">
 
-## summary (species occupancy: Tjur $R^2$)
+## summary<br>(species occupancy: Tjur $R^2$)
+
+<img src="pix/bakeoff_sum_tjur_A.png" style="width:700px">
+<img src="pix/bakeoff_sum_tjur_B.png" style="width:700px">
 
 ## summary<br>(species occupancy: deviance)
 
-## summary<br>(species richness: rank correlation)
+<img src="pix/bakeoff_sum_deviance_A.png" style="width:700px">
+<img src="pix/bakeoff_sum_deviance_B.png" style="width:700px">
+
+## summary<br>(species richness: MSE per site)
+
+<img src="pix/bakeoff_sum_sprichMSE_A.png" style="width:700px">
+<img src="pix/bakeoff_sum_sprichMSE_B.png" style="width:700px">
 
 ## timings
 
 # discussion
-
-## SDM extensions
-
-- phylogenetic information
-- dispersal
-- multi-trophic models
 
 ## phenomenological/mechanistic
 
@@ -201,8 +204,13 @@ sp 3
     - Michaelis-Menten/Monod/Beverton-Holt
 - many mechanisms per phenomenon:  
 cf. the  *Strong Law of Small Numbers* [@guy_strong_1988]
-- **semimechanistic** models
-- semimechanistic approaches (e.g @merow_developing_2011)
+- **semimechanistic** models (e.g @merow_developing_2011)
+
+## SDM extensions
+
+- phylogenetic information
+- dispersal
+- trophic interactions
 
 ## model-based statistics {.columns-2}
 

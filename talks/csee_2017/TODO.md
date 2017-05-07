@@ -18,8 +18,9 @@
 - "hypotheses" from paper:
      - flexibility good for common species, doesn't help/hurts with rare species
      - JSDMs improve community-level prediction, not indiv-level prediction (but why not? sharing strength)
-	 - spatial/hierachical structure improves prediction
+	 - spatial/hierarchical structure improves prediction
 
+- remind def of Tjur
 - do I have to worry about Tjur vs deviance?
 
 ## formatting etc.
