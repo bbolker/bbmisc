@@ -65,3 +65,22 @@ On the response side, probably something like overall + Tjur + Species richness 
 - extensions: phylogeny, multi-trophic, dispersal
 
 semi-mechanistic models
+
+## fix
+
+horizontal spacing on breiman/peters
+
+## new GB questions
+
+- why these particular species?
+- what are the colours in the USA map?
+- what about the bird data set?
+
+## refs
+
+MISTNET
+
+## brush up on ...
+
+- model names
+- species info 

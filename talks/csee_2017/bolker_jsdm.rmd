@@ -47,7 +47,7 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 
 ## acknowledgements {.columns-2}
 
-- "when I say 'we' ..."
+- "when I say 'I' i mean 'we' ..."
 - **People** 
     - Guillaume Blanchet (Sherbrooke)
     - Anna Norberg (Univ of Helsinki)
@@ -55,6 +55,12 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 - **Institutions** ($$$)
     - NSERC
     - NimBIOS
+
+## outline
+
+- data set descriptions
+- "bake-off" of species distribution models
+      - esp. **joint** species distribution models
 
 # data sets
 
@@ -83,7 +89,7 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 (21 managed, 8 natural)
 - 22,500 samples (logs)
 - 321 species
-- *predictors*: management status, log (diameter), decay class, decay class$^2$
+- *predictors*: management status, log(diameter), decay class, decay class$^2$
 </div>
 
 <div style="float: left; width: 60%;">
@@ -107,16 +113,19 @@ opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 <tr>
 <td>
 <img src="pix/butterfly1.png" style="width:150px;padding:10px">
-<br>
-sp 1
+<div style="font-size: 10px">
+small pearl-bordered fritillary (*Boloria selene*)
+</div>
 <br>
 <img src="pix/butterfly2.png" style="width:150px;padding:10px">
-<br>
-sp 2
+<div style="font-size: 10px">
+green hairstreak (*Callophrys rubi*)
+</div>
 <br>
 <img src="pix/butterfly3.png" style="width:150px;padding:10px">
-<br>
-sp 3
+<div style="font-size: 10px">
+Holly blue (*Celastrina argiolus*)
+</div>
 </td>
 <td>
 <img src="pix/butterfly_sites.png" style="width:250px">
@@ -125,17 +134,76 @@ sp 3
 </table>
 </div>
 
-## Australian plants
+## Australian plants {.columns-2}
 
-- 30,000 locations (600)
-- 2729 species
+- 30,000 locations (600 used)
+- 2729 herbaceous species
 - salinity, wetness, rainfall
 
-## US trees
+<table>
+<tr>
+<td>
+<img src="pix/dawsonia.png" style="width:200px;padding:5px">
+<br>
+<div style="font-size: 10px">*Dawsonia longiseta*</div>
+</td>
+<td>
+<img src="pix/sclerodontium.png"  style="width:200px;padding:5px">
+<br>
+<div style="font-size: 10px">*Sclerodontium pallidum*</div>
+</td>
+</tr>
+<tr>
+<td>
+<img src="pix/abutilon.png"  style="width:200px;padding:5px">
+<br>
+<div style="font-size: 10px">*Abutilon theophrasti*</div>
+</td>
+<td>
+<img src="pix/epilobium.png"  style="width:200px;padding:5px">
+<br>
+<div style="font-size: 10px">*Epilobium hirsutum*</div>
+</td>
 
-- 100,000 locations (600)
+
+</tr>
+
+</table>
+<img src="pix/victoria.png" style="width:350px;padding:20px">
+
+
+## US trees {.columns-2}
+
+- 100,000 locations (600 used); 2000-2010
 - 590 species
 - first 3 PCA axes (out of 38 climate and soil variables)
+
+<table>
+<tr>
+<td>
+<img src="pix/larch.png" style="width:100px;padding:5px">
+<br>
+<div style="font-size: 10px">Larch</div>
+</td>
+<td>
+<img src="pix/black_spruce.png"  style="width:100px;padding:5px">
+<br>
+<div style="font-size: 10px">Black spruce</div>
+</td>
+<td>
+<img src="pix/white_spruce.png"  style="width:100px;padding:5px">
+<br>
+<div style="font-size: 10px">White spruce</div>
+</td>
+<td>
+<img src="pix/aspen.png"  style="width:100px;padding:5px">
+<br>
+<div style="font-size: 10px">Aspen</div>
+</td>
+</tr>
+</table>
+<img src="pix/USA.png" style="width:400px;padding:20px">
+
 
 # models
 
@@ -148,7 +216,7 @@ sp 3
 
 ## Multivariate (joint SDMs)
 
-- fit all species simultaneously, allow +/- dependencies
+- fit all species simultaneously, allow $\pm$ dependencies
     - species archetype models (SAM)
     - neural networks (MISTNET)
     - hierarchical GLM (HMSC)
@@ -167,7 +235,7 @@ sp 3
 ## assessment statistics {.columns-2}
 
 - joint models *could* improve individual predictions ...
-- ... but more obvious effects on community-level response
+- ... but expect more obvious effects on community-level response
 
 <img src="pix/bakeoff_cartoon2B.png" style="width:350px">
 
@@ -175,56 +243,73 @@ sp 3
 
 ## summary (terciles)
 
-<img src="pix/bakeoff_summ_all_A.png" style="width:700px">
-<img src="pix/bakeoff_summ_all_B.png" style="width:700px">
+<img src="pix/bakeoff_sum_all_Ac.png" style="width:700px">
+<img src="pix/bakeoff_sum_all_Bc.png" style="width:700px">
 
 ## summary<br>(species occupancy: Tjur $R^2$)
 
-<img src="pix/bakeoff_sum_tjur_A.png" style="width:700px">
-<img src="pix/bakeoff_sum_tjur_B.png" style="width:700px">
+<img src="pix/bakeoff_sum_tjur_Ac.png" style="width:700px">
+<img src="pix/bakeoff_sum_tjur_Bc.png" style="width:700px">
 
 ## summary<br>(species occupancy: deviance)
 
-<img src="pix/bakeoff_sum_deviance_A.png" style="width:700px">
-<img src="pix/bakeoff_sum_deviance_B.png" style="width:700px">
+<img src="pix/bakeoff_sum_deviance_Ac.png" style="width:700px">
+<img src="pix/bakeoff_sum_deviance_Bc.png" style="width:700px">
 
 ## summary<br>(species richness: MSE per site)
 
-<img src="pix/bakeoff_sum_sprichMSE_A.png" style="width:700px">
-<img src="pix/bakeoff_sum_sprichMSE_B.png" style="width:700px">
+<img src="pix/bakeoff_sum_sprichMSE_Ac.png" style="width:700px">
+<img src="pix/bakeoff_sum_sprichMSE_Bc.png" style="width:700px">
 
 ## timings
 
+<img src="pix/timings.png">
+
 # discussion
+
+## caveats
+
+- work in progress
+- methodological attribution fallacy
+- algorithmic methods handicapped?
+- fundamental vs. realized niche
+- desirable extensions:  
+dispersal, phylogenetic structure, trophic interactions
+
 
 ## phenomenological/mechanistic
 
-- definition is context-dependent, e.g.
-    - linear, quadratic
-    - Michaelis-Menten/Monod/Beverton-Holt
-- many mechanisms per phenomenon:  
-cf. the  *Strong Law of Small Numbers* [@guy_strong_1988]
-- **semimechanistic** models (e.g @merow_developing_2011)
+- context-dependent
+- many mechanisms per functional form:  
+e.g. Michaelis-Menten/Monod/Beverton-Holt  
+- **semimechanistic** models  
+(@wood_partially_2001; e.g @merow_developing_2011)
+- *linearizable* models (e.g. @dennis_estimating_2006)
+- prediction vs estimation ...
+<table>
+<tr><td>
+<img src="pix/breiman.png" style="width:300px;hspace:80px">
+</td>
+<td>
+<img src="pix/peters2.png" style="width:150px;hspace:80px">
+</td>
+</tr>
+</table>
+<div style="font-size: 10px">
+[@peters_critique_1991;@breiman_statistical_2001]
+</div>
 
-## SDM extensions
+## the way forward
 
-- phylogenetic information
-- dispersal
-- trophic interactions
-
-## model-based statistics {.columns-2}
-
-- ecological-mechanistic $\leftrightarrow$  
-model-based-statistical $\leftrightarrow$  
-algorithmic-statistical
-- tradeoffs
+- tradeoffs/constraints
      - identifiability
 	 - computational efficiency
 	 - interpretability
 	 - flexibility
-
-<img src="pix/breiman.png" style="width:400px"><br>
-<img src="pix/peters2.png" style="width:150px">
+- ecological-mechanistic $\leftrightarrow$  
+model-based-statistical (nonlinear) $\leftrightarrow$
+model-based-statistical (linear) $\leftrightarrow$  
+algorithmic-statistical
 
 
 ## References {.refs}
