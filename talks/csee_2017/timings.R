@@ -15,3 +15,19 @@ ggplot(xg,aes(time,Model,colour=taxon,group=taxon))+
   scale_x_log10()+
   labs(x="time (seconds)",y="")
 ggsave("pix/timings.png")
+
+
+pdf("compTime.pdf",width=8, height=5)
+compTime <- x[,-1]
+rownames(compTime) <- x[,1]
+for(i in 1:6){
+	par(mar=c(10,5,0.5,0.5),oma=c(0,4,0,0))
+	plot(compTime[,i],ylim=c(0,max(compTime[,i],na.rm=TRUE)),
+	     type="l",axes=FALSE,frame.plot=TRUE,ylab="",xlab="",lwd=3)
+
+	mtext("Time in minutes",side=2, outer=TRUE,cex=2.75,line=0)
+	axis(1,1:nrow(compTime),labels=rownames(compTime),las=2,cex.axis=1.5)
+	axis(2,las=2,cex.axis=1.5)
+}
+
+dev.off()

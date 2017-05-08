@@ -66,10 +66,6 @@ On the response side, probably something like overall + Tjur + Species richness 
 
 semi-mechanistic models
 
-## fix
-
-horizontal spacing on breiman/peters
-
 ## new GB questions
 
 - why these particular species?
@@ -78,7 +74,7 @@ horizontal spacing on breiman/peters
 
 ## refs
 
-MISTNET
+MISTNET?
 
 ## brush up on ...
 

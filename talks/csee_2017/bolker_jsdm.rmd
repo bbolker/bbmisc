@@ -288,10 +288,10 @@ e.g. Michaelis-Menten/Monod/Beverton-Holt
 - prediction vs estimation ...
 <table>
 <tr><td>
-<img src="pix/breiman.png" style="width:300px;hspace:80px">
+<img src="pix/breiman.png" style="width:300px;padding: 0px 50px 0px 0px">
 </td>
 <td>
-<img src="pix/peters2.png" style="width:150px;hspace:80px">
+<img src="pix/peters2.png" style="width:150px" hspace="80">
 </td>
 </tr>
 </table>
