@@ -1,0 +1,7 @@
+*-tizkDictionary
+.gitignore
+*~
+cache
+figure
+.Rhistory
+.DS_Store
