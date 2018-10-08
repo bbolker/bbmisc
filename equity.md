@@ -7,7 +7,7 @@ This is a brain dump of thoughts after attending a diversity/equity training wor
 
 ## functional vs. ethical reasons for promoting equity and diversity
 
-I got the impression that one of the main motivations for promoting equity and diversity at the university was a functional one, i.e. diverse groups perform better. (I may have been mistaken; the [Universities Canada principles](https://www.univcan.ca/media-room/media-releases/universities-canada-principles-equity-diversity-inclusion/), for example, are definitely values-based.) Using these functional arguments lets us avoid arguing over values, but I worry about them. What happens to the argument for equity if we later find out that the functional arguments are weaker than we thought? While I imagine that the evidence base for "diverse groups function better" is strong (I haven't dug into it myself), I'm concerned about the possibility for confirmation bias in this literature - people want it to be true, so it's subject to all of the usual file-drawer/QRP/etc. problems with research that has a strong normative message. I strongly prefer the *ethical* argument for equity; everyone ought to be given a fair chance.
+I got the impression that one of the main motivations for promoting equity and diversity at the university was a functional one, i.e. diverse groups perform better. (I may have been mistaken; the [Universities Canada principles](https://www.univcan.ca/media-room/media-releases/universities-canada-principles-equity-diversity-inclusion/), for example, are definitely values-based.) Using these functional arguments lets us avoid arguing over values, but I worry about them. What happens to the argument for equity if we later find out that the functional arguments are weaker than we thought? While I imagine that there's a strong evidence base for (e.g.) "diverse groups function better" (I haven't dug into it myself), I'm concerned about the possibility for confirmation bias in this literature - people want it to be true, so it's subject to all of the usual file-drawer/QRP/etc. problems with research that has a normative message. I strongly prefer the *ethical* argument for equity; everyone ought to be given a fair chance.
 
 ## equity and ecology
 
@@ -19,7 +19,7 @@ On a more abstract level, I'm interested in the analogies between the functional
 
 ## blinded applications
 
-Would it be possible to set up a system making the first stage (at least) of applicant review blinded (i.e. redact names, pronouns, other obvious clues)? This would obviously be logistically challenging, but it would at one stroke remove a huge fraction of the racial/gender cues that are subject to implicit bias at this early stage.
+Would it be possible to set up a system making the first stage (at least) of applicant review blinded (i.e. redact names, pronouns, other obvious clues)? This would obviously be logistically challenging, but it would at one stroke remove a huge fraction of the racial/gender cues that are subject to implicit bias at this early stage. (A colleague comments that this might work for gender, could be a problem if there are credentials that are associated with dominant groups - I'm not sure. What might the pitfalls be?)
 
 ## role of bias
 
@@ -43,8 +43,8 @@ Can McMaster offer assistance in finding appropriate avenues for outreach? In th
 
 ## other dimensions of diversity
 
-Grounds for discrimination [according to the Canadian human rights commission](https://www.chrc-ccdp.gc.ca/eng/content/what-discrimination
-include race, color, religion/creed, national origin/ancestry, colour, gender identity or expression, age, disability, veteran status, marital/family status, genetic characteristics, pardoned/suspended conviction. This doesn't include some common classes that are socially relevant, e.g. weight/BMI, socioeconomic status, political orientation. Is it important to take these into account? How?
+Grounds for discrimination [according to the Canadian human rights commission](https://www.chrc-ccdp.gc.ca/eng/content/what-discrimination)
+include race, color, religion/creed, national origin/ancestry, colour, gender identity or expression, age, disability, veteran status, marital/family status, genetic characteristics, pardoned/suspended conviction. This doesn't include some common classes that are socially relevant, e.g. weight/BMI, socioeconomic status (sometimes encoded/detected as "first-generation college/university"), political orientation. Is it important to take these into account? How?
 
 
 
