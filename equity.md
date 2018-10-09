@@ -1,7 +1,14 @@
 ---
 title: "thoughts about equity & diversity"
+author: "Ben Bolker"
 date: 4 October 2018
+output_format: pdf_document
+font: palatino
+fontsize: 11pt
+urlcolor: blue
 ---
+
+\includegraphics{cc.png}
 
 This is a brain dump of thoughts after attending a diversity/equity training workshop at McMaster.
 
@@ -15,7 +22,7 @@ On a more abstract level, I'm interested in the analogies between the functional
 
 - more equitable hiring finds better candidates on average (because it draws from a larger pool of previously underappreciated candidates) ["sampling effect"]
 - equitable/diverse hiring results in a broader range of approaches, which have a better chance of finding innovative research areas ["portfolio effect"/"niche differentiation"]
-- diverse *groups* work better together (I have the impression that this is the main focus of the research in business/organizational studies; I'm not sure how strongly it applies in university setting, where a great deal of work is still done individually rather than in groups)
+- diverse *groups* work better together (I have the impression that this is the main focus of the research in business/organizational studies; I'm not sure how strongly it applies in university setting, where a great deal of work is still done individually rather than in groups). This mechanism doesn't actually have a direct analogue that I know of in the ecological literature - it would have something to do with mutualistic interspecific interactions ...
 
 ## blinded applications
 
@@ -47,4 +54,12 @@ Grounds for discrimination [according to the Canadian human rights commission](h
 include race, color, religion/creed, national origin/ancestry, colour, gender identity or expression, age, disability, veteran status, marital/family status, genetic characteristics, pardoned/suspended conviction. This doesn't include some common classes that are socially relevant, e.g. weight/BMI, socioeconomic status (sometimes encoded/detected as "first-generation college/university"), political orientation. Is it important to take these into account? How?
 
 
+## IATs
 
+I found an interesting [article](https://www.thecut.com/2017/01/psychologys-racism-measuring-tool-isnt-up-to-the-job.html) on implicit association tests. It's in [The Cut](https://www.thecut.com/aboutus.html), "the premier destination for women with stylish minds" (!), which seems like an odd venue^[although when Teen Vogue is [reporting on politics](https://www.teenvogue.com/news-politics)...], but it seems thoughtful.
+
+- overall test-retest reliability of IAT = 0.55 (maybe $\approx 0.4$ for the race IAT?)
+- meta-analysis of race IAT scores: probably can't/shouldn't be used to predict *individual* behavior.
+- proponents of IAT state that it's useful "[1] as a means of estimating the level of implicit bias in society, and [2] as an educational tool" ? I think these arguments have some validity, but there's a reasonable counter-argument that IATs are more useful for their shock value (waking people up to the idea that they *may* suffer from implicit bias), rather than for their actual, quantitative meaning.
+
+The studies about bias in resume screening etc. (differential treatment of equivalent candidates with racialized/gendered/etc. identification) are **much** more convincing, because they speak directly to the context of hiring and evaluation. It would be much more work than trying out a canned IAT, but it would be *really* interesting to have people perform such an exercise - e.g., "in the next 30 minutes, rate the following 30 applicants on a scale of 1 to 5". Some challenges: (1) much more time-consuming per sample than an IAT, thus it might be difficult to get a reasonable estimate per person within a reasonable amount of time (while even population-level measures would be interesting - it would hit close to home to know e.g. that Faculty of Science professors were biased by (X)% in evaluating racialized/gendered/etc. applicants); (2) not clear whether the results would be valid if subjects know what kind of a test they're taking ... maybe they'd be extra-cautious (although of course the hope would be that they'd be even *more* cautious when evaluating real applicants). (This is one of the reasons the IAT is so attractive - measuring unconscious bias means that in principle you don't need to control the subject's awareness ...)

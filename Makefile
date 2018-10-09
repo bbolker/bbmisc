@@ -10,6 +10,9 @@
 %.tex: %.md
 	pandoc -s -S -t latex -V documentclass=tufte-handout $*.md -o $*.tex
 
+%.pdf: %.md
+	echo "rmarkdown::render(\"$<\", output_format=\"pdf_document\")" | R --slave
+
 %.pdf: %.tex
 	pdflatex --interaction=nonstopmode $*
 
