@@ -149,6 +149,8 @@ clonal or inbred lines
 - don't accept the null hypothesis
 - "the difference between significant and non-significant is not significant"
 [@gelman_difference_2006]
+- discuss p-values in terms of statistical *clarity* [@dushoff_i_2018]
+
 ```{r CIplot}
 dd <- data.frame(x=1:4,
                  y=c(0.1,0.15,1.2,1.1),
@@ -230,6 +232,9 @@ ggplot(f12,aes(x,y))+geom_point()+
   th_clean
 
 ```
+
+"Anscombe's quartet"; see also "Datasaurus" [@matejka_datasaurus_2017]
+
 </div>
 
 # statistical tests
