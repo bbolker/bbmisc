@@ -1,7 +1,7 @@
 ---
 title: statistics stuff you should think about
 author: Ben Bolker
-date:  10 November 2015
+date:  13 November 2018
 bibliography: stats.bib
 csl: reflist2.csl
 output:
