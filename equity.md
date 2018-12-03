@@ -6,6 +6,7 @@ output_format: pdf_document
 font: palatino
 fontsize: 11pt
 urlcolor: blue
+bibliography: equity.bib
 ---
 
 \includegraphics{cc.png}
@@ -63,3 +64,22 @@ I found an interesting [article](https://www.thecut.com/2017/01/psychologys-raci
 - proponents of IAT state that it's useful "[1] as a means of estimating the level of implicit bias in society, and [2] as an educational tool" ? I think these arguments have some validity, but there's a reasonable counter-argument that IATs are more useful for their shock value (waking people up to the idea that they *may* suffer from implicit bias), rather than for their actual, quantitative meaning.
 
 The studies about bias in resume screening etc. (differential treatment of equivalent candidates with racialized/gendered/etc. identification) are **much** more convincing, because they speak directly to the context of hiring and evaluation. It would be much more work than trying out a canned IAT, but it would be *really* interesting to have people perform such an exercise - e.g., "in the next 30 minutes, rate the following 30 applicants on a scale of 1 to 5". Some challenges: (1) much more time-consuming per sample than an IAT, thus it might be difficult to get a reasonable estimate per person within a reasonable amount of time (while even population-level measures would be interesting - it would hit close to home to know e.g. that Faculty of Science professors were biased by (X)% in evaluating racialized/gendered/etc. applicants); (2) not clear whether the results would be valid if subjects know what kind of a test they're taking ... maybe they'd be extra-cautious (although of course the hope would be that they'd be even *more* cautious when evaluating real applicants). (This is one of the reasons the IAT is so attractive - measuring unconscious bias means that in principle you don't need to control the subject's awareness ...)
+
+## evidence for bias against women in tenure-track faculty hiring, and efficacy of interventions.
+
+I am happy to accept that academia is biased against women in many, many ways. I have the following specific questions:
+
+- what is the evidence for how bias affects hiring *at the tenure-track level in academia*? Ideally I'd like information across many categories of concern [race, body mass, gender, political views, etc.], but male/female gender bias is the case for which we're most likely to have a reasonable body of evidence ...
+- what is the evidence for the efficacy of different kinds of interventions? How do rubrics/diversity training/implicit bias testing/etc. change hiring outcomes?
+
+So far what I've found is mixed. I have **not** searched widely, nor systematically, nor dug into the details of studies, but most of the experimental bias studies (e.g. based on having subjects score equivalent CVs with differently gendered names) I've come across focus on non-academic or medical contexts (e.g. the systematic review by @isaac_interventions_2009). The only study on the effects of interventions in academia that I've looked at (OK, glanced at) so far was about changes in *climate* (i.e., measures of perception and satisfaction rather than changes in hiring behaviour) [@carnes_effect_2015]. Surprisingly, @williams_national_2015 found empirically that female-gendered names had an *advantage* over equivalent male-gendered names in a blind study (@ceci_women_2015 found that this advantage did not overcome an actual difference in qualifications).
+
+@ceci_women_2018 concludes:
+
+> I conclude that the most important causes of underrepresentation appear to occur before women matriculate in college and are concerned with ability-related beliefs, stereotypes, and preferences starting in early elementary school, which by the end of high school have reduced the size of the potential pool. By the time women reach graduate school, there is evidence that they are as successful as their male counterparts in being interviewed and hired for tenure-track positions, funded, and published.
+
+There's obviously a lot to read here, and before forming a conclusion one should read stuff by a bunch of different researchers, but in any case this raises some questions about how much we should focus on overcoming gender bias in hiring, and what we should do about it ...
+
+## References
+
+
