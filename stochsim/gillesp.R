@@ -174,7 +174,7 @@ gtrans <- matrix(c(1,-1),ncol=1,
 sirfun <- function(state,params,time) {
   with(c(as.list(state),as.list(params)),
        c(infection=beta*S*I/N,
-         recovery=-gamma*I))
+         recovery =gamma*I))
 }
 
 sirtrans <- matrix(c(-1,1,0,
