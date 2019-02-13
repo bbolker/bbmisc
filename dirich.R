@@ -102,8 +102,9 @@ system("scp -r js css images dirich_homozyg.html ms.mcmaster.ca:~/public_html/mi
 ## TODO:
 ##  - shiny/sliders?
 ##  - add Gaussian curve?
+##  - Q-Q version?
+##  - compute moments etc.?
 
-### testing scaling etc.
 
 
 library(ggplot2); theme_set(theme_bw())
