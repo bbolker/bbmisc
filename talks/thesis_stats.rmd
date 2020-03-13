@@ -1,7 +1,7 @@
 ---
 title: statistics stuff you should think about
 author: Ben Bolker
-date:  13 November 2018
+date:  14 November 2019
 bibliography: stats.bib
 csl: reflist2.csl
 output:
@@ -14,7 +14,7 @@ apa.csl is a slightly hacked version of APA
 <!-- .refs is style for reference page (small text) -->
 <style>
 .refs {
-   font-size: 16px;
+   font-size: 14px;
 }
 h2 { 
  color: #3399ff;		
@@ -42,6 +42,7 @@ library("reshape2")
 library("ggExtra")
 library("MASS")
 library("knitr")
+library("tidyverse")
 opts_chunk$set(echo=FALSE,fig.width=4,fig.height=4,out.width=400)
 th_clean <- 
   theme(panel.spacing=grid::unit(0,"lines"),
@@ -55,12 +56,10 @@ th_clean <-
 ## outline
 
 - experimental design
-- statistical philosophy <img src="pix/scream.jpeg" style="width:50px; vertical-align:top">
+- statistical philosophy <img src="pix/scream.jpeg" style="width:80px; vertical-align:top">
 - data exploration
 - statistical tests & assumptions
 - analysis platforms
-
-[source code](https://github.com/bbolker/bbmisc/tree/master/thesis_stats)
 
 ![](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
 
@@ -77,7 +76,8 @@ you needn't worry too much in advance about statistics
 ## randomization
 
 - random *assignment to treatments*
-- poorer alternative: *haphazard* assignment
+- poorer alternative: *haphazard* assignment  
+("convenience sampling")
 - stratification  
 (i.e., randomize within groups)
 - related: experimental *blinding*
@@ -89,10 +89,10 @@ you needn't worry too much in advance about statistics
 if one exists
     - more generally: how much information? what kinds of mistakes? [@gelman_beyond_2014] 
 > - *underpowered* studies
->       - failure is likely
->       - cheating is likely
->       - *significance filter* $\to$ biased estimates
-- *overpowered* studies waste time, lives, $
+>      * failure is likely
+>      * cheating is likely
+>      * *significance filter* $\to$ biased estimates
+- *overpowered* studies waste time, lives, $$$
 > - **pseudoreplication** [@hurlbert_pseudoreplication_1984;@davies_dont_2015]
 confounding sampling units with treatment units
 
@@ -107,32 +107,59 @@ confounding sampling units with treatment units
     - seat-of-the-pants
     - [web calculators](http://homepage.stat.uiowa.edu/~rlenth/Power/)
     - in R
-```{r pow,eval=FALSE,echo=TRUE}
+```{r pow_funs,eval=FALSE,echo=TRUE}
 apropos("^power")  ## base-R functions
 library("sos"); findFn("{power analysis}")
 ```
 
-## control
+## power analysis example
 
-- maximize *desired* variation
-     - e.g. large doses  (tradeoff with biological realism)
+With $n=15$ per group, how likely are we to see a clear difference between 10% (control) and 20% (treatment) mortality?
+
+<!-- would like to highlight power: line, but too hard -->
+```{r pow,echo=TRUE}
+power.prop.test(n=15,p1=0.1,p2=0.2)
+```
+
+Uh-oh.
+
+---
+
+How many samples per group would we need to get power=0.8?
+
+```{r pow2,echo=TRUE}
+power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
+```
+
+Uh-oh.
+
+---
+
+<div style="font-size:40px; margin:auto; width:50%">
+**what should we do?**
+</div>
+
+## increasing power (control)
+
+- increase sample size (ugh)
+- maximize *desired* variation (e.g. large doses)
 - minimize *undesired* variation
-    - within-subjects designs
-        - e.g. paired, randomized-block, crossover
-- minimize environmental variation
-    - tradeoff with generality
-    - e.g. environmental chambers;  
-clonal or inbred lines
+    - *within-subjects* designs  
+	(paired, randomized-block, crossover)
+- minimize environmental variation  
+(e.g. environmental chambers; clonal or inbred lines)
 - isolate desired effects: **positive/negative controls**  
 (vehicle-only, cage treatments, etc.)
-- control for variation statistically (e.g. ANCOVA)
+- control for variation statistically  
+(e.g. include body size as a covariate)
 
 # statistical philosophy
 
 ## the other most important thing  {.build}
 
+> - **don't snoop!**  
+(= don't look at data *before deciding how to analyze it*)
 > - reproducibility crisis: @ioannidis_why_2005, @simmons_false-positive_2011
-> - **don't snoop!**
 > - pre-register; think about what your questions are and how you will test them **before you look at your data**
 
 ## scientific hell
@@ -145,7 +172,7 @@ clonal or inbred lines
 <!-- spacing? -->
 
 - focus on effect sizes/CIs
-- eschew vacuous hypothesis statements
+- eschew vacuous hypotheses
 - don't accept the null hypothesis
 - "the difference between significant and non-significant is not significant"
 [@gelman_difference_2006]
@@ -160,22 +187,70 @@ dd <- transform(dd,
         pval=signif(2*pnorm(-y/(err/1.96),
                      lower.tail=TRUE),1))
 oldOpt <- options(scipen=1000)
-ggplot(dd,aes(x,y,ymin=y-err,ymax=y+err,
+gg0 <- ggplot(dd,aes(x,y,ymin=y-err,ymax=y+err,
               colour=special))+
   geom_pointrange()+
   geom_hline(yintercept=0,lty=2)+
-  th_clean+labs(x="",y="")+
-  scale_colour_manual(values=c("black","red"),
-                      guide=FALSE)+
-  geom_text(aes(x=x,y=y+err+0.1,colour=special,
-                label=paste0("p=",pval)))+
-  expand_limits(x=c(0.5,4.3))
+  th_clean+labs(x="some treatments",y="some response")+
+  expand_limits(x=c(0.5,4.3),y=c(0,1.5)) 
+(gg0  +   scale_colour_manual(values=c("black","black"),
+                      guide=FALSE))
+```
+
+</div>
+
+<!-- fake animation (double slide) -->
+
+## don't lean on p-values too much
+
+<div class="columns-2">
+<!-- spacing? -->
+
+- focus on effect sizes/CIs
+- eschew vacuous hypotheses
+- don't accept the null hypothesis
+- "the difference between significant and non-significant is not significant"
+[@gelman_difference_2006]
+- discuss p-values in terms of statistical *clarity* [@dushoff_i_2018]
+
+```{r CIplot2}
+(gg0 +  geom_text(aes(x=x,y=y+err+0.1,colour=special,
+                      label=paste0("p=",pval)))
+  +   scale_colour_manual(values=c("black","red"),
+                      guide=FALSE))
 
 ```
 
 </div>
 
 
+## tables vs coefficient plots
+
+1978 automobile data [@chambers_graphical_1983]
+
+<div style="font-size:18px">
+```{r lm1,message=FALSE}
+auto <- haven::read_dta("auto.dta") %>%
+  mutate(price=price/1000)
+lm1 <- lm(price~mpg+trunk+length+turn, data=auto)
+huxtable::huxreg(lm1,error_pos="right")
+```
+</div>
+## coefficient plot
+
+```{r dw,out.width=500,message=FALSE}
+tt <- broom::tidy(lm1) 
+(dotwhisker::dwplot(lm1)
+  + geom_vline(xintercept=0,lty=2)
+  + labs(x="standardized effect on price (US$1000)")
+  + scale_colour_manual(values="black")
+  + scale_y_discrete(
+      breaks=c("mpg","trunk","length","turn"),
+      labels=c("mileage","trunk\nspace",
+               "length","turning\nradius"))
+)
+```
+<!-- 
 # data exploration 
 
 ## descriptive statistics
@@ -237,6 +312,8 @@ ggplot(f12,aes(x,y))+geom_point()+
 
 </div>
 
+-->
+
 # statistical tests
 
 ## assumptions
@@ -262,22 +339,26 @@ they answer the wrong question
     - Q-Q plots (Normality)
     - Box-Cox plots (transformations)
 
-## diagnostics  {.centered}
+## (the data set)  {.centered}
 
-```{r diag_ex,fig.width=7,fig.height=7,out.width=600}
+```{r make_data, echo=FALSE}
 set.seed(101)
 n <- 50
 dd_bad <- data.frame(x=1:n)
 dd_bad <- transform(dd_bad,y=0.1*x^2+x*rt(n,4))
 m1 <- lm(y~x,dd_bad)
-par(mfrow=c(2,2),las=1,mgp=c(2,1,0),mar=c(4,3,0.5,0.5),oma=c(0,0,2,0))
-plot(m1)
 ```
-
-## (the data set)  {.centered}
 
 ```{r data_bad}
 ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm")
+```
+
+## diagnostics  {.centered}
+
+
+```{r diag_ex,fig.width=7,fig.height=7,out.width=600}
+par(mfrow=c(2,2),las=1,mgp=c(2,1,0),mar=c(4,3,0.5,0.5),oma=c(0,0,2,0))
+plot(m1)
 ```
 
 ## dealing with violations
@@ -367,11 +448,11 @@ t.test(x1,x2)
 ## Further resources
 
 - *Nature* web collection, ["Statistics for Biologists"](http://www.nature.com/collections/qghhqm)
-- [UCLA statistics consulting](http://www.ats.ucla.edu/stat/) (many examples in SAS, SPSS, R ...)
+- [UCLA statistics consulting](http://stats.idre.ucla.edu/other/dae) (many examples in SAS, SPSS, R ...)
 - [CrossValidated](http://stats.stackexchange.com)
+- [bio data lunch](https://mailman.mcmaster.ca/mailman/listinfo/biodatalunch-l)
+- [source code for this talk](https://github.com/bbolker/bbmisc/tree/master/thesis_stats)
 
 <!-- http://stackoverflow.com/questions/30990262/applying-css-to-make-code-smaller-in-ioslides-style -->
 
 ## References {.refs}
-
-

@@ -81,5 +81,3 @@ So far what I've found is mixed. I have **not** searched widely, nor systematica
 There's obviously a lot to read here, and before forming a conclusion one should read stuff by a bunch of different researchers, but in any case this raises some questions about how much we should focus on overcoming gender bias in hiring, and what we should do about it ...
 
 ## References
-
-

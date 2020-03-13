@@ -2,7 +2,9 @@
 title: "CIs on ordinal prob predictions"
 author: "Ben Bolker"
 date: "`r format(Sys.time(),'%d %b %Y')`"
-output: html_document
+output:
+  html_document:
+    code_download: true
 ---
 
 # Introduction

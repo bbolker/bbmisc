@@ -105,7 +105,7 @@ ggplot(dd,aes(R0,val))+geom_line(aes(colour=metric))+
 
 For example: starting from $\rzero=3$, a 10% decrease in $\rzero$ leads to a `r cmpfun()`% decrease in the epidemic peak but only a `r cmpfun(finalsize)`% decrease in final size.
 
-- Mention Smaldino, [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
+- Mention [Smaldino](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/), [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
 - Try to use slightly more realistic/real-world parameters?
 - Discuss timing of interventions?
 - cite Shea/Ebola paper on outcome criteria?
