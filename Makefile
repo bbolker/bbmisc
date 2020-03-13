@@ -7,6 +7,14 @@ current: target
 
 ######################################################################
 
+## Content
+
+peak_I.html: peak_I.rmd
+
+######################################################################
+
+## Rules from Bolker
+
 %.html: %.rmd
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
 
