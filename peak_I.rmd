@@ -1,0 +1,146 @@
+---
+title: "Some 'flattening the curve' math"
+---
+
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+```{r pkgs,message=FALSE}
+library(deSolve)
+library(ggplot2); theme_set(theme_bw())
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(colorspace)
+library(viridis)
+library(emdbook)
+```
+
+```{r defs}
+sirgrad <- function(t,y,p) {
+    g <- with(as.list(c(y,p)),
+    {
+        c(S=-R0*gamma*S*I,
+          I=gamma*I*(R0*S-1),
+          R=gamma*I)
+    })
+    return(list(g))
+}
+calc_sir <- function(R0=2,
+                     gamma=1,
+                     X0=c(S=0.995,I=0.005,R=0),
+                     times=seq(0,18,length=101)) {
+  r1 <- ode(y=X0,
+            func=sirgrad,
+            times=times,
+            parms=c(R0=R0,gamma=gamma))
+  r2 <- (r1 %>% as.data.frame()
+    %>% as_tibble()
+    %>% pivot_longer(-time, names_to="var")
+  )
+  return(r2)
+}
+```
+\newcommand{\rzero}{{\cal R}_0}
+\usepackage{amsmath}
+
+"Flattening the curve" is a widespread, useful. It emphasizes that the main goal of social distancing and other epidemic control measures is to reduce the number of severely ill COVID-19 patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
+
+For example, [here](https://ourworldindata.org/coronavirus#flattening-the-curve)):
+
+> [The goal of epidemic control measures] is to lower the rate of infection so that the epidemic is spread out over time and the peak demand for the health care system is lower. While the total number who get infected might not change, the containment measures intend to avoid an outbreak trajectory in which a large number of people get sick at the same time. This is what the visualization shows.
+
+Also see [this graphic](https://twitter.com/alxrdk/status/1237021885239635969) (based on Gamma distributions).
+
+However, it's actually surprisingly hard to reconcile these pictures (slower epidemics with the same total area under the curve) with simple epidemiological models; if you slow an epidemic down without reducing the total number of people infected (called the "final size"), you will *not* reduce the maximum number of infected people at the peak of the epidemic.
+
+The simplest epidemic model (called an "SIR" model because it divides the population into numbers that are \textbf{S}usceptible, \textbf{I}nfected, and \textbf{R}ecovered) has only two parameters, the transmission rate $\beta$ that describes how fast infected people pass on their infection to susceptibles, and the recovery rate $\gamma$ that describes how fast people stop being infected (the infectious period is $1/\gamma$). Social distancing and hand-washing reduce $\beta$; effective detection and isolation of infected people increase $\gamma$ (people who are isolated are the same as people who have recovered, from an epidemiological point of view). We sometimes describe epidemics in terms of $\rzero=\beta/\gamma$, the average number of secondary infections caused by one infected person if everyone else is susceptible.
+
+Here are epidemic curves for varying $\rzero$:
+
+```{r sirpred2}
+Rvec <- seq(3,1.1,length=5)
+names(Rvec) <- Rvec
+all_I <- (purrr::map_dfr(Rvec,calc_sir,.id="R0")
+  %>% filter(var=="I")
+  %>% mutate(R0=as.numeric(R0))
+)
+ggplot(all_I,aes(time,value))+geom_line(aes(colour=R0,group=R0)) +
+  scale_color_gradient(high="red",low="blue")+theme_classic()
+```
+
+The epidemic slows down, but the size of the epidemic definitely decreases at the same time (i.e., the area under the slower curves is smaller).
+
+**fixme**: add direct labels?
+
+It turns out we can actually solve the equations directly to compute the height of the peak and the final size, and both depend *only* on $\rzero$ (assuming that the epidemic starts with a very small fraction of the total population infected). So if the final size stays the same, that must mean that $\rzero$ hasn't changed - which also means that the peak doesn't change. However, the final size and the peak height change at different rates: the final size drops off slowly at first, while the peak drops more or less linearly (the peak size does start to saturate as we get to larger $\rzero$ ranges typical of measles or malaria).
+
+$\hat I = 1-(1+\log(\rzero))/\rzero$ vs. $R_{\infty} = 1+W(-\rzero \exp(-\rzero))/\rzero$
+
+Can we state approximations that are understandable?  Compute the second derivatives?
+
+```{r funs}
+peak_I <- function(R0,i0=0,s0=1-i0) {
+    C <- i0-1/R0*log(s0) + s0
+    log(1/R0)/R0-1/R0+C
+}
+finalsize <- function(R0) {
+  1+1/R0*lambertW(-R0*exp(-R0))
+}
+cmpfun <- function(fun=peak_I,R0=3,decr=0.9) {
+  round(100*(1-fun(R0*decr)/fun(R0)))
+}
+```
+
+```{r peak_size_compare}
+R0vec2 <- seq(1.1,3,length=101)
+dd <- bind_rows(list(peak=tibble(R0=R0vec2,val=peak_I(R0vec2)),
+                     final_size=tibble(R0=R0vec2,val=finalsize(R0vec2))),
+                .id="metric")
+ggplot(dd,aes(R0,val))+geom_line(aes(colour=metric))+
+  facet_wrap(~metric,scale="free_y")+theme(legend.pos="none") +
+  scale_x_reverse()
+```
+
+For example: starting from $\rzero=3$, a 10% decrease in $\rzero$ leads to a `r cmpfun()`% decrease in the epidemic peak but only a `r cmpfun(finalsize)`% decrease in final size.
+
+- Mention Smaldino, [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
+- Try to use slightly more realistic/real-world parameters?
+- Discuss timing of interventions?
+- cite Shea/Ebola paper on outcome criteria?
+
+---
+
+
+$$
+\begin{split}
+I & = \gamma/\beta \log(S)-S +C \\
+& [C=I(0)-\gamma/\beta*log(S(0))+S(0)] \\
+	& \to \log(S)/\rzero -S + C \\
+\end{split}
+$$
+
+($C \approx 1$  for $S(0) \approx N=1$)
+
+Peak at
+
+$$
+\begin{split}
+dI/dS = 1/(\rzero S) - 1 & = 0 \\
+S & = 1/\rzero \\
+I & = \log(1/\rzero)/\rzero-1/\rzero+1
+\end{split}
+$$
+
+---
+
+```{r}
+if (require(venneuler)) {
+  vd <- venneuler(c(math=0.3, covid=10, epi=0.05, "math&epi"=1,
+                    "math&epi&covid"=0.05,"covid&epi"=0.05,"math&covid"=1))
+  plot(vd)
+}
+```
+
+(Can't figure out how the weights work. Wanted to express "lots of people interested in COVID; a few people are interested in math; a tiny number are epidemiological modellers; this is for the people who are interested in both (and aren't already modellers.)
