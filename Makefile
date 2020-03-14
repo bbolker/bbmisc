@@ -13,7 +13,7 @@ rmdfiles = $(wildcard *.rmd)
 rmdh = $(rmdfiles:%.rmd=%.html)
 
 Sources += $(rmdfiles)
-gnore += $(rmdh)
+Ignore += $(rmdh)
 
 peak_I.html: peak_I.rmd
 peak_I_simple.html: peak_I_simple.rmd
