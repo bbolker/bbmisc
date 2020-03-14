@@ -125,11 +125,17 @@ ggplot(dd,aes(R0,val))+geom_line(aes(colour=metric))+
 ```
 
 ```{r peak_size_compare_plot_2}
-(ggplot(filter(dd,metric!="peak_t"),
+dd2 <- (dd
+  %>% filter(metric!="peak_t")
+  %>% ungroup()
+  %>% mutate(metric=forcats::fct_recode(factor(metric),
+                         final="final_size",peak="peak_I"))
+)
+(ggplot(dd2,
         aes(reduce,rel_val))
   + geom_line(aes(colour=metric),lwd=2)
-  + geom_dl(method="last.bumpup",aes(label=metric))
-  + scale_colour_discrete_qualitative(labels=c("total","peak"))
+  + geom_dl(method="last.bumpup",aes(label=metric,x=reduce+0.01))
+  + scale_colour_discrete_qualitative()
   + scale_x_continuous(
       name="Reduction in transmission\n(strength of social distancing)",
       label=scales::label_percent(accuracy=1))
