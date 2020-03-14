@@ -1,0 +1,133 @@
+---
+title: "Flattening, slowing, or shrinking the curve?"
+---
+
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+```{r pkgs,message=FALSE}
+library(deSolve)
+library(ggplot2); theme_set(theme_bw())
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(colorspace)
+library(viridis)
+library(emdbook)
+library(cowplot)
+```
+
+```{r params}
+base_R0 <- 2
+double <- 6
+r <- double/log(2)
+## doubling time = 6 days = 0.7/r
+## r = 8.6
+## b-g = 8.6
+## b/g = 2
+## R0*g-g=r
+## g*(R0-1)=r
+## g= r/(R0-1) = 8.6
+base_gamma <- r/(base_R0-1)
+max_time <- 5*base_gamma
+base_decr <- 0.8 ## baseline decrease in R0
+```
+
+```{r defs}
+sirgrad <- function(t,y,p) {
+    g <- with(as.list(c(y,p)),
+    {
+        c(S=-R0*gamma*S*I,
+          I=gamma*I*(R0*S-1),
+          R=gamma*I)
+    })
+    return(list(g))
+}
+calc_sir <- function(R0=2,
+                     gamma=1,
+                     X0=c(S=0.995,I=0.005,R=0),
+                     nt=101,
+                     times=seq(0,max_time,length=nt)) {
+  r1 <- ode(y=X0,
+            func=sirgrad,
+            times=times,
+            parms=c(R0=R0,gamma=gamma))
+  r2 <- (r1 %>% as.data.frame()
+    %>% as_tibble()
+    %>% pivot_longer(-time, names_to="var")
+  )
+  return(r2)
+}
+```
+\newcommand{\rzero}{{\cal R}_0}
+\usepackage{amsmath}
+
+"Flattening the curve" is a widespread, useful. It emphasizes that the main goal of social distancing and other epidemic control measures is to reduce the number of severely ill COVID-19 patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
+
+For example, [here](https://ourworldindata.org/coronavirus#flattening-the-curve)):
+
+> [The goal of epidemic control measures] is to lower the rate of infection so that the epidemic is spread out over time and the peak demand for the health care system is lower. While the total number who get infected might not change, the containment measures intend to avoid an outbreak trajectory in which a large number of people get sick at the same time. This is what the visualization shows.
+
+Also see [this graphic](https://twitter.com/alxrdk/status/1237021885239635969) (based on Gamma distributions).
+
+Part of this explanation is actually wrong: mitigation methods *do* reduce the total number of people who get infected over the course of the epidemic. But the main point - that the maximum number of people who are infected at the same time is more important than the eventual number of infected - is still right.
+
+Very simple epidemic models tell us that 
+
+
+```{r funs}
+peak_I <- function(R0=base_R0,i0=0,s0=1-i0) {
+    C <- i0-1/R0*log(s0) + s0
+    log(1/R0)/R0-1/R0+C
+}
+finalsize <- function(R0=base_R0) {
+  1+1/R0*lambertW(-R0*exp(-R0))
+}
+cmpfun <- function(fun=peak_I,R0=base_R0,decr=base_decr) {
+  round(100*(1-fun(R0*decr)/fun(R0)))
+}
+peak_t <- function(R0=base_R0,gamma=1) {
+  tt <- (calc_sir(R0=R0,gamma=gamma,nt=501)
+    %>% filter(var=="I")
+    %>% filter(value==max(value))
+    %>% pull(time)
+  )
+  return(tt)
+}
+Peak_t <- Vectorize(peak_t,"R0")
+```
+
+```{r peak_size_compare,cache=TRUE}
+R0vec2 <- seq(1.1,base_R0,length=101)
+names(R0vec2) <- R0vec2
+dd <- bind_rows(list(peak_I=tibble(R0=R0vec2,val=peak_I(R0vec2)),
+                     final_size=tibble(R0=R0vec2,val=finalsize(R0vec2)),
+                     peak_t=tibble(R0=R0vec2,val=Peak_t(R0vec2))),
+                .id="metric")
+```
+
+```{r peak_size_compare_plot}
+ggplot(dd,aes(R0,val))+geom_line(aes(colour=metric))+
+  facet_wrap(~metric,scale="free_y")+theme(legend.pos="none") +
+  scale_x_reverse() + scale_y_continuous(name="",limits=c(0,NA)) +
+  geom_vline(xintercept=base_R0*base_decr,lty=2)
+```
+
+**fixme**: 
+
+- final size, peak I in terms of cases/severe cases/etc.
+- secondary x-axis showing relative amount of control?  
+- Is drop in peak time artefactual?
+- Not that it matters, but is there a more efficient way to numerically solve for the peak time?
+- Banking/45 degree slope in peak I?
+- Check peak time calculation, numbers seem weird.
+
+For example: starting from $\rzero=`r base_R0`$, a 20% decrease in $\rzero$ [NOTE this is 40% of the way to full control at $\rzero=1$] leads to a `r cmpfun()`% decrease in the epidemic peak (and a `r -cmpfun(peak_t)`% increase in the time until the peak) but only a `r cmpfun(finalsize)`% decrease in final size.
+
+- Mention [Smaldino](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/), [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
+- Use more realistic/real-world parameters? ($\rzero=2.5$, doubling time=6 days ...)
+- Discuss timing of interventions?
+- cite Shea/Ebola paper on outcome criteria?
+- more refs: https://twitter.com/trvrb/status/1237934525281259521
+
