@@ -16,6 +16,15 @@ library(colorspace)
 library(viridis)
 library(emdbook)
 library(cowplot)
+library(directlabels)
+## sudo apt-get install  libavfilter-dev
+## sudo add-apt-repository -y ppa:cran/ffmpeg-3
+## sudo apt-get update
+## sudo apt-get dist-upgrade ## ????
+
+## https://github.com/ropensci/av/issues/6
+
+library(av)
 ```
 
 ```{r params}
@@ -98,13 +107,22 @@ peak_t <- function(R0=base_R0,gamma=1) {
 Peak_t <- Vectorize(peak_t,"R0")
 ```
 
-```{r peak_size_compare,cache=TRUE}
+```{r peak_size_calc,cache=TRUE}
 R0vec2 <- seq(1.1,base_R0,length=101)
 names(R0vec2) <- R0vec2
-dd <- bind_rows(list(peak_I=tibble(R0=R0vec2,val=peak_I(R0vec2)),
+dd <- (bind_rows(list(peak_I=tibble(R0=R0vec2,val=peak_I(R0vec2)),
                      final_size=tibble(R0=R0vec2,val=finalsize(R0vec2)),
                      peak_t=tibble(R0=R0vec2,val=Peak_t(R0vec2))),
-                .id="metric")
+                 .id="metric")
+)
+```
+
+```{r mutate}
+dd <- (dd
+  %>% mutate(reduce=(1-R0/base_R0))
+  %>% group_by(metric)
+  %>% mutate(rel_val=val/max(val))
+)
 ```
 
 ```{r peak_size_compare_plot}
@@ -114,20 +132,76 @@ ggplot(dd,aes(R0,val))+geom_line(aes(colour=metric))+
   geom_vline(xintercept=base_R0*base_decr,lty=2)
 ```
 
-**fixme**: 
+```{r peak_size_compare_plot_2}
+dd2 <- (dd
+  %>% filter(metric!="peak_t")
+  %>% ungroup()
+  %>% mutate(metric=forcats::fct_recode(factor(metric),
+                         final="final_size",peak="peak_I"))
+)
+(ggplot(dd2,
+        aes(reduce,rel_val))
+  + geom_line(aes(colour=metric),lwd=2)
+  + geom_dl(method="last.bumpup",aes(label=metric,x=reduce+0.01))
+  + scale_colour_discrete_qualitative()
+  + scale_x_continuous(
+      name="Reduction in transmission\n(strength of social distancing)",
+      label=scales::label_percent(accuracy=1))
+  + scale_y_continuous(limits=c(0,NA),
+                       name="Reduction in cases",
+                       label=scales::label_percent())
+  + geom_vline(xintercept=1-base_decr,lty=2)
+  + theme(legend.position="none")
+  + expand_limits(x=0.5)
+)
+```
 
-- final size, peak I in terms of cases/severe cases/etc.
-- secondary x-axis showing relative amount of control?  
+
+For example: starting from $\rzero=`r base_R0`$, a 20% decrease in $\rzero$ [NOTE this is 40% of the way to full control at $\rzero=1$] leads to a `r cmpfun()`% decrease in the epidemic peak (and a `r -cmpfun(peak_t)`% increase in the time until the peak) but only a `r cmpfun(finalsize)`% decrease in final size.
+
+
+## fixme
+
+- secondary x-axis showing relative amount of control/$\rzero$? 
 - Is drop in peak time artefactual?
 - Not that it matters, but is there a more efficient way to numerically solve for the peak time?
 - Banking/45 degree slope in peak I?
 - Check peak time calculation, numbers seem weird.
 
-For example: starting from $\rzero=`r base_R0`$, a 20% decrease in $\rzero$ [NOTE this is 40% of the way to full control at $\rzero=1$] leads to a `r cmpfun()`% decrease in the epidemic peak (and a `r -cmpfun(peak_t)`% increase in the time until the peak) but only a `r cmpfun(finalsize)`% decrease in final size.
 
+## to include?
+
+- plot 1 showing 'flatten the curve' plot with actual SIR solutions?
 - Mention [Smaldino](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/), [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
-- Use more realistic/real-world parameters? ($\rzero=2.5$, doubling time=6 days ...)
 - Discuss timing of interventions?
 - cite Shea/Ebola paper on outcome criteria?
 - more refs: https://twitter.com/trvrb/status/1237934525281259521
 
+## animation
+
+Not finished:
+
+- opposite direction (
+
+```{r animation_calc}
+library(gganimate)
+all_I <- (purrr::map_dfr(R0vec2,calc_sir,.id="R0")
+  %>% filter(var=="I")
+  %>% mutate(R0=as.numeric(R0))
+)
+gg0 <- ggplot(all_I,aes(time,value))+geom_line(aes(colour=R0,group=R0)) +
+  scale_color_gradient(high="red",low="blue")+theme_classic() 
+```
+
+```{r animate_render,eval=FALSE}
+if (require("gifski")) {
+    ## animate it over years
+  gg1 <- gg0 + gganimate::transition_states(R0,
+                      transition_length = 1, state_length = 1) +
+    gganimate::ease_aes('cubic-in-out') +
+    ggtitle('R0 = {closest_state}' )
+
+  animate(gg1, renderer=av_renderer())
+  anim_save("R0.gif")
+  ## gg1A <- animate(gg1,renderer=ffmpeg_renderer())
+}
