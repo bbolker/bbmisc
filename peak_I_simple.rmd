@@ -23,8 +23,6 @@ library(directlabels)
 ## sudo apt-get dist-upgrade ## ????
 
 ## https://github.com/ropensci/av/issues/6
-
-library(av)
 ```
 
 ```{r params}
@@ -75,25 +73,16 @@ calc_sir <- function(R0=2,
 \usepackage{amsmath}
 
 Flatten-the-curve](https://ourworldindata.org/coronavirus#flattening-the-curve) is a [pervasive](https://twitter.com/hashtag/FlattenTheCurve) and useful idea. 
-It encapsulates many of the reasons why it's important to take steps to limit the spread of Coronavirus even if we don't think we can stop it from spreading around the world:
-even if the epidemic can't be stopped, epidemic control measures could reduce the number of severely ill patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
+It explains why it's important to take steps to limit the spread of Coronavirus even if we don't think we can stop it from spreading around the world:
+even if we can't stop the epidemic, epidemic control measures can reduce the number of severely ill patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
 
-But if you like to think mechanistically, you may wonder how (or if) it's possible that interventions which can't limit the long-term reach of the epidemic can limit the peak size.
+But if you like to think mechanistically, you may wonder how (or if) it's possible that interventions that can't limit the long-term reach of the epidemic can limit the peak size.
 
 Very simple models of disease spread, whose basic ideas go back a century, illuminate the sense in which this intuition is partly right, but also importantly wrong.
 
-This objection is right in the sense that the interventions being contemplated likely need to reduce transmission in order to limit the height of the epidemic peak. And limiting transmission is also expected to limit the total size of the outbreak.
+It is right in the sense that the interventions such as social distancing will reduce transmission and thus flatten the epidemic peak. It is wrong in the sense that limiting transmission will not just spread and slow the epidemic; it is also expected to limit the total size of the outbreak.
 
-But the reason that #FlattenTheCurve is nonetheless important is that we expect peak height to be far more sensitive to reductions in transmission than total epidemic size.
-
-
-
-> [The goal of epidemic control measures] is to lower the rate of infection so that the epidemic is spread out over time and the peak demand for the health care system is lower. While the total number who get infected might not change, the containment measures intend to avoid an outbreak trajectory in which a large number of people get sick at the same time. This is what the visualization shows.
-
-Also see [this graphic](https://twitter.com/alxrdk/status/1237021885239635969) (based on Gamma distributions).
-
-Part of this explanation is actually wrong: mitigation methods *do* reduce the total number of people who get infected over the course of the epidemic. But the main point - that the maximum number of people who are infected at the same time is more important than the eventual number of infected - is still right.
-
+But #FlattenTheCurve is nonetheless important because **epidemic control measures have a much stronger effect on peak height than on total epidemic size**.
 
 ```{r funs}
 peak_I <- function(R0=base_R0,i0=0,s0=1-i0) {
@@ -191,7 +180,10 @@ For example: starting from $\rzero=`r base_R0`$, a 20% decrease in $\rzero$ [NOT
 
 Not finished:
 
-- opposite direction (
+- opposite direction (increasing control/decreasing $\rzero$)
+- include $\rzero=2$ curve as fixed reference
+- fill with 'final' colour from previous
+- reference line 
 
 ```{r animation_calc}
 library(gganimate)
@@ -204,7 +196,7 @@ gg0 <- ggplot(all_I,aes(time,value))+geom_line(aes(colour=R0,group=R0)) +
 ```
 
 ```{r animate_render,eval=FALSE}
-if (require("gifski")) {
+if (require("gifski") && require("av")) {
     ## animate it over years
   gg1 <- gg0 + gganimate::transition_states(R0,
                       transition_length = 1, state_length = 1) +
@@ -215,3 +207,23 @@ if (require("gifski")) {
   anim_save("R0.gif")
   ## gg1A <- animate(gg1,renderer=ffmpeg_renderer())
 }
+```
+
+## random peak thoughts
+
+From @joschabach "deadly delusion" post on Medium.
+
+Suppose 
+
+- the US limit is 170K critically ill patients
+- 6% of cases are critically ill
+- US has 3e8 people
+- so we need to stay below 1.7e5*/0.06/3e8 ~ 1% of the population ill
+
+```{r}
+uniroot(function(x) peak_I(x)-0.01,interval=c(1,2))
+```
+
+- peak = (R0-1)*0.15
+- peak ICU: 3e8*0.06*peak
+- 10% reduction in R0 = reduction of 0.2*0.15*3e7*0.06
