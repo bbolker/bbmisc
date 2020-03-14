@@ -1,7 +1,12 @@
 *-tizkDictionary
 .gitignore
 *~
+\#*
+.#*
 cache
 figure
 .Rhistory
 .DS_Store
+*_cache
+*_files
+*_beamer-tikzDictionary
