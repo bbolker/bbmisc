@@ -9,7 +9,16 @@ current: target
 
 ## Content
 
+rmdfiles = $(wildcard *.rmd)
+rmdh = $(rmdfiles:%=%.html)
+
+Sources += $(rmdfiles)
+Ignore += $(rmdh)
+
 peak_I.html: peak_I.rmd
+peak_I_simple.html: peak_I_simple.rmd
+
+peak_reduction.Rout: peak_reduction.R
 
 ######################################################################
 
