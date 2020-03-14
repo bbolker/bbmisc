@@ -84,7 +84,7 @@ But if you like to think mechanistically, you may wonder how (or if) it's possib
 
 Very simple models of disease spread, whose basic ideas go back a century, illuminate the sense in which this intuition is partly right but also importantly wrong.
 
-It is right in the sense that the interventions such as social distancing will reduce transmission and thus flatten the epidemic peak. It is wrong in the sense that limiting transmission will not just spread and slow the epidemic; it also limits the total size of the outbreak.
+It is right in the sense that the interventions such as social distancing will reduce transmission and thus flatten the epidemic peak. It is wrong in the sense that limiting transmission will not just flatten and slow the epidemic; it also limits the total size of the outbreak.
 
 But #FlattenTheCurve is nonetheless important because **epidemic control measures have a much stronger effect on peak height than on total epidemic size**.
 
