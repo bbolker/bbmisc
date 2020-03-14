@@ -15,6 +15,7 @@ library(purrr)
 library(colorspace)
 library(viridis)
 library(emdbook)
+library(cowplot)
 ```
 
 ```{r defs}
@@ -30,7 +31,8 @@ sirgrad <- function(t,y,p) {
 calc_sir <- function(R0=2,
                      gamma=1,
                      X0=c(S=0.995,I=0.005,R=0),
-                     times=seq(0,18,length=101)) {
+                     nt=101,
+                     times=seq(0,18,length=nt)) {
   r1 <- ode(y=X0,
             func=sirgrad,
             times=times,
@@ -60,14 +62,14 @@ The simplest epidemic model (called an "SIR" model because it divides the popula
 Here are epidemic curves for varying $\rzero$:
 
 ```{r sirpred2}
-Rvec <- seq(3,1.1,length=5)
-names(Rvec) <- Rvec
-all_I <- (purrr::map_dfr(Rvec,calc_sir,.id="R0")
+R0vec <- seq(3,1.1,length=5)
+names(R0vec) <- R0vec
+all_I <- (purrr::map_dfr(R0vec,calc_sir,.id="R0")
   %>% filter(var=="I")
   %>% mutate(R0=as.numeric(R0))
 )
 ggplot(all_I,aes(time,value))+geom_line(aes(colour=R0,group=R0)) +
-  scale_color_gradient(high="red",low="blue")+theme_classic()
+  scale_color_gradient(high="red",low="blue")+theme_classic() 
 ```
 
 The epidemic slows down, but the size of the epidemic definitely decreases at the same time (i.e., the area under the slower curves is smaller).
@@ -91,27 +93,53 @@ finalsize <- function(R0) {
 cmpfun <- function(fun=peak_I,R0=3,decr=0.9) {
   round(100*(1-fun(R0*decr)/fun(R0)))
 }
+peak_t <- function(R0,gamma=1) {
+  tt <- (calc_sir(R0=R0,gamma=gamma,nt=501)
+    %>% filter(var=="I")
+    %>% filter(value==max(value))
+    %>% pull(time)
+  )
+  return(tt)
+}
+Peak_t <- Vectorize(peak_t,"R0")
 ```
 
-```{r peak_size_compare}
+```{r peak_size_compare,cache=TRUE}
 R0vec2 <- seq(1.1,3,length=101)
-dd <- bind_rows(list(peak=tibble(R0=R0vec2,val=peak_I(R0vec2)),
-                     final_size=tibble(R0=R0vec2,val=finalsize(R0vec2))),
+names(R0vec2) <- R0vec2
+dd <- bind_rows(list(peak_I=tibble(R0=R0vec2,val=peak_I(R0vec2)),
+                     final_size=tibble(R0=R0vec2,val=finalsize(R0vec2)),
+                     peak_t=tibble(R0=R0vec2,val=Peak_t(R0vec2))),
                 .id="metric")
+```
+
+```{r peak_size_compare_plot}
 ggplot(dd,aes(R0,val))+geom_line(aes(colour=metric))+
   facet_wrap(~metric,scale="free_y")+theme(legend.pos="none") +
-  scale_x_reverse()
+  scale_x_reverse() + scale_y_continuous(name="",limits=c(0,NA))
 ```
+
+**fixme**: 
+
+- secondary x-axis showing relative amount of control?  
+- Is drop in peak time artefactual?
+- Not that it matters, but is there a more efficient way to numerically solve for the peak time?
+- Banking/45 degree slope in peak I?
 
 For example: starting from $\rzero=3$, a 10% decrease in $\rzero$ leads to a `r cmpfun()`% decrease in the epidemic peak but only a `r cmpfun(finalsize)`% decrease in final size.
 
 - Mention [Smaldino](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/), [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
-- Try to use slightly more realistic/real-world parameters?
+- Use more realistic/real-world parameters? ($\rzero=2.5$, doubling time=6 days ...)
 - Discuss timing of interventions?
 - cite Shea/Ebola paper on outcome criteria?
+- more refs: https://twitter.com/trvrb/status/1237934525281259521
+- write out derivations of peak and final size as an appendix  (for those interested)
 
 ---
 
+Derivation of $I(S)$:
+
+SIR equations are $dS/dt = - \beta S I$, $dI/t = \beta S I - \gamma I$. Setting $\gamma=1$ wlog, $\beta \to \rzero$, we have $dI/dS = -1 + 1/(\rzero S) \to  dI = -1 + 1/\rzero \cdot 1/S \to I-I(0) = (-S + \log S/\rzero) - (S(0) + \log S(0)\rzero) \to I = -S + \log S/\rzero - 1$ (assuming $I(0) \ll 1$, $S(0) \approx 1$. We can solve this for the peak, and we can also show $I(\infty) = 0 = -S(\infty) + \log S(\infty)/\rzero -1$ and solve this to get the final size (I think).
 
 $$
 \begin{split}
