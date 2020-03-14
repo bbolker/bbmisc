@@ -1,6 +1,10 @@
 ---
 title: "Flattening or shrinking?"
+author: "Ben Bolker and Jonathan Dushoff"
+date: '`r format(Sys.time(),"%d %b %Y")`'
 ---
+
+![](cc.png)
 
 ```{r setup,include=FALSE}
 knitr::opts_chunk$set(echo=FALSE)
@@ -84,7 +88,7 @@ It is right in the sense that the interventions such as social distancing will r
 
 But #FlattenTheCurve is nonetheless important because **epidemic control measures have a much stronger effect on peak height than on total epidemic size**.
 
-We can start by plotting the results from a simple epidemic model (for the technically minded, these are from an [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with a doubling time of 6 days and a maximum $\rzero$ of 2.5; simple individual-based models give [similar](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/) [results](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/)).^[Notice that imposing 40% control makes the epidemic take a *long* time to die out; we need to hope that doing enough social distancing to make the peak flat and slow also gives us enough time to figure out how to finish off the epidemic for good, so that we don't have to maintain social distancing for 250 days.]
+We can start by plotting the results from a simple epidemic model (for the technically minded, these are from an [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with a doubling time of 6 days and a maximum $\rzero$ of 2.5; simple individual-based models give [similar](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/) [results](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/)).^[Imposing 40% control makes the epidemic take a *long* time to die out; we need to hope that doing enough social distancing to make the peak flat and slow also gives us enough time to figure out how to finish off the epidemic for good, so that we don't have to maintain social distancing for 250 days.]
 
 ```{r first_sims}
 R0vec1 <- base_R0*c(1,0.8,0.6)
@@ -191,6 +195,9 @@ dd2 <- (dd
 While both peak and total cases decrease to zero when the epidemic is completely controlled, peak cases fall off much faster.
 For example: in this example (starting from $\rzero=`r base_R0`$), a 20% reduction in transmission yields only a `r cmpfun(finalsize)`% decrease in total number of cases, but a `r cmpfun()`% decrease in the epidemic peak.
 
+---
+
+source code: https://github.com/bbolker/bbmisc/blob/master/peak_I_simple.rmd
 
 <!--
 - Mention [Smaldino](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/), [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
