@@ -10,10 +10,10 @@ current: target
 ## Content
 
 rmdfiles = $(wildcard *.rmd)
-rmdh = $(rmdfiles:%=%.html)
+rmdh = $(rmdfiles:%.rmd=%.html)
 
 Sources += $(rmdfiles)
-Ignore += $(rmdh)
+gnore += $(rmdh)
 
 peak_I.html: peak_I.rmd
 peak_I_simple.html: peak_I_simple.rmd
