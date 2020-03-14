@@ -70,19 +70,29 @@ calc_sir <- function(R0=2,
 }
 ```
 \newcommand{\rzero}{{\cal R}_0}
+\newcommand{\rone}{{\cal R}_0}
+
 \usepackage{amsmath}
 
-"Flattening the curve" is a widespread, useful. It emphasizes that the main goal of social distancing and other epidemic control measures is to reduce the number of severely ill COVID-19 patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
+Flatten-the-curve](https://ourworldindata.org/coronavirus#flattening-the-curve) is a [pervasive](https://twitter.com/hashtag/FlattenTheCurve) and useful idea. 
+It encapsulates many of the reasons why it's important to take steps to limit the spread of Coronavirus even if we don't think we can stop it from spreading around the world:
+even if the epidemic can't be stopped, epidemic control measures could reduce the number of severely ill patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
 
-For example, [here](https://ourworldindata.org/coronavirus#flattening-the-curve)):
+But if you like to think mechanistically, you may wonder how (or if) it's possible that interventions which can't limit the long-term reach of the epidemic can limit the peak size.
+
+Very simple models of disease spread, whose basic ideas go back a century, illuminate the sense in which this intuition is partly right, but also importantly wrong.
+
+This objection is right in the sense that the interventions being contemplated likely need to reduce transmission in order to limit the height of the epidemic peak. And limiting transmission is also expected to limit the total size of the outbreak.
+
+But the reason that #FlattenTheCurve is nonetheless important is that we expect peak height to be far more sensitive to reductions in transmission than total epidemic size.
+
+
 
 > [The goal of epidemic control measures] is to lower the rate of infection so that the epidemic is spread out over time and the peak demand for the health care system is lower. While the total number who get infected might not change, the containment measures intend to avoid an outbreak trajectory in which a large number of people get sick at the same time. This is what the visualization shows.
 
 Also see [this graphic](https://twitter.com/alxrdk/status/1237021885239635969) (based on Gamma distributions).
 
 Part of this explanation is actually wrong: mitigation methods *do* reduce the total number of people who get infected over the course of the epidemic. But the main point - that the maximum number of people who are infected at the same time is more important than the eventual number of infected - is still right.
-
-Very simple epidemic models tell us that 
 
 
 ```{r funs}
