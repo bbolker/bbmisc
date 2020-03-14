@@ -1,5 +1,5 @@
 ---
-title: "Flattening, slowing, or shrinking the curve?"
+title: "Flattening or shrinking?"
 ---
 
 ```{r setup,include=FALSE}
@@ -8,7 +8,7 @@ knitr::opts_chunk$set(echo=FALSE)
 
 ```{r pkgs,message=FALSE}
 library(deSolve)
-library(ggplot2); theme_set(theme_bw())
+library(ggplot2); theme_set(theme_bw(base_size=16))
 library(tidyr)
 library(dplyr)
 library(purrr)
@@ -26,9 +26,9 @@ library(directlabels)
 ```
 
 ```{r params}
-base_R0 <- 2
-double <- 6
-r <- double/log(2)
+base_R0 <- 2.5
+double <- 6  ## doubling time (in days)
+r <- log(2)/double
 ## doubling time = 6 days = 0.7/r
 ## r = 8.6
 ## b-g = 8.6
@@ -37,7 +37,7 @@ r <- double/log(2)
 ## g*(R0-1)=r
 ## g= r/(R0-1) = 8.6
 base_gamma <- r/(base_R0-1)
-max_time <- 5*base_gamma
+max_time <- 40*double
 base_decr <- 0.8 ## baseline decrease in R0
 ```
 
@@ -51,8 +51,8 @@ sirgrad <- function(t,y,p) {
     })
     return(list(g))
 }
-calc_sir <- function(R0=2,
-                     gamma=1,
+calc_sir <- function(R0=base_R0,
+                     gamma=base_gamma,
                      X0=c(S=0.995,I=0.005,R=0),
                      nt=101,
                      times=seq(0,max_time,length=nt)) {
@@ -72,17 +72,53 @@ calc_sir <- function(R0=2,
 
 \usepackage{amsmath}
 
-Flatten-the-curve](https://ourworldindata.org/coronavirus#flattening-the-curve) is a [pervasive](https://twitter.com/hashtag/FlattenTheCurve) and useful idea. 
+[Flattening the curve](https://ourworldindata.org/coronavirus#flattening-the-curve) is a [pervasive](https://twitter.com/hashtag/FlattenTheCurve) and useful idea. 
 It explains why it's important to take steps to limit the spread of Coronavirus even if we don't think we can stop it from spreading around the world:
-even if we can't stop the epidemic, epidemic control measures can reduce the number of severely ill patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
+even if we can't stop the epidemic, epidemic control measures can reduce the number of severely ill patients at the peak of the epidemic, so that we can take care of them with the limited resources (e.g., ICU beds) available.
 
 But if you like to think mechanistically, you may wonder how (or if) it's possible that interventions that can't limit the long-term reach of the epidemic can limit the peak size.
 
-Very simple models of disease spread, whose basic ideas go back a century, illuminate the sense in which this intuition is partly right, but also importantly wrong.
+Very simple models of disease spread, whose basic ideas go back a century, illuminate the sense in which this intuition is partly right but also importantly wrong.
 
-It is right in the sense that the interventions such as social distancing will reduce transmission and thus flatten the epidemic peak. It is wrong in the sense that limiting transmission will not just spread and slow the epidemic; it is also expected to limit the total size of the outbreak.
+It is right in the sense that the interventions such as social distancing will reduce transmission and thus flatten the epidemic peak. It is wrong in the sense that limiting transmission will not just spread and slow the epidemic; it also limits the total size of the outbreak.
 
 But #FlattenTheCurve is nonetheless important because **epidemic control measures have a much stronger effect on peak height than on total epidemic size**.
+
+We can start by plotting the results from a simple epidemic model (for the technically minded, these are from an [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with a doubling time of 6 days and a maximum $\rzero$ of 2.5; simple individual-based models give [similar](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/) [results](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/)).^[Notice that imposing 40% control makes the epidemic take a *long* time to die out; we need to hope that doing enough social distancing to make the peak flat and slow also gives us enough time to figure out how to finish off the epidemic for good, so that we don't have to maintain social distancing for 250 days.]
+
+```{r first_sims}
+R0vec1 <- base_R0*c(1,0.8,0.6)
+lab_df <- tibble(R0=R0vec1,
+                 labs=c("no control",
+                        "20% control",
+                        "40% control"))
+names(R0vec1) <- R0vec1
+all_I <- (purrr::map_dfr(R0vec1,calc_sir,.id="R0")
+  %>% filter(var=="I")
+  %>% mutate(R0=as.numeric(R0))
+  %>% full_join(lab_df,by="R0")
+)
+peaks <- (all_I
+  %>% group_by(R0)
+  %>% filter(value==max(value))
+  %>% ungroup()
+)
+colvec <- colorspace::qualitative_hcl(2)
+peak_rng <- 0.3
+(ggplot(all_I,aes(time,value,group=R0))
+  + geom_line()
+  + geom_dl(method="top.points",
+            ## would like to parse() but see
+            ## https://github.com/tdhock/directlabels/blob/6311c23a8a8c3ea1cd6549131407449356a072c7/R/ggplot2.R#L43-L45
+            aes(label=labs,y=value+0.005))
+  + geom_area(fill=colvec[1],alpha=0.2,position="identity")
+  + labs(x="time (days)",y="proportion infected")
+  + geom_segment(data=peaks,
+                 aes(x=time*(1-peak_rng),
+                     xend=time*(1+peak_rng),y=value,yend=value),
+                 colour=colvec[2],lwd=1.5,lty="11")
+)
+```
 
 ```{r funs}
 peak_I <- function(R0=base_R0,i0=0,s0=1-i0) {
@@ -90,7 +126,7 @@ peak_I <- function(R0=base_R0,i0=0,s0=1-i0) {
     log(1/R0)/R0-1/R0+C
 }
 finalsize <- function(R0=base_R0) {
-  1+1/R0*lambertW(-R0*exp(-R0))
+  1+1/R0*suppressWarnings(lambertW(-R0*exp(-R0),maxiter=100))
 }
 cmpfun <- function(fun=peak_I,R0=base_R0,decr=base_decr) {
   round(100*(1-fun(R0*decr)/fun(R0)))
@@ -106,86 +142,70 @@ peak_t <- function(R0=base_R0,gamma=1) {
 Peak_t <- Vectorize(peak_t,"R0")
 ```
 
-```{r peak_size_calc,cache=TRUE}
+```{r peak_size_calc}
 R0vec2 <- seq(1.1,base_R0,length=101)
 names(R0vec2) <- R0vec2
-dd <- (bind_rows(list(peak_I=tibble(R0=R0vec2,val=peak_I(R0vec2)),
-                     final_size=tibble(R0=R0vec2,val=finalsize(R0vec2)),
-                     peak_t=tibble(R0=R0vec2,val=Peak_t(R0vec2))),
-                 .id="metric")
+dd <- (bind_rows(list(peak_I=tibble(R0=R0vec2,val=peak_I(R0vec2))
+                    , final_size=tibble(R0=R0vec2,val=finalsize(R0vec2))
+                      ## this one is slower
+                      ## ,  peak_t=tibble(R0=R0vec2,val=Peak_t(R0vec2)))
+                      )
+                      , .id="metric")
 )
 ```
 
 ```{r mutate}
 dd <- (dd
-  %>% mutate(reduce=(1-R0/base_R0))
+  %>% mutate(reduce=1-(R0/base_R0))
   %>% group_by(metric)
   %>% mutate(rel_val=val/max(val))
 )
 ```
 
-```{r peak_size_compare_plot}
-ggplot(dd,aes(R0,val))+geom_line(aes(colour=metric))+
-  facet_wrap(~metric,scale="free_y")+theme(legend.pos="none") +
-  scale_x_reverse() + scale_y_continuous(name="",limits=c(0,NA)) +
-  geom_vline(xintercept=base_R0*base_decr,lty=2)
-```
+What happens to both the total number of cases (proportional to the area under the curve) and the peak number of cases as we increase the strength of control?
 
 ```{r peak_size_compare_plot_2}
 dd2 <- (dd
   %>% filter(metric!="peak_t")
   %>% ungroup()
   %>% mutate(metric=forcats::fct_recode(factor(metric),
-                         final="final_size",peak="peak_I"))
+                         total="final_size",peak="peak_I"))
 )
 (ggplot(dd2,
-        aes(reduce,rel_val))
+        aes(reduce,1-rel_val))
   + geom_line(aes(colour=metric),lwd=2)
   + geom_dl(method="last.bumpup",aes(label=metric,x=reduce+0.01))
   + scale_colour_discrete_qualitative()
   + scale_x_continuous(
       name="Reduction in transmission\n(strength of social distancing)",
       label=scales::label_percent(accuracy=1))
-  + scale_y_continuous(limits=c(0,NA),
+  + scale_y_reverse(
                        name="Reduction in cases",
                        label=scales::label_percent())
-  + geom_vline(xintercept=1-base_decr,lty=2)
+  + geom_vline(xintercept=c(0.2,0.4),lty=2)
   + theme(legend.position="none")
-  + expand_limits(x=0.5)
+  + expand_limits(x=0.6)
 )
 ```
 
-
-For example: starting from $\rzero=`r base_R0`$, a 20% decrease in $\rzero$ [NOTE this is 40% of the way to full control at $\rzero=1$] leads to a `r cmpfun()`% decrease in the epidemic peak (and a `r -cmpfun(peak_t)`% increase in the time until the peak) but only a `r cmpfun(finalsize)`% decrease in final size.
-
-
-## fixme
-
-- secondary x-axis showing relative amount of control/$\rzero$? 
-- Is drop in peak time artefactual?
-- Not that it matters, but is there a more efficient way to numerically solve for the peak time?
-- Banking/45 degree slope in peak I?
-- Check peak time calculation, numbers seem weird.
+While both peak and total cases decrease to zero when the epidemic is completely controlled, peak cases fall off much faster.
+For example: in this example (starting from $\rzero=`r base_R0`$), a 20% reduction in transmission yields only a `r cmpfun(finalsize)`% decrease in total number of cases, but a `r cmpfun()`% decrease in the epidemic peak.
 
 
-## to include?
-
-- plot 1 showing 'flatten the curve' plot with actual SIR solutions?
+<!--
 - Mention [Smaldino](http://smaldino.com/wp/covid-19-modeling-the-flattening-of-the-curve/), [dsparks](https://dsparks.wordpress.com/2020/03/12/flattening-the-curve/) models? 
-- Discuss timing of interventions?
-- cite Shea/Ebola paper on outcome criteria?
-- more refs: https://twitter.com/trvrb/status/1237934525281259521
 
-## animation
-
-Not finished:
+-->
+<!-- Not finished:
 
 - opposite direction (increasing control/decreasing $\rzero$)
 - include $\rzero=2$ curve as fixed reference
 - fill with 'final' colour from previous
 - reference line 
 
-```{r animation_calc}
+-->
+
+```{r animation_calc,eval=FALSE}
 library(gganimate)
 all_I <- (purrr::map_dfr(R0vec2,calc_sir,.id="R0")
   %>% filter(var=="I")
@@ -209,7 +229,7 @@ if (require("gifski") && require("av")) {
 }
 ```
 
-## random peak thoughts
+<!-- ## random peak thoughts
 
 From @joschabach "deadly delusion" post on Medium.
 
@@ -227,3 +247,5 @@ uniroot(function(x) peak_I(x)-0.01,interval=c(1,2))
 - peak = (R0-1)*0.15
 - peak ICU: 3e8*0.06*peak
 - 10% reduction in R0 = reduction of 0.2*0.15*3e7*0.06
+
+-->
