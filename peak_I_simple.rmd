@@ -72,7 +72,7 @@ calc_sir <- function(R0=2,
 
 \usepackage{amsmath}
 
-Flatten-the-curve](https://ourworldindata.org/coronavirus#flattening-the-curve) is a [pervasive](https://twitter.com/hashtag/FlattenTheCurve) and useful idea. 
+[Flatten-the-curve](https://ourworldindata.org/coronavirus#flattening-the-curve) is a [pervasive](https://twitter.com/hashtag/FlattenTheCurve) and useful idea. 
 It explains why it's important to take steps to limit the spread of Coronavirus even if we don't think we can stop it from spreading around the world:
 even if we can't stop the epidemic, epidemic control measures can reduce the number of severely ill patients at the peak of the epidemic, so that they can be taken care of by the limited resources (e.g., ICU beds) available.
 
