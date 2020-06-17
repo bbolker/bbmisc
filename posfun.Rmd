@@ -137,5 +137,32 @@ print(plotfun(f,5))
 
 Note that while the derivatives are indeed continuous, the magnitudes increase dramatically as we go to higher orders; this could conceivably cause problems for very sensitive problems ... ?
 
+---
+
+Anders Nielsen's implementation:
+
+```{r impl2}
+library(numDeriv)
+
+f<-Vectorize(
+    function(x, eps=0.001, n=2){
+        if(x<eps){
+            eps / sum( (-1)^(0:n)*((x-eps)^(0:n))/(eps^(0:n)))
+        }else{
+            x
+        }
+    }
+)
+
+Df <- function(x)grad(f,x)
+DDf <- function(x)grad(Df,x)
+par(mfrow=c(1,3))
+from <- 0.001-0.001
+to <- 0.001+0.001
+plot(f,from,to, main=0)
+plot(Df,from,to, main=1)
+plot(DDf,from,to, main=2)
+```
+
 ## References
 
