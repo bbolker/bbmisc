@@ -1,0 +1,141 @@
+---
+title: smooth constraint functions
+author: Ben Bolker
+bibliography: posfun.bib
+---
+
+Often when we're fitting models, we have functions that go somewhere they're not supposed to (e.g. densities that fall below 0 or probabilities that exceed the range 0<x<1). If we can parameterize everything so that the constraints apply to a single parameter, we can use *box constraints* or we can reparameterize the model in terms of an unconstrained parameter (e.g. fit on the scale of $\log(\beta)$ for a value that needs to be positive, or on the scale of $\textrm{logit}(\beta)$ for a value that needs to be between 0 and 1. Sometimes, however, it's not easy to see how to reparameterize the model/constrain a single parameter. A useful strategy in this case is to force the value *smoothly* to its boundary, and at the same time add a quadratic penalty that penalizes the objective function for failing to stay inside the bounds.
+
+AD Model Builder [@fournier_ad_2011], a powerful tool especially used in fisheries modeling, defined  `posfun` as follows:
+
+$$
+f(x) = \begin{cases}
+    \frac{\epsilon}{2-x/\epsilon},& \text{if } x< \epsilon\\
+    x              & \text{otherwise}
+\end{cases}
+$$
+
+(`posfun` also had the side effect of adding $\gamma (x-\epsilon)^2$ to a running penalty term if $x<\epsilon$; the accumulated penalty could be added to the negative log-likelihood.)
+
+This function has been widely used in applied fisheries research
+[@breen_effects_2003; @branch_general_2010; @carruthers_spatial_2011; @rudd_does_2017].  It has the following useful properties:  for a given $\epsilon>0$,
+
+- $f(x) = x$ for $x>\epsilon$
+- $f(x) >0$ for all $x$
+- $f'(x) >0$ for all $x$
+- $f(x) = \epsilon/2$ for $x=0$
+
+However, it only has a continuous *first* derivative at $x=\epsilon$. This causes problems if we are trying to do any numerical operations that depend on a continuous second derivative, e.g. Laplace approximation (or Riemannian Hamiltonian Monte Carlo \ldots [@girolami_riemannian_2019]).
+
+Thus we need a function $f(x)$ that also satisfies
+
+- $f(x)$, $f'(x)$, and $f''(x)$ are everywhere continuous ;
+
+this implies $f(\epsilon=\epsilon)$; $f'(\epsilon)=1$; $f''(\epsilon)=0$. (We are willing to give up the last property above ($f(0)=\epsilon/2$).
+
+Start by setting $x'=(\epsilon-x)$. Then $x'>0$ for $x<\epsilon$ and $x'=0$ when $x=\epsilon$.  Suppose we take $g(x') = \left( 1+a x' + bx'^2 \right)$ and $f(x') = \epsilon g(x')^{-1}$. $g(x'=0)=1$, so $f(x'=0)=\epsilon$. Now
+
+
+$$
+f'(x'=0) = -\epsilon g'(0) (g(0))^{-2} = -\epsilon a
+$$
+
+$$
+\begin{split}
+f''(x'=0) & = -\epsilon \left(g''(0) (g(0))^{-2} + g'(0) \cdot -2 g'(0) (g(0))^{-3}\right) \\
+ & = -\epsilon \left( \frac{g''(0)-2(g'(0))^2 g(0)}{g(0)^2} \right) \\
+ & = -\epsilon \left(2b  -2a^2 \right)
+ \end{split}
+$$
+
+So we need $a=-1/\epsilon$, $b=1/\epsilon^2$ ?
+
+Let's test it:
+
+```{r test1}
+f <- function(x,eps=0.001) {
+    eps*(1/(1-(x-eps)/eps + (x-eps)^2/eps^2))
+}
+f(0.001)
+library(numDeriv)
+grad(f,0.001)
+## not exactly zero but close enough ...
+all.equal(drop(hessian(f,0.001)),0)
+```
+
+Can we figure out what the general form would be to make all higher derivatives zero?  Does this Taylor series converge to something easily recognizable ... ?
+
+```{r pic1}
+xvec <- seq(-0.002,0.002,length=601)
+dfun <- function(f,xvec,eps=0.001,n) {
+    gval <- switch(as.character(n), "0"=xvec, "1"=1, 0)
+    e <- body(f)[[2]]
+    for (i in seq_len(n)) {
+        e <- D(e,name="x")
+    }
+    lval <- eval(e,list(x=xvec))
+    return(ifelse(xvec<eps,lval,gval))
+}
+
+mkderivs <- function(f,maxd=3) {
+    return(purrr::map_dfr(setNames(0:maxd,0:maxd),
+                          ~tibble::tibble(x=xvec,y=dfun(f,xvec,n=.)),
+                          .id="deriv"))
+}
+
+mkcomp <- function(maxd=3) {
+    return(purrr::map_dfr(setNames(0:maxd,0:maxd),
+                          ~tibble::tibble(x=xvec,
+                                          y=dplyr::case_when(.==0 ~ xvec,
+                                                      .==1 ~ 1,
+                                                      TRUE ~ 0)),
+                          .id="deriv"))
+}
+
+library(ggplot2); theme_set(theme_bw())
+
+plotfun <- function(f,maxd=2,xvec=xvec) {
+    dd <- mkderivs(f,maxd)
+    cc <- mkcomp(maxd)
+    return(ggplot(dd, aes(x,y))
+           + geom_line()
+           + geom_line(data=cc,linetype=2)
+           + facet_wrap(~deriv,scale="free",
+                        labeller=label_both)
+           )
+}
+
+print(plotfun(f))
+```
+
+What if we went one more step (i.e. make $g(x') = \left( 1+a x' + bx'^2 + cx^3 \right)$?)
+
+Tried to do the algebra myself but Wolfram Alpha does it better: `Solve[D[D[D[eps/(1-x/eps+x^2/eps^2 + c x^3),x],x],x]==0, {c}]`
+
+```{r d3}
+f <- function(x,eps=0.001) {
+    eps*(1/(1-(x-eps)/eps + (x-eps)^2/eps^2 - (x-eps)^3/eps^3))
+}
+print(plotfun(f,3))
+```
+
+
+By induction/guessing, we have
+$$
+f(x')  = \epsilon \left(\sum_{i=0}^n (-1)^i \left(x'/\epsilon\right)^i \right)
+$$
+
+(what is this function?)
+
+```{r d5}
+f <- function(x,eps=0.001) {
+    eps*(1/(1-(x-eps)/eps + (x-eps)^2/eps^2 - (x-eps)^3/eps^3
+        + (x-eps)^4/eps^4 - (x-eps)^5/eps^5))
+}
+print(plotfun(f,5))
+```
+
+Note that while the derivatives are indeed continuous, the magnitudes increase dramatically as we go to higher orders; this could conceivably cause problems for very sensitive problems ... ?
+
+## References
+
