@@ -6,6 +6,8 @@ bibliography: posfun.bib
 
 Often when we're fitting models, we have functions that go somewhere they're not supposed to (e.g. densities that fall below 0 or probabilities that exceed the range 0<x<1). If we can parameterize everything so that the constraints apply to a single parameter, we can use *box constraints* or we can reparameterize the model in terms of an unconstrained parameter (e.g. fit on the scale of $\log(\beta)$ for a value that needs to be positive, or on the scale of $\textrm{logit}(\beta)$ for a value that needs to be between 0 and 1. Sometimes, however, it's not easy to see how to reparameterize the model/constrain a single parameter. A useful strategy in this case is to force the value *smoothly* to its boundary, and at the same time add a quadratic penalty that penalizes the objective function for failing to stay inside the bounds.
 
+See [TMB issue](https://github.com/kaskr/adcomp/issues/7) for more background.
+
 AD Model Builder [@fournier_ad_2011], a powerful tool especially used in fisheries modeling, defined  `posfun` as follows:
 
 $$
@@ -162,6 +164,31 @@ to <- 0.001+0.001
 plot(f,from,to, main=0)
 plot(Df,from,to, main=1)
 plot(DDf,from,to, main=2)
+```
+
+A simpler representation:
+```{r f2}
+f2 <- function(x,eps=0.001) {
+    xp <- -(x/eps-1)
+    eps*(1/(1+xp+xp^2 +xp^3+xp^4+xp^5))
+}
+all.equal(f(xvec),f2(xvec))
+```
+
+## Testing
+
+This is Jim Thorson's example: at least it doesn't break ...
+
+```{r}
+library(TMB)
+compile("posfun_ex.cpp")
+dyn.load(dynlib("posfun_ex"))
+n <- 1000; p <- .1
+set.seed(2)
+x <- rbinom(n, size=1, prob=p)
+mod <- MakeADFun(data=list(x=x, eps=1e-3), parameters=list(p=0,Dummy=0), random="p")
+opt <- nlminb(mod$par, mod$fn, mod$gr)
+environment(mod$fn)$last.par.best
 ```
 
 ## References
