@@ -1,5 +1,6 @@
 ---
 title: "Analyzing Q-Q survey data"
+date: "`r format(Sys.time(),'%d %B %Y')`"
 author: "Ben Bolker and Pedro Peres-Neto"
 bibliography: qq.bib
 ---
@@ -10,7 +11,7 @@ How should researchers check the assumptions of their statistical models? It is 
 
 * such tests are low-powered for small data sets, thus they will usually fail to reject $H_0$ (model assumptions hold);
 * such tests are high-powered for large data sets, thus they will usually reject $H_0$ even when the deviations from model assumptions are very small;
-* we don't really care whether the assumptions are true (they never are, in the real world); rather, we care whether the assumptions are strongly enough violated to cause problems with our conclusions
+* we don't really care whether the assumptions are true (they never are, in the real world); rather, we care whether the assumptions are strongly enough violated to cause problems with our conclusions. Some statistical analyses are extremely robust to violations of some of their assumptions; for example, tests of differences in means are generally robust to non-normality [@box_non-normality_1953].
 * two-stage analyses, where we change testing procedures based on the result of a statistical test, can distort results [@rochon_test_2012;@campbell_consequences_2014;@campbell_consequences_2019]
 
 Many statisticians emphasize graphical diagnostic methods such as the quantile-quantile (Q-Q) plot over formal testing procedures (e.g. @ramsey_statistical_1997: "Prefer graphical methods over formal tests for model adequacy" (section 3.6.1.3); @faraway_extending_2016 p. 14 "[w]e prefer graphical methods because they tend to be more versatile and informative" (p. 14); @burdick_statistical_2017 p. 45: "we prefer graphical representations over statistical tests"). We agree - graphical procedures give a more holistic view of the data and de-emphasize dichotomous procedures that make sharp distinctions between data sets where the null hypothesis can or cannot be rejected at a level of $\alpha=0.05$. However, this well-meaning advice contains a catch-22 for newcomers: **how are they supposed to judge whether the patterns of deviation shown in a diagnostic plot should concern them?** Some implementations of diagnostic plots (e.g. `qqPlot` from the `car` package for R) superimpose envelopes showing the expected range of variation under the null hypothesis; however, this just re-implements the significance test (although in a graphical form). Otherwise, students are shown a few examples and told which they are supposed to be concerned about and which look OK (according to the whim of the instructor or textbook author).
@@ -223,11 +224,12 @@ On average, participants tended to overestimate the level of type 1 error. Parti
 
 To explore the relationship between *expected* properties of a given distribution and the specific properties of a particular realization, we compare the Shapiro-Wilk $W$-statistic and $p$-value averaged over large ensembles with the particular $W$ and $p$ values for the realizations examined here ...
 
-```{r}
+```{r avg_vs_spec}
 (ggplot(m5,aes(value,model,colour=type1))
     + geom_path(aes(group=type1),alpha=0.5)
     + geom_point(size=3)
     + facet_wrap(~type2,scale="free_x")
+    + scale_colour_brewer(palette="Set1")
 )
 ```
 
