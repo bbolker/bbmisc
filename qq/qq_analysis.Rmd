@@ -1,0 +1,250 @@
+---
+title: "Analyzing Q-Q survey data"
+author: "Ben Bolker and Pedro Peres-Neto"
+bibliography: qq.bib
+---
+
+## introduction
+
+How should researchers check the assumptions of their statistical models? It is dangerous and foolish to ignore the possibility that those assumptions could be badly violated. On the other hand, the often-taught procedure of doing statistical tests against a null hypothesis that the assumptions are correct (e.g. using Shapiro-Wilk test for Normality on residuals from a linear model) is [problematic for several reasons](https://stats.stackexchange.com/questions/2492/is-normality-testing-essentially-useless):
+
+* such tests are low-powered for small data sets, thus they will usually fail to reject $H_0$ (model assumptions hold);
+* such tests are high-powered for large data sets, thus they will usually reject $H_0$ even when the deviations from model assumptions are very small;
+* we don't really care whether the assumptions are true (they never are, in the real world); rather, we care whether the assumptions are strongly enough violated to cause problems with our conclusions
+* two-stage analyses, where we change testing procedures based on the result of a statistical test, can distort results [@rochon_test_2012;@campbell_consequences_2014;@campbell_consequences_2019]
+
+Many statisticians emphasize graphical diagnostic methods such as the quantile-quantile (Q-Q) plot over formal testing procedures (e.g. @ramsey_statistical_1997: "Prefer graphical methods over formal tests for model adequacy" (section 3.6.1.3); @faraway_extending_2016 p. 14 "[w]e prefer graphical methods because they tend to be more versatile and informative" (p. 14); @burdick_statistical_2017 p. 45: "we prefer graphical representations over statistical tests"). We agree - graphical procedures give a more holistic view of the data and de-emphasize dichotomous procedures that make sharp distinctions between data sets where the null hypothesis can or cannot be rejected at a level of $\alpha=0.05$. However, this well-meaning advice contains a catch-22 for newcomers: **how are they supposed to judge whether the patterns of deviation shown in a diagnostic plot should concern them?** Some implementations of diagnostic plots (e.g. `qqPlot` from the `car` package for R) superimpose envelopes showing the expected range of variation under the null hypothesis; however, this just re-implements the significance test (although in a graphical form). Otherwise, students are shown a few examples and told which they are supposed to be concerned about and which look OK (according to the whim of the instructor or textbook author).
+
+We have been stewing over this problem for many years; at the ISEC 2020 meeting, we decided to prepare and disseminate a survey on [Google forms](https://docs.google.com/forms/d/1DIggMJ-OrW8jTdcLFlntajYzck7xSObv4_WWhZ-bkaM/viewform?edit_requested=true) to ask attendees (who range from graduate students to experienced ecological statisticians) to answer some questions about Q-Q plots of simulated data.
+
+```{r pkgs,echo=FALSE,message=FALSE}
+library(tidyr)
+library(ggplot2)
+theme_set(theme_bw()+theme(panel.spacing=grid::unit(0,"lines")))
+library(colorspace)
+library(ggstance)
+library(ggrepel)
+scale_colour_discrete <- scale_color_discrete_qualitative  ## default scale
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+```{r make_data}
+## generate simulated data sets, plots, etc.
+if (!file.exists("qq_ans.rds")) {
+    cc <- capture.output(source("qqsurvey.R"))
+}
+```
+```{r get_data}
+ans <- readRDS("qq_ans.rds")
+dd <- readRDS("qq_data.rds")
+resp <- read.csv("Q-Q Plot survey_R.csv")
+```
+
+```{r proc_survey}
+nm <- (expand.grid(c("normal","modify","esttype1"),LETTERS[1:12])
+    %>% apply(1,function(x) paste(unlist(x),collapse="_"))
+)
+names(resp) <- nm
+m1 <- (reshape2::melt(as.matrix(resp))
+    %>% separate(Var2,into=c("qtype","code"))
+    %>% pivot_wider(names_from=qtype,values_from=value)
+    %>% mutate_at("esttype1",as.numeric)
+    %>% mutate_at(c("normal","modify"),tolower)
+    %>% mutate(nonnormal=ifelse(normal=="no","yes","no"))
+)
+
+lwrfun <- function(x,n) prop.test(x,n)$conf.int[1]
+uprfun <- function(x,n) prop.test(x,n)$conf.int[2]
+
+nn <- nrow(resp) ## complete responses from everyone
+m2 <- (m1
+    %>% group_by(code)
+    ## compute nonnormal so it goes in the same direction as 'modify'
+    %>% summarise(nonnormal=sum(normal=="no"),
+                  modify=sum(modify=="yes"),
+                  .groups="drop"
+                  )
+    %>% pivot_longer(cols=c(nonnormal,modify),
+                     values_to="x",
+                     names_to="type")
+    %>% mutate(prop=x/nn,
+               lwr=sapply(x,lwrfun,n=nn),
+               upr=sapply(x,uprfun,n=nn))
+)
+
+ans2 <- (ans
+    %>% tibble::rownames_to_column("model")
+    %>% as_tibble()
+    %>% mutate(num=seq(n())) ## original model order
+    %>% mutate_at("model",~forcats::fct_inorder(factor(.)))
+)
+    
+m3 <- full_join(m2,
+                select(ans2, model,num,truetype1=type1_F,W=statistic.W,code),
+                by="code")
+
+m4 <- full_join(m1,ans2,by="code") %>%
+    rename(truetype1=type1_F)
+
+m5 <- (ans2
+    %>% select(model,avg_SW_W,avg_SW_pval,
+               statistic.W,p.value)
+    %>% rename(avg_W="avg_SW_W",avg_p="avg_SW_pval",
+               spec_W="statistic.W",spec_p="p.value")
+    %>% pivot_longer(cols=-1)
+    %>% separate(name,into=c("type1","type2"))
+    %>% mutate_at("type2",
+                  ~factor(.,levels=c("W","p"),
+                          labels=paste("Shapiro-Wilk",
+                                       c("W","p-value"))))
+)
+```
+
+## description
+
+What we asked:
+
+> You will be presented with 12 plots and asked after each plot two Yes/No questions and one numerical question per plot. The goal is to assess the ability of researchers to differentiate normally distributed from non-normally distributed data on the basis of Q-Q plots. In particular, lack of normality may increase Type I error rates of different parametric (normality-based) tests.
+
+> 1. Does the Q-Q plot above represent normally distributed data?
+> 2. If you saw the Q-Q plot above in the course of diagnostic checking would you take it as evidence that you ought to modify your analysis (e.g. transform response variable, use rank-based non-parametrics, etc)?
+> 3.  The generated data (if not normally distributed) can inflate the Type I error rate of the F-test of equality of two sample variances. From the Q-Q plot, what would be your estimate of that rate (between 0 and 1, e.g., 0.32).
+
+We generated
+
+* 4 Gaussian replicates;
+* 4 Gamma replicates with shape parameters 1,2,5,10;
+* 4 $t$-distributed replicates with df=2,5,10,20.
+
+We presented them to participants in random order (the same for all participants).
+
+Below, we present the results of question 1 as "were the data non-Normal?" (i.e. using the complement of the answers given), so that the results match up better with question 2, "would you modify your analysis?" (in future runs of this type of experiment, we should change the question framing up-front).
+
+## What did we learn?
+
+### What do the realizations look like?
+
+First, we look at all of the Q-Q plots, in order,
+with their true labels attached:
+
+```{r qqplot}
+## FIXME: could color backgrounds by type,
+(ggplot(dd,aes(sample=x))
+    +geom_qq(alpha=0.8)
+    + facet_wrap(~model,scale="free_y")
+    + geom_qq_line(colour="red")
+    )
+```
+
+The first (surprising?) point is just how much variability there is in individual samples of size $n=26$. The most extreme non-Gaussian values (i.e. Gamma shape=1 and $t$ df=2, the leftmost panels in rows 2 and 3) are clearly non-normal, but Gaussian rep 2 looks suspiciously non-normal; $t$ (df=5) looks pretty normal, and arguably better than $t$ (df=20).
+
+The take-home message here is a reminder (we all need one from time to time) that the statistical properties that we know are about ensembles, while the data we analyze nearly always represents a *single realization* from that ensemble ...
+
+## How often did participants identify data as non-Normal or say they would modify their analyses?
+
+```{r mosaic}
+tt <- with(m1,table(nonnormal,modify))
+plot(tt,col=c("blue","red"),main="")
+```
+
+Participants often (`r tt["yes","no"]`/`r sum(tt["yes",])`) said the data were non-normal but that they would
+not modify their analysis; they sometimes (`r tt["no","yes"]`/`r sum(tt["no",])`) said that the data were normal
+and they *would* modify their analyses (???)
+
+```{r eval=FALSE}
+## checking weird cases
+filter(m1,normal=="yes" & modify=="yes")
+```
+
+```{r plots}
+ggplot(m3,aes(prop,model,xmin=lwr,xmax=upr,colour=type)) +
+    geom_pointrange(position=position_dodgev(height=0.4)) +
+    scale_colour_manual(values=c("black","gray")) +
+    labs(x="proportion",y="")
+```
+
+There is no obvious relationship between actual normality and judgment of normality: for example,
+normal reps 1, 2, and 4 were selected as non-normal by most participants, while t(df=5) was chosen as
+normal by most participants ...
+
+### How accurate were participants in estimating type 1 error?
+
+Boxplots show the range of responses; red dots are the long-run expected type 1 error (at $\alpha=0.05$)for tests of equality of variance for data sets with the specified distribution and parameters.
+
+```{r type1_boxplot}
+(ggplot(m4, aes(esttype1,model))
+    + geom_boxplot(fill="black",alpha=0.2)
+    + stat_sum(alpha=0.1)
+    + geom_point(aes(x=truetype1),colour="darkred",size=3)
+    + geom_vline(xintercept=0.05,lty=2)
+    + labs(x="Type 1 error of F-test",y="")
+)
+```
+
+```{r pz,message=FALSE}
+pz <- mean(m1$esttype1==0)
+nz <- sum(m1$esttype1==0)
+gz <- m1 %>% group_by(code) %>% summarise(sz=sum(esttype1==0)) %>% arrange(sz)
+```
+
+Participants often estimated that the type-1 error rate would be zero (the range of zero responses was `r min(gz$sz)` to `r max(gz$sz)` out of 40). Although type-1 error rates can be below as well as above the nominal level, we would guess that these answers might reflect a confusion between type-1 error rates achieving their nominal levels (i.e. equal to $\alpha=0.05$) and "no inflation of the type-1 error rate".
+
+```{r sumprob}
+## not sure why stat_summary() was giving NA warnings?
+m4sum <- (m4
+    %>% group_by(code)
+    %>% do(mean_cl_boot(.$esttype1))
+    %>% full_join(m4 %>% select(code,model,truetype1) %>% distinct(),by="code")
+    %>% mutate(normal=grepl("gauss",model))
+)               
+```
+
+```{r true_vs_est_type1,warning=FALSE}
+(ggplot(m4sum,aes(truetype1,y=y,ymin=ymin,ymax=ymax,group=code,
+                  colour=normal))
+    + geom_pointrange()
+    + labs(x="true average type-1 error",y="estimated type 1 error")
+    + expand_limits(x=0,y=0)
+    + geom_abline(intercept=0,slope=1,lty=2)
+    ## hack limits - zero on left/bottom
+    + scale_x_continuous(expand=expansion(0,0),limits=c(0,0.4))
+    + scale_y_continuous(expand=expansion(0,0),limits=c(0,0.4))
+    + coord_equal()
+    + geom_label_repel(aes(label=model),fill=NA,size=4,alpha=0.8)
+)
+```
+
+Here, "normal" means the sample was actually drawn from a normal distribution, not that the participants necessarily judged it to be normal ...
+
+On average, participants tended to overestimate the level of type 1 error. Participants may have been unfamiliar with tests of difference in the variance (they are much less common than tests of mean differences). On the other hand, we expect that participants would have overestimated type 1 error rates for $t$-tests much more; for even the most extreme models in our sample the type-1 error rate never exceeded `r max(ans$type1_t)`!
+
+## relationship between average $W$ and $p$ and specific $W$ and $p$
+
+To explore the relationship between *expected* properties of a given distribution and the specific properties of a particular realization, we compare the Shapiro-Wilk $W$-statistic and $p$-value averaged over large ensembles with the particular $W$ and $p$ values for the realizations examined here ...
+
+```{r}
+(ggplot(m5,aes(value,model,colour=type1))
+    + geom_path(aes(group=type1),alpha=0.5)
+    + geom_point(size=3)
+    + facet_wrap(~type2,scale="free_x")
+)
+```
+
+What if we arrange replicates by Shapiro-Wilk $W$ statistic (a reasonably objective measure of non-normality of a *particular* replicate) instead of by whether they were actually drawn from a normal distribution?
+
+```{r}
+m3B <- filter(m3,type=="nonnormal") %>% mutate(normal=grepl("gauss",model))
+ggplot(m3B,aes(prop,W,xmin=lwr,xmax=upr,colour=normal)) +
+    geom_pointrange() +
+    labs(y="Shapiro-Wilk W statistic",x="proportion chosen as non-normal") +
+    geom_label_repel(aes(label=model),fill=NA,size=4,alpha=0.8)
+```
+
+Helps a little bit but still pretty messy ...
+
+**fixme**: could abbreviate model names (i.e. delete "shape=" (Gamma), "df=" (t), "(rep=...)" (normal)
+
+**fixme**: fix up labels etc. so we are consistent about normal/Normal/gauss/Gaussian ?
+
+## References
