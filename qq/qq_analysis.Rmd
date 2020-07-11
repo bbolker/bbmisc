@@ -20,6 +20,7 @@ We have been stewing over this problem for many years; at the ISEC 2020 meeting,
 
 ```{r pkgs,echo=FALSE,message=FALSE}
 library(tidyr)
+library(dplyr)
 library(ggplot2)
 theme_set(theme_bw()+theme(panel.spacing=grid::unit(0,"lines")))
 library(colorspace)
@@ -39,15 +40,17 @@ if (!file.exists("qq_ans.rds")) {
 ```{r get_data}
 ans <- readRDS("qq_ans.rds")
 dd <- readRDS("qq_data.rds")
-resp <- read.csv("Q-Q Plot survey_R.csv")
+resp <- read.csv("qq_responses.csv")
 ```
 
 ```{r proc_survey}
 nm <- (expand.grid(c("normal","modify","esttype1"),LETTERS[1:12])
     %>% apply(1,function(x) paste(unlist(x),collapse="_"))
 )
-names(resp) <- nm
-m1 <- (reshape2::melt(as.matrix(resp))
+resp2 <- resp[,-1] ## drop Timestamp column
+resp2 <- resp2[-c(1,26),] ## drop questionable responses
+names(resp2) <- nm
+m1 <- (reshape2::melt(as.matrix(resp2))
     %>% separate(Var2,into=c("qtype","code"))
     %>% pivot_wider(names_from=qtype,values_from=value)
     %>% mutate_at("esttype1",as.numeric)
@@ -124,6 +127,8 @@ Below, we present the results of question 1 as "were the data non-Normal?" (i.e.
 
 ## What did we learn?
 
+We had a total of `r nrow(resp2)` participants (we did not collect any information about participant characteristics).
+
 ### What do the realizations look like?
 
 First, we look at all of the Q-Q plots, in order,
@@ -144,14 +149,32 @@ The take-home message here is a reminder (we all need one from time to time) tha
 
 ## How often did participants identify data as non-Normal or say they would modify their analyses?
 
+
+```{r plot_nrange}
+par(las=1,bty="l")
+plot(nrange,xlab="# of samples rated as non-normal",
+     ylab="# of participants")
+```
+
+The modal number of samples rated as nonnormal was 7-8, but the range was from 2 to 12 (out of a total of 12 samples)
+
 ```{r mosaic}
 tt <- with(m1,table(nonnormal,modify))
 plot(tt,col=c("blue","red"),main="")
+tyn <- tt["yes","no"]
+sy <- sum(tt["yes",])
+tny <- tt["no","yes"]
+sn <- sum(tt["no",])
+nrange <-(m1
+    %>% group_by(Var1)
+    %>% summarise(nonnormal=sum(normal=="no"),.groups="drop")
+    %>% pull(nonnormal)
+    %>% table
+)
 ```
 
-Participants often (`r tt["yes","no"]`/`r sum(tt["yes",])`) said the data were non-normal but that they would
-not modify their analysis; they sometimes (`r tt["no","yes"]`/`r sum(tt["no",])`) said that the data were normal
-and they *would* modify their analyses (???)
+Participants often (`r round(100*tyn/sy)`% = `r tyn`/`r sy`) said the data were non-normal but that they would
+not modify their analysis; they sometimes (`r round(100*tny/sn)`% = `r tny`/`r sn`) said that the data were normal and they *would* modify their analyses (???)
 
 ```{r eval=FALSE}
 ## checking weird cases
@@ -159,19 +182,23 @@ filter(m1,normal=="yes" & modify=="yes")
 ```
 
 ```{r plots}
-ggplot(m3,aes(prop,model,xmin=lwr,xmax=upr,colour=type)) +
-    geom_pointrange(position=position_dodgev(height=0.4)) +
-    scale_colour_manual(values=c("black","gray")) +
-    labs(x="proportion",y="")
+(ggplot(m3,aes(prop,model,xmin=lwr,xmax=upr,colour=type))
+    + geom_pointrange(position=position_dodgev(height=0.4))
+    + scale_colour_manual(values=c("black","gray"))
+    + labs(x="proportion",y="")
+    + annotate("rect", xmin=-Inf,ymin=-Inf,xmax=Inf,ymax=4.5,
+                fill="blue", colour=NA,
+                alpha=0.1)
+)
 ```
 
-There is no obvious relationship between actual normality and judgment of normality: for example,
+There was no obvious relationship between actual normality (models in blue region) and judgment of normality: for example,
 normal reps 1, 2, and 4 were selected as non-normal by most participants, while t(df=5) was chosen as
 normal by most participants ...
 
 ### How accurate were participants in estimating type 1 error?
 
-Boxplots show the range of responses; red dots are the long-run expected type 1 error (at $\alpha=0.05$)for tests of equality of variance for data sets with the specified distribution and parameters.
+Boxplots show the range of responses; red dots are the long-run expected type 1 error (at $\alpha=0.05$) for tests of equality of variance for data sets with the specified distribution and parameters.
 
 ```{r type1_boxplot}
 (ggplot(m4, aes(esttype1,model))
@@ -180,6 +207,10 @@ Boxplots show the range of responses; red dots are the long-run expected type 1 
     + geom_point(aes(x=truetype1),colour="darkred",size=3)
     + geom_vline(xintercept=0.05,lty=2)
     + labs(x="Type 1 error of F-test",y="")
+    + annotate("rect", xmin=-Inf,ymin=-Inf,xmax=Inf,ymax=4.5,
+               fill="blue", colour=NA,
+               alpha=0.1)
+
 )
 ```
 
@@ -194,6 +225,7 @@ Participants often estimated that the type-1 error rate would be zero (the range
 ```{r sumprob}
 ## not sure why stat_summary() was giving NA warnings?
 m4sum <- (m4
+    ## %>% filter(esttype1<1)
     %>% group_by(code)
     %>% do(mean_cl_boot(.$esttype1))
     %>% full_join(m4 %>% select(code,model,truetype1) %>% distinct(),by="code")
@@ -237,13 +269,22 @@ What if we arrange replicates by Shapiro-Wilk $W$ statistic (a reasonably object
 
 ```{r}
 m3B <- filter(m3,type=="nonnormal") %>% mutate(normal=grepl("gauss",model))
-ggplot(m3B,aes(prop,W,xmin=lwr,xmax=upr,colour=normal)) +
-    geom_pointrange() +
-    labs(y="Shapiro-Wilk W statistic",x="proportion chosen as non-normal") +
-    geom_label_repel(aes(label=model),fill=NA,size=4,alpha=0.8)
+(ggplot(m3B,aes(prop,W,xmin=lwr,xmax=upr,colour=normal))
+    + geom_pointrange()
+    + labs(y="Shapiro-Wilk W statistic",x="proportion chosen as non-normal")
+    + geom_label_repel(aes(label=model),fill=NA,size=4,alpha=0.8)
+    + annotate("segment", x = c(0,0), xend = c(0,0),
+             y = c(0.92,0.90), yend = c(0.95,0.87),
+             colour = "black", size=1, arrow=arrow())
+    + annotate("text",x=c(0,0),y=c(0.935,0.885),
+               colour="black",
+               label=paste0(c("more","less"),"\nnormal"),
+               hjust=-0.8)
+)
+
 ```
 
-Helps a little bit but still pretty messy ...
+Helps a little bit but still pretty messy; samples with $W<0.93$ are usually judged to be non-normal, but values with $W>0.96$ are all over the place.
 
 **fixme**: could abbreviate model names (i.e. delete "shape=" (Gamma), "df=" (t), "(rep=...)" (normal)
 
