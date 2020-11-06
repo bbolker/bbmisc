@@ -167,7 +167,7 @@ experiments in peer review:
 - open
 - conversational/interactive
 - crowdsourced ?
-- [journal-independent](https://scholarlykitchen.sspnet.org/2017/03/20/wither-portable-peer-review/) (~Axios~, Peerage of Science, Rubriq)
+- [journal-independent](https://scholarlykitchen.sspnet.org/2017/03/20/wither-portable-peer-review/) (Peerage of Science, Rubriq)
 
 # data
 
