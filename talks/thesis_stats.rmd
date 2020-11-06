@@ -113,7 +113,7 @@ library("sos"); findFn("{power analysis}")
 
 ## power analysis example
 
-With $n=15$ per group, how likely are we to see a clear difference between 10% (control) and 20% (treatment) mortality?
+With $n=15$ per group, can we see a clear difference between 10% (control) and 20% (treatment) mortality?
 
 <!-- would like to highlight power: line, but too hard -->
 ```{r pow,echo=TRUE}
@@ -158,7 +158,7 @@ Uh-oh.
 
 > - **don't snoop!**  
 (= don't look at data *before deciding how to analyze it*)
-> (but **do** explore your data graphically after deciding on a tentative analysis plan!)
+> - (but **do** explore your data graphically after deciding on a tentative analysis plan!)
 > - reproducibility crisis: @ioannidis_why_2005, @simmons_false-positive_2011
 > - pre-register; think about what your questions are and how you will test them **before you look at your data**
 
