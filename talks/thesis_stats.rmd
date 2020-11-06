@@ -1,7 +1,7 @@
 ---
 title: statistics stuff you should think about
 author: Ben Bolker
-date:  14 November 2019
+date:  12 November 2020
 bibliography: stats.bib
 csl: reflist2.csl
 output:
@@ -57,7 +57,6 @@ th_clean <-
 
 - experimental design
 - statistical philosophy <img src="pix/scream.jpeg" style="width:80px; vertical-align:top">
-- data exploration
 - statistical tests & assumptions
 - analysis platforms
 
@@ -159,6 +158,7 @@ Uh-oh.
 
 > - **don't snoop!**  
 (= don't look at data *before deciding how to analyze it*)
+> (but **do** explore your data graphically after deciding on a tentative analysis plan!)
 > - reproducibility crisis: @ioannidis_why_2005, @simmons_false-positive_2011
 > - pre-register; think about what your questions are and how you will test them **before you look at your data**
 
@@ -230,6 +230,10 @@ gg0 <- ggplot(dd,aes(x,y,ymin=y-err,ymax=y+err,
 
 <div style="font-size:18px">
 ```{r lm1,message=FALSE}
+if (!file.exists("auto.dta")) {
+    download.file("http://www.stata-press.com/data/r9/auto.dta",
+                  dest="auto.dta")
+}
 auto <- haven::read_dta("auto.dta") %>%
   mutate(price=price/1000)
 lm1 <- lm(price~mpg+trunk+length+turn, data=auto)
