@@ -20,17 +20,19 @@ Many statisticians emphasize graphical diagnostic methods such as the quantile-q
 
 We have been stewing over this problem for many years; at the ISEC 2020 meeting, we decided to prepare and disseminate a survey on [Google forms](https://docs.google.com/forms/d/1DIggMJ-OrW8jTdcLFlntajYzck7xSObv4_WWhZ-bkaM/viewform?edit_requested=true) to ask attendees (who range from graduate students to experienced ecological statisticians) to answer some questions about Q-Q plots of simulated data.
 
-```{r pkgs,echo=FALSE,message=FALSE}
+```{r pkgs,echo=FALSE,message=FALSE, warning=FALSE}
 library(tidyr)
 library(dplyr)
 library(ggplot2)
+library(Cairo)
 theme_set(theme_bw()+theme(panel.spacing=grid::unit(0,"lines")))
 library(colorspace)
 library(ggstance)
 library(ggrepel)
 scale_colour_discrete <- scale_color_discrete_qualitative  ## default scale
 
-knitr::opts_chunk$set(echo=FALSE)
+knitr::opts_chunk$set(echo=FALSE,
+                      dev.args = list(png = list(type = "cairo")))
 ```
 
 ```{r make_data}
@@ -142,7 +144,7 @@ with their true labels attached:
     +geom_qq(alpha=0.8)
     + facet_wrap(~model,scale="free_y")
     + geom_qq_line(colour="red")
-    )
+)
 ```
 
 The first (surprising?) point is just how much variability there is in individual samples of size $n=26$. The most extreme non-Gaussian values (i.e. Gamma shape=1 and $t$ df=2, the leftmost panels in rows 2 and 3) are clearly non-normal, but Gaussian rep 2 looks suspiciously non-normal; $t$ (df=5) looks pretty normal, and arguably better than $t$ (df=20).
@@ -168,7 +170,7 @@ The modal number of samples rated as nonnormal was 7-8, but the range was from 2
 
 ```{r mosaic}
 tt <- with(m1,table(nonnormal,modify))
-plot(tt,col=c("blue","red"),main="")
+plot(tt,col=diverging_hcl(2),main="")
 tyn <- tt["yes","no"]
 sy <- sum(tt["yes",])
 tny <- tt["no","yes"]
