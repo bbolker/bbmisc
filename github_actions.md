@@ -29,14 +29,17 @@ Many of my R packages are set up using **continuous integration** to run tests e
    - `use_github_action_check_standard()` 
        - seems to automatically incorporate livetex (better/more complete than tinytex)
        - but tests on 4 platforms (MacOS, Linux-release, Linux-devel, Windows) automatically, which is overkill for my needs: I used it anyway (for its better coverage) and commented out the platforms I didn't want
-	   - supposedly caches packages
+	   - supposedly caches packages (but not seeing much on Linux-devel?)
 
 ### working directories
 
 If your package is in a subdirectory you need to sprinkle in appropriate `working-directory:` specifications
+
 ### skipping tests
 
-Travis-CI has a built-in test that automatically skips testing when your commit message contains the string "[skip ci]", and lists the tests as having been skipped. There is a [way to do this in GHA](https://github.com/marketplace/actions/ci-skip-action), but I can't figure out a way to get the test result to be "skipped" rather than "failed".
+Travis-CI has a built-in test that automatically skips testing when your commit message contains the string "[skip ci]", and lists the tests as having been skipped. There is a [way to do this in GHA](https://github.com/marketplace/actions/ci-skip-action), but I can't figure out a way to get the test result to be "skipped" rather than "failed".  This could probably be done by putting individual conditional "skip if" statements for all of the steps (right now I'm using a convenient "fail fast up front" protocol; I don't know if there's a "skip to end" protocol)
+
+It would be nice to have a convenient/pre-packaged way to choose among options (skip, standard, thorough/multi-platform) based on tags in the commit messages. I'm sure this is possible, just a pain to set up (for me).
 
 ### YAML format
 
@@ -47,19 +50,24 @@ Travis-CI has a built-in test that automatically skips testing when your commit 
 
 - building LaTeX vignettes is quite likely to fail
 - need either `tinytex` (R package + install machinery) or `texlive` installed
+    - extra packages for `tinytex`: `tinytex::tlmgr_install("foo")` (where `foo` is the LaTeX package name) in a step that uses `shell: Rscript {0}`
+	- extra packages for `texlive`: `sudo apt-get install ...` in a regular (shell-script) step. In future I might just add `sudo apt-get install texlive-science texlive-latex-extra texlive-bibtex-extra` by default
+
 - Spent a long time finding problematic packages in LaTeX headers one at a time. This helps if using `texlive`: 
 ```r
 debsrch <- function(s) {
     browseURL(sprintf("https://packages.debian.org/search?suite=default&section=all&arch=any&searchon=contents&keywords=%s",s))
 }
 ```
-- in future I might just add `sudo apt-get install texlive-science texlive-latex-extra texlive-bibtex-extra` by default
+- If using `tinytex`, `tinytex::tlmgr_search("something.sty")` in a local R session works well to figure out what LaTeX package you need
 
 ### Miscellaneous
 
 If you're going to experiment with this stuff on a new branch, make sure to add your branch name to the `branches:` section at the top of the file (otherwise nothing will happen)
 
 ### My packages
+
+Hopefully these are useful examples.
 
 - [McMasterPandemic](https://github.com/bbolker/McMasterPandemic/blob/master/.github/workflows/R-CMD-check.yaml)
    - basic (`uses_github_actions()`)
@@ -72,9 +80,11 @@ If you're going to experiment with this stuff on a new branch, make sure to add 
    - used `uses_github_actions_standard()`
    - commented out extra platforms, left just `R-release`
    - added texlive packages
-   - modified working directories (by Bryce Mecum https://github.com/amoeba)
+   - modified working directories (code gratefully accepted from Bryce Mecum https://github.com/amoeba)
 - [lme4](https://github.com/lme4/lme4/blob/master/.github/workflows/R-CMD-check.yaml)
    - used `..._standard()`, commented out all but `r-devel` platform
    - added texlive: `sudo apt-get install texlive texlive-latex-base texlive-latex-extra`
    - added `build_args="--compact-vignettes=both"` to the `rcmdcheck` command ([no quotation marks around "both"](https://stat.ethz.ch/pipermail/r-package-devel/2020q4/006099.html))
    - installing dependencies seems to take **much** longer for r-devel (everything built from source? caching not functional?)
+
+**to do**: `bbmle`, ?
