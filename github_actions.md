@@ -27,7 +27,7 @@ Many of my R packages are set up using **continuous integration** to run tests e
    - `use_github_actions()` sets up a much smaller/simpler YAML configuration. It checks *only* on MacOS (why MacOS??? why not Linux?), and configures the testing platform with a smaller number of built-in system packages (especially, LaTeX support). I configured one package (`McMasterPandemic`) with this version.
        - added stuff: [pandoc](https://github.com/r-lib/actions/tree/master/setup-pandoc), tinytex (I should have used the [r-lib action](https://github.com/r-lib/actions/tree/master/setup-tinytex) but did it by hand)
    - `use_github_action_check_standard()` 
-       - seems to automatically incorporate livetex (better/more complete than tinytex)
+       - seems to automatically incorporate `texlive` (better/more complete than `tinytex`?)
        - but tests on 4 platforms (MacOS, Linux-release, Linux-devel, Windows) automatically, which is overkill for my needs: I used it anyway (for its better coverage) and commented out the platforms I didn't want
 	   - supposedly caches packages (but not seeing much on Linux-devel?)
 
@@ -88,7 +88,7 @@ Hopefully these are useful examples.
    - used `setup-pandoc` from `r-lib/actions`
    - added `tinytex` by hand, plus a whole pile of `tinytex::tlmgr_install()` statements
        - could have combined into a single long character vector?
-	   - could install livetex + some extra Debian packages instead?
+	   - could install `texlive` + some extra Debian packages instead?
 - [glmmTMB](https://github.com/glmmTMB/glmmTMB/blob/github_actions/.github/workflows/R-CMD-check.yaml)
    - used `uses_github_actions_standard()`
    - commented out extra platforms, left just `R-release`
@@ -100,5 +100,9 @@ Hopefully these are useful examples.
    - added `build_args="--compact-vignettes=both"` to the `rcmdcheck` command ([no quotation marks around "both"](https://stat.ethz.ch/pipermail/r-package-devel/2020q4/006099.html))
 	   - installing dependencies is very slow on `r-devel` before the first successful test, but after that package caching appears to work as intended
    - opt-in to tests via `"[run ci]"` in commit messages
-
+- [fitode](https:://github.com/parksw3/fitode/blog/master/.github/workflows/R-CMD-check.yaml)
+   - similar to those above: `standard()` with other platforms commented, `[skip ci]`
+   - no need for subdirectories, extra vignette compacting, etc.
+   - added a step to install `texlive` and friends, but not sure I really needed to
+   - in the end I found that a custom `Makefile` in the `vignettes/` directory was messing things up (generating a "vignette product does not have a known filename extension" error), even though it was OK on my machine *and* was included in `.Rbuildignore`?? 
 **to do**: `bbmle`, ?
