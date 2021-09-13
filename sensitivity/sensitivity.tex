@@ -1,0 +1,27 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{natbib}
+%\usepackage{chicago}
+\bibliographystyle{apalike}
+\title{Review of sensitivity/identifiability/etc.: “opportunity or problem?”}
+
+\begin{document}
+
+\textbf{Participants:} Mark Lewis, Ben Bolker, Andrew Morozov, Axel Rossberg, Juan Lourdes, Bob Kooi, Matt Adamson,  Ezio Venturino, Stephan Munch, Bethany Johnson
+
+
+\emph{Structural stability} and \emph{structural sensitivity} are mathematical concepts that describe the (qualitative or quantitative) dependence of dynamics on the parameters and functional forms underlying a dynamical system. \emph{Identifiability} and \emph{estimability} are statistical concepts that describe the possibility, or ease, of estimating the parameters of a specified model. The mathematical and statistical concepts are closely related; if the dynamics of a model are extremely sensitive to a given parameter (or functional form), then a statistical analysis of observed dynamics should be able to estimate the parameter very precisely. Conversely, when the dynamics of a model are completely insensitive to a parameter, that parameter will be statistically unidentifiable; observing the dynamics gives no information about the parameter.
+
+We briefly discussed existing methods for analyzing structural stability, parametric sensitivity, and statistical identifiability. These comprise bifurcation analysis in mathematics; sensitivity analysis in statistics (e.g. quantification of sensitivity and elasticity of model outcomes to parameter values; global sensitivity methods such as FAST \citep{mcrae_global_1982} or Latin hypercube sampling \citep{blower_drugs_1991}); and identifiability analysis in statistics (e.g. data cloning \citep{lele_data_2007,ponciano_hierarchical_2009,lele_estimability_2010}, Wald estimates of variance-covariance matrices via the Fisher information matrix, and algebraic methods \citep{meshkat_algorithm_2009,eisenberg_identifiability_2013}).
+
+Our main interest was in exploring the duality of dynamical sensitivity and statistical estimability. The consequences of sensitivity depend on the goal and ``direction'' of analysis (forward vs. inverse): for example, sensitivity is problematic when one is trying to predict dynamics based on a specified model with known parameters, but convenient if one is trying to estimate parameters. Sensitivity and estimability also depend on which model inputs and outputs are chosen. On the input side, one can choose to focus on the sensitivity to a pre-specified set of parameters, or reparameterize the model, or consider structural sensitivity by allowing variation in the functional forms within a model \citep{adamson_when_2013}. On the output side, considering different response variables can qualitatively change the conclusions of a sensitivity analysis \citep{farcas_maximum_2016,li_essential_2017}.
+
+These fields are now moving from considering sensitivity and estimability of parameters to \emph{structural sensitivity} \citep{adamson_when_2013} and nonparametric estimation of functional forms  (``semimechanistic modeling'' \citep{wood_partially_2001} or ``model-free forecasting'' \citep{perretti2013model,perretti2013nonparametric}). While statistical sensitivity analysis usually focuses on quantitative changes in model outcomes, one can also consider qualitative changes (i.e., changes in the topology of the attractors \citep{adamson_when_2013}). While such qualitative outcomes may sometimes be of less interest in applications, at least the case of persistence vs. extinction forms the basis of population viability analysis. Some open questions in this area:
+\begin{itemize}
+\item How can we understand the relative sensitivity of different components of a system? For example, in a nonparametric or structural-sensitivity analysis, how can we pin down which properties of an input function (e.g. particular derivatives at particular points along the function) have the greatest effect on output?
+\item Can we characterize and understand in a \emph{practical}, applications-oriented way how frequent structural sensitivity is, and when it is most likely to occur \citep{munch2018nonlinear}? Are typical ecological models naturally sensitive? Are they self-tuned/self-organized to sensitivity? When is the sensitivity biologically relevant (e.g. “dangerous” sensitivity sensu “dangerous bifurcation”)?
+\item Can we distinguish sensitivity in a model from sensitivity in a biological system?  That is, what kinds of experiments and examples could (or do) reveal sensitivity in the biological system, without mediation through a (almost certainly misspecified) model?  There are a many examples showing bifurcations, structural (in)stability or sensitivity in empirical systems: \citep{veilleux_analysis_1979,fussmann_crossing_2000,cushing_chaotic_2001,melbourne_highly_2009}.
+\end{itemize}
+\bibliography{sensitivity}
+\end{document}
+
