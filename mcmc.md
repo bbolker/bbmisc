@@ -56,4 +56,11 @@ This is a **very** broad outline/brain dump.
 
 See @gelman_bayesian_2020
 
+## More resources
+
+- @betancourt_markov_2020: long blog post with geometry, examples, etc.; semi-technical
+- @kery_introduction_2010: what it sounds like. Various standard models implemented and explained in WinBUGS
+- @kery_bayesian_2011: as previous, but focusing on models for ecologists; state-space models for population counts, capture-mark-recapture data, occupancy models, etc.
+- @liang_advanced_2010: haven't read it but looks interesting??
+
 ## References
