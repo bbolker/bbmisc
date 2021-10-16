@@ -1,12 +1,13 @@
 ---
-title: open access and alternative publishing (etc.)
+title: "open access and alternative publishing"
 author: Ben Bolker
-date:  08 Dec 2017
+date: "18 Oct 2021"
 bibliography: oa.bib
 csl: ../reflist2.csl
 output:
   ioslides_presentation
 ---
+
 <!-- 
 apa.csl is a slightly hacked version of APA 
   (modified for "et al" after 2 authors in text)
@@ -80,7 +81,7 @@ https://www.flickr.com/photos/7976207@N03/811269870
 
 </div>
 
-## what are the roles of scientific journals?
+## scientific journals: why?
 
 - peer-review (quality filter)
 - editing (quality improvement)
@@ -90,11 +91,12 @@ https://www.flickr.com/photos/7976207@N03/811269870
 
 ## some new kids on the block
 
-internet began to enable sharing and lower-cost distribution
+- internet enables distribution
+- alternatives to traditional model
 
 - 1991: [ArXiv](https://en.wikipedia.org/wiki/ArXiv)
 - 2000: [Faculty of 1000](https://en.wikipedia.org/wiki/Faculty_of_1000)
-- 2003: [PLOS](https://en.wikipedia.org/wiki/PLOS)
+- 2003: [PLoS](https://en.wikipedia.org/wiki/PLOS)
 - 2008: [ResearchGate](https://en.wikipedia.org/wiki/Researchgate)
 - 2011: [figshare](https://en.wikipedia.org/wiki/Figshare)
 - 2011: [Scihub](https://en.wikipedia.org/wiki/Scihub)
@@ -108,6 +110,7 @@ internet began to enable sharing and lower-cost distribution
 - "green" open access: allow self-archiving
 - "gold" open access: pay to make articles OA
      - many journals now allow gold option
+- (and [other colours](https://en.wikipedia.org/wiki/Open_access) ...)
 - [tri-council rules](http://www.science.gc.ca/eic/site/063.nsf/eng/h_F6765465.html?OpenDocument):
 
 > Grant recipients are required to ensure that any peer-reviewed journal publications arising from Agency-supported research are freely accessible within 12 months of publication.
@@ -124,10 +127,10 @@ internet began to enable sharing and lower-cost distribution
 
 Open Access $\neq$ not-for-profit
 
-- not-for-profit
-- society
+- not-for-profit (e.g. *Annual Reviews*)
+- society (e.g. *Ecology*)
 - commercial (e.g. Elsevier, Springer, Wiley, ...)
-- predatory OA: [Beall's list](https://beallslist.weebly.com/)
+- **predatory** OA: [Beall's list](https://beallslist.net/)
 
 ## the [Ingelfinger rule](https://en.wikipedia.org/wiki/Ingelfinger_rule)
 
@@ -153,7 +156,7 @@ Open Access $\neq$ not-for-profit
 	 - ["If you are not paying for it, you're not the customer; you're the product being sold"](https://www.metafilter.com/95152/Userdriven-discontent#32560467)
 - social media
      - twitter, FB, blogging
-     - should you mix academic and personal media?
+     - be careful mixing academic and personal media ...
 	 - do it well or don't do it
 - [altmetrics](https://www.altmetric.com/)
 
@@ -180,6 +183,12 @@ experiments in peer review:
 ## data life history [@vines_availability_2014]
 
 ![](pix/vines_data.png)
+
+## data archiving in behavioural ecology
+
+![](pix/miller_2021.jpg)
+
+@miller_animal_2021 (see also @roche_public_2015)
 
 ## [CIHR rules on data access](http://www.science.gc.ca/eic/site/063.nsf/eng/h_F6765465.html?OpenDocument)
 
