@@ -1,5 +1,5 @@
 ---
-title: statistics stuff you should think about
+title: statistics stuff to think about
 author: Ben Bolker
 date:  11 November 2021
 bibliography: stats.bib
@@ -81,6 +81,12 @@ you needn't worry too much in advance about statistics
 - stratification  
 (i.e., randomize within groups)
 - related: experimental *blinding*
+
+## Yellowstone aspen regeneration [@brice_sampling_2021]
+
+```{r yellowstone, out.width="80%"}
+knitr::include_graphics("pix/yellowstone_browse2.png")
+```
 
 ## replication {.build}
 
