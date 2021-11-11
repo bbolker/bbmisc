@@ -89,10 +89,9 @@ https://www.flickr.com/photos/7976207@N03/811269870
 - disseminate
 - archive
 
-## some new kids on the block
+## new kids on the block
 
-- internet enables distribution
-- alternatives to traditional model
+internet enables distribution: alternatives to traditional model
 
 - 1991: [ArXiv](https://en.wikipedia.org/wiki/ArXiv)
 - 2000: [Faculty of 1000](https://en.wikipedia.org/wiki/Faculty_of_1000)
