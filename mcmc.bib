@@ -1,0 +1,189 @@
+
+@book{gilks_markov_1995,
+	edition = {1},
+	title = {Markov {Chain} {Monte} {Carlo} in {Practice}},
+	isbn = {0-412-05551-1},
+	publisher = {Chapman and Hall/CRC},
+	editor = {Gilks, W. R. and Richardson, S. and Spiegelhalter, David},
+	month = dec,
+	year = {1995},
+}
+
+
+@article{van_ravenzwaaij_simple_2018,
+	title = {A simple introduction to {Markov} {Chain} {Monte}–{Carlo} sampling},
+	volume = {25},
+	issn = {1531-5320},
+	url = {https://doi.org/10.3758/s13423-016-1015-8},
+	doi = {10.3758/s13423-016-1015-8},
+	abstract = {Markov Chain Monte–Carlo (MCMC) is an increasingly popular method for obtaining information about distributions, especially for estimating posterior distributions in Bayesian inference. This article provides a very basic introduction to MCMC sampling. It describes what MCMC is, and what it can be used for, with simple illustrative examples. Highlighted are some of the benefits and limitations of MCMC sampling, as well as different approaches to circumventing the limitations most likely to trouble cognitive scientists.},
+	language = {en},
+	number = {1},
+	urldate = {2021-09-26},
+	journal = {Psychonomic Bulletin \& Review},
+	author = {{van Ravenzwaaij}, Don and Cassey, Pete and Brown, Scott D.},
+	month = feb,
+	year = {2018},
+	pages = {143--154}
+}
+
+
+@book{bolker_ecological_2008,
+	edition = {508},
+	title = {Ecological {Models} and {Data} in {R}},
+	isbn = {0-691-12522-8},
+	publisher = {Princeton University Press},
+	author = {Bolker, Benjamin M.},
+	month = jul,
+	year = {2008}
+}
+
+
+@book{bolker_ecological_2008,
+	title = {Ecological {Models} and {Data} in {R}},
+	isbn = {0-691-12522-8},
+	publisher = {Princeton University Press},
+	author = {Bolker, Benjamin M.},
+	month = jul,
+	year = {2008},
+}
+
+
+@article{altekar_parallel_2004,
+	title = {Parallel {Metropolis} coupled {Markov} chain {Monte} {Carlo} for {Bayesian} phylogenetic inference},
+	volume = {20},
+	issn = {1367-4803, 1460-2059},
+	url = {https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/btg427},
+	doi = {10.1093/bioinformatics/btg427},
+	abstract = {Motivation: Bayesian estimation of phylogeny is based on the posterior probability distribution of trees. Currently, the only numerical method that can effectively approximate posterior probabilities of trees is Markov chain Monte Carlo (MCMC). Standard implementations of MCMC can be prone to entrapment in local optima. Metropolis coupled MCMC [(MC)3], a variant of MCMC, allows multiple peaks in the landscape of trees to be more readily explored, but at the cost of increased execution time.},
+	language = {en},
+	number = {3},
+	urldate = {2021-04-02},
+	journal = {Bioinformatics},
+	author = {Altekar, G. and Dwarkadas, S. and Huelsenbeck, J. P. and Ronquist, F.},
+	month = feb,
+	year = {2004},
+	pages = {407--415}
+}
+
+
+
+@article{talts_validating_2020,
+	title = {Validating {Bayesian} {Inference} {Algorithms} with {Simulation}-{Based} {Calibration}},
+	url = {http://arxiv.org/abs/1804.06788},
+	abstract = {Verifying the correctness of Bayesian computation is challenging. This is especially true for complex models that are common in practice, as these require sophisticated model implementations and algorithms. In this paper we introduce {\textbackslash}emph\{simulation-based calibration\} (SBC), a general procedure for validating inferences from Bayesian algorithms capable of generating posterior samples. This procedure not only identifies inaccurate computation and inconsistencies in model implementations but also provides graphical summaries that can indicate the nature of the problems that arise. We argue that SBC is a critical part of a robust Bayesian workflow, as well as being a useful tool for those developing computational algorithms and statistical software.},
+	urldate = {2021-10-01},
+	journal = {arXiv:1804.06788 [stat]},
+	author = {Talts, Sean and Betancourt, Michael and Simpson, Daniel and Vehtari, Aki and Gelman, Andrew},
+	month = oct,
+	year = {2020},
+	note = {arXiv: 1804.06788},
+	keywords = {Statistics - Methodology},
+	annote = {Comment: 19 pages, 13 figures}
+}
+
+
+@article{vehtari_rank-normalization_2019,
+	title = {Rank-normalization, folding, and localization: {An} improved \${\textbackslash}widehat\{{R}\}\$ for assessing convergence of {MCMC}},
+	shorttitle = {Rank-normalization, folding, and localization},
+	url = {http://arxiv.org/abs/1903.08008},
+	abstract = {Markov chain Monte Carlo is a key computational tool in Bayesian statistics, but it can be challenging to monitor the convergence of an iterative stochastic algorithm. In this paper we show that the convergence diagnostic \${\textbackslash}widehat\{R\}\$ of Gelman and Rubin (1992) has serious flaws and we propose an alternative that fixes them. We also introduce a collection of quantile-based local efficiency measures, along with a practical approach for computing Monte Carlo error estimates for quantiles. We suggest that common trace plots should be replaced with rank plots from multiple chains. Finally, we give concrete recommendations for how these methods should be used in practice.},
+	urldate = {2019-03-20},
+	journal = {arXiv:1903.08008 [stat]},
+	author = {Vehtari, Aki and Gelman, Andrew and Simpson, Daniel and Carpenter, Bob and Bürkner, Paul-Christian},
+	month = mar,
+	year = {2019},
+	note = {arXiv: 1903.08008},
+	keywords = {Statistics - Computation, Statistics - Methodology}
+}
+
+
+@article{lambert_r_2020,
+	title = {\${R}{\textasciicircum}*\$: {A} robust {MCMC} convergence diagnostic with uncertainty using decision tree classifiers},
+	shorttitle = {\${R}{\textasciicircum}*\$},
+	url = {http://arxiv.org/abs/2003.07900},
+	abstract = {Markov chain Monte Carlo (MCMC) has transformed Bayesian model inference over the past three decades: mainly because of this, Bayesian inference is now a workhorse of applied scientists. Under general conditions, MCMC sampling converges asymptotically to the posterior distribution, but this provides no guarantees about its performance in finite time. The predominant method for monitoring convergence is to run multiple chains and monitor individual chains' characteristics and compare these to the population as a whole: if within-chain and between-chain summaries are comparable, then this is taken to indicate that the chains have converged to a common stationary distribution. Here, we introduce a new method for diagnosing convergence based on how well a machine learning classifier model can successfully discriminate the individual chains. We call this convergence measure \$R{\textasciicircum}*\$. In contrast to the predominant \${\textbackslash}widehat\{R\}\$, \$R{\textasciicircum}*\$ is a single statistic across all parameters that indicates lack of mixing, although individual variables' importance for this metric can also be determined. Additionally, \$R{\textasciicircum}*\$ is not based on any single characteristic of the sampling distribution; instead it uses all the information in the chain, including that given by the joint sampling distribution, which is currently largely overlooked by existing approaches. We recommend calculating \$R{\textasciicircum}*\$ using two different machine learning classifiers - gradient-boosted regression trees and random forests - which each work well in models of different dimensions. Because each of these methods outputs a classification probability, as a byproduct, we obtain uncertainty in \$R{\textasciicircum}*\$. The method is straightforward to implement and could be a complementary additional check on MCMC convergence for applied analyses.},
+	urldate = {2021-06-10},
+	journal = {arXiv:2003.07900 [stat]},
+	author = {Lambert, Ben and Vehtari, Aki},
+	month = nov,
+	year = {2020},
+	note = {arXiv: 2003.07900},
+	keywords = {Statistics - Applications, Statistics - Methodology},
+	file = {arXiv Fulltext PDF:/home/bolker/Documents/zotero_new/storage/8N4DWASF/Lambert and Vehtari - 2020 - \$R^\$ A robust MCMC convergence diagnostic with u.pdf:application/pdf;arXiv.org Snapshot:/home/bolker/Documents/zotero_new/storage/32VMPVBN/2003.html:text/html},
+}
+
+@incollection{rosenthal_optimal_2011,
+	title = {‪{Optimal} proposal distributions and adaptive {MCMC}‬},
+	url = {https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.433.6547&rep=rep1&type=pdf},
+	booktitle = {Handbook of Markov Chain Monte Carlo},
+	author = {Rosenthal, JS},
+	editor = {Brooks, Steve and Gelman, Andrew and  Jones, Galin and  Meng, Xiao-Li},
+	year = {2011}
+}
+
+
+@article{gelman_bayesian_2020,
+	title = {Bayesian {Workflow}},
+	url = {http://arxiv.org/abs/2011.01808},
+	abstract = {The Bayesian approach to data analysis provides a powerful way to handle uncertainty in all observations, model parameters, and model structure using probability theory. Probabilistic programming languages make it easier to specify and fit Bayesian models, but this still leaves us with many options regarding constructing, evaluating, and using these models, along with many remaining challenges in computation. Using Bayesian inference to solve real-world problems requires not only statistical skills, subject matter knowledge, and programming, but also awareness of the decisions made in the process of data analysis. All of these aspects can be understood as part of a tangled workflow of applied Bayesian statistics. Beyond inference, the workflow also includes iterative model building, model checking, validation and troubleshooting of computational problems, model understanding, and model comparison. We review all these aspects of workflow in the context of several examples, keeping in mind that in practice we will be fitting many models for any given problem, even if only a subset of them will ultimately be relevant for our conclusions.},
+	urldate = {2020-11-04},
+	journal = {arXiv:2011.01808 [stat]},
+	author = {Gelman, Andrew and Vehtari, Aki and Simpson, Daniel and Margossian, Charles C. and Carpenter, Bob and Yao, Yuling and Kennedy, Lauren and Gabry, Jonah and Bürkner, Paul-Christian and Modrák, Martin},
+	month = nov,
+	year = {2020},
+	note = {arXiv: 2011.01808},
+	keywords = {Statistics - Methodology},
+	annote = {Comment: 77 pages, 35 figures}
+}
+
+
+@misc{betancourt_markov_2020,
+	title = {Markov {Chain} {Monte} {Carlo} in {Practice}},
+	url = {https://betanalpha.github.io/assets/case_studies/markov_chain_monte_carlo.html},
+	urldate = {2021-10-15},
+	author = {Betancourt, Michael},
+	month = may,
+	year = {2020},
+}
+
+
+@book{kery_introduction_2010,
+	address = {Amsterdam; Boston},
+	title = {Introduction to {WinBUGS} for ecologists {Bayesian} approach to regression, {ANOVA}, mixed models and related analyses},
+	isbn = {978-0-12-378605-0 0-12-378605-3 0-12-378606-1 978-0-12-378606-7 1-282-75566-8 978-1-282-75566-6},
+	abstract = {Bayesian statistics has exploded into biology and its sub-disciplines such as ecology over the past decade. The free software program WinBUGS and its open-source sister OpenBugs is currently the only flexible and general-purpose program available with which the average ecologist can conduct their own standard and non-standard Bayesian statistics. Introduction to WINBUGS for Ecologists goes right to the heart of the matter by providing ecologists with a comprehensive, yet concise, guide to applying WinBUGS to the types of models that they use most often: linear (LM), generalized linear (GLM), linear mixed (LMM) and generalized linear mixed models (GLMM). Introduction to WinBUGS for Ecologists combines the use of simulated data sets "paired" analyses using WinBUGS (in a Bayesian framework for analysis) and in R (in a frequentist mode of inference) and uses a very detailed step-by-step tutorial presentation style that really lets the reader repeat every step of the application of a given mode in their own research. - Introduction to the essential theories of key models used by ecologists - Complete juxtaposition of classical analyses in R and Bayesian Analysis of the same models in WinBUGS - Provides every detail of R and WinBUGS code required to conduct all analyses - Written with ecological language and ecological examples - Companion Web Appendix that contains all code contained in the book, additional material (including more code and solutions to exercises) - Tutorial approach shows ecologists how to implement Bayesian analysis in practical problems that they face.},
+	language = {English},
+	publisher = {Elsevier},
+	author = {Kéry, Marc},
+	year = {2010},
+}
+
+@book{kery_bayesian_2011,
+	address = {Boston},
+	edition = {1st edition},
+	title = {Bayesian {Population} {Analysis} using {WinBUGS}: {A} {Hierarchical} {Perspective}},
+	isbn = {978-0-12-387020-9},
+	shorttitle = {Bayesian {Population} {Analysis} using {WinBUGS}},
+	abstract = {Bayesian statistics has exploded into biology and its sub-disciplines, such as ecology, over the past decade. The free software program WinBUGS, and its open-source sister OpenBugs, is currently the only flexible and general-purpose program available with which the average ecologist can conduct standard and non-standard Bayesian statistics.Comprehensive and richly commented examples illustrate a wide range of models that are most relevant to the research of a modern population ecologistAll WinBUGS/OpenBUGS analyses are completely integrated in software RIncludes complete documentation of all R and WinBUGS code required to conduct analyses and shows all the necessary steps from having the data in a text file out of Excel to interpreting and processing the output from WinBUGS in R},
+	language = {English},
+	publisher = {Academic Press},
+	author = {Kéry, Marc and Schaub, Michael},
+	month = oct,
+	year = {2011},
+}
+
+
+@book{liang_advanced_2010,
+	address = {Chichester, West Sussex, U.K},
+	edition = {1st edition},
+	title = {Advanced {Markov} {Chain} {Monte} {Carlo} {Methods}: {Learning} from {Past} {Samples}},
+	isbn = {978-0-470-74826-8},
+	shorttitle = {Advanced {Markov} {Chain} {Monte} {Carlo} {Methods}},
+	abstract = {Markov Chain Monte Carlo (MCMC) methods are now an indispensable tool in scientific computing. This book discusses recent developments of MCMC methods with an emphasis on those making use of past sample information during simulations. The application examples are drawn from diverse fields such as bioinformatics, machine learning, social science, combinatorial optimization, and computational physics. Key Features:  Expanded coverage of the stochastic approximation Monte Carlo and dynamic weighting algorithms that are essentially immune to local trap problems. A detailed discussion of the Monte Carlo Metropolis-Hastings algorithm that can be used for sampling from distributions with intractable normalizing constants. Up-to-date accounts of recent developments of the Gibbs sampler. Comprehensive overviews of the population-based MCMC algorithms and the MCMC algorithms with adaptive proposals.  This book can be used as a textbook or a reference book for a one-semester graduate course in statistics, computational biology, engineering, and computer sciences. Applied or theoretical researchers will also find this book beneficial.},
+	language = {English},
+	publisher = {Wiley},
+	author = {Liang, Faming and Liu, Chuanhai and Carroll, Raymond},
+	month = aug,
+	year = {2010},
+}

@@ -1,12 +1,13 @@
 ---
-title: statistics stuff you should think about
+title: statistics stuff to think about
 author: Ben Bolker
-date:  12 November 2020
+date:  11 November 2021
 bibliography: stats.bib
 csl: reflist2.csl
 output:
   ioslides_presentation
 ---
+
 <!-- 
 apa.csl is a slightly hacked version of APA 
   (modified for "et al" after 2 authors in text)
@@ -56,7 +57,7 @@ th_clean <-
 ## outline
 
 - experimental design
-- statistical philosophy <img src="pix/scream.jpeg" style="width:80px; vertical-align:top">
+- statistical philosophy
 - statistical tests & assumptions
 - analysis platforms
 
@@ -80,6 +81,12 @@ you needn't worry too much in advance about statistics
 - stratification  
 (i.e., randomize within groups)
 - related: experimental *blinding*
+
+## Yellowstone aspen regeneration [@brice_sampling_2021]
+
+```{r yellowstone, out.width="80%"}
+knitr::include_graphics("pix/yellowstone_browse2.png")
+```
 
 ## replication {.build}
 
@@ -113,24 +120,28 @@ library("sos"); findFn("{power analysis}")
 
 ## power analysis example
 
-With $n=15$ per group, can we see a clear difference between 10% (control) and 20% (treatment) mortality?
+With $n=15$ per group, are we likely to see a clear difference between 10% (control) and 20% (treatment) mortality (a **doubling** of mortality)?
+
+## power analysis example (continued)
 
 <!-- would like to highlight power: line, but too hard -->
 ```{r pow,echo=TRUE}
 power.prop.test(n=15,p1=0.1,p2=0.2)
 ```
 
-Uh-oh.
+**Uh-oh!**
 
 ---
 
 How many samples per group would we need to get power=0.8?
 
+---
+
 ```{r pow2,echo=TRUE}
 power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
 ```
 
-Uh-oh.
+**Uh-oh!**
 
 ---
 
@@ -141,7 +152,13 @@ Uh-oh.
 ## increasing power (control)
 
 - increase sample size (ugh)
+- increase rejection threshold (e.g. $\alpha=0.1$)  
+(probably can't get away with this)
 - maximize *desired* variation (e.g. large doses)
+- measure a clearer outcome (gene expression, hormone levels, etc.)
+
+---
+
 - minimize *undesired* variation
     - *within-subjects* designs  
 	(paired, randomized-block, crossover)
@@ -154,17 +171,29 @@ Uh-oh.
 
 # statistical philosophy
 
+<img src="pix/scream.jpeg" style="width:225px">
+
 ## the other most important thing  {.build}
 
 > - **don't snoop!**  
-(= don't look at data *before deciding how to analyze it*)
+(= don't look at your results *before deciding how to analyze them*)
 > - (but **do** explore your data graphically after deciding on a tentative analysis plan!)
 > - reproducibility crisis: @ioannidis_why_2005, @simmons_false-positive_2011
 > - pre-register; think about what your questions are and how you will test them **before you look at your data**
 
-## scientific hell
+## fishing expeditions
 
-![](pix/sci_hell.png)
+https://xkcd.com/882/
+
+## "The Garden of Forking Paths" [@gelman_statistical_2014]
+
+(or "researcher degrees of freedom" [@simmons_false-positive_2011])
+
+```{r forking_paths, echo=FALSE, out.width = "60%"}
+knitr::include_graphics("pix/forking_paths.jpg")
+```
+
+- https://artsharela.org/event/carillon-quartet-the-garden-of-forking-paths/
 
 ## don't lean on p-values too much
 
@@ -176,7 +205,7 @@ Uh-oh.
 - don't accept the null hypothesis
 - "the difference between significant and non-significant is not significant"
 [@gelman_difference_2006]
-- discuss p-values in terms of statistical *clarity* [@dushoff_i_2018]
+- statistical *clarity* [@dushoff_i_2018]
 
 ```{r CIplot}
 dd <- data.frame(x=1:4,
@@ -184,17 +213,21 @@ dd <- data.frame(x=1:4,
             err=c(0.09,0.17,1.3,0.6),
             special=c("yes","no","no","yes"))
 dd <- transform(dd,
-        pval=signif(2*pnorm(-y/(err/1.96),
-                     lower.tail=TRUE),1))
+                lwr = y-err,
+                upr = y+err,
+                pval=signif(2*pnorm(-y/(err/1.96),
+                                    lower.tail=TRUE),1))
 oldOpt <- options(scipen=1000)
-gg0 <- ggplot(dd,aes(x,y,ymin=y-err,ymax=y+err,
+gg0 <- ggplot(dd,aes(x,y,ymin=lwr,ymax=upr,
               colour=special))+
   geom_pointrange()+
   geom_hline(yintercept=0,lty=2)+
   th_clean+labs(x="some treatments",y="some response")+
-  expand_limits(x=c(0.5,4.3),y=c(0,1.5)) 
-(gg0  +   scale_colour_manual(values=c("black","black"),
-                      guide=FALSE))
+  scale_y_continuous(limits=c(-0.15,2.6)) +
+  expand_limits(x=c(0.5,4.3))
+print(gg0  +   scale_colour_manual(values=c("black","black"),
+                              guide="none"
+                              ))
 ```
 
 </div>
@@ -211,20 +244,20 @@ gg0 <- ggplot(dd,aes(x,y,ymin=y-err,ymax=y+err,
 - don't accept the null hypothesis
 - "the difference between significant and non-significant is not significant"
 [@gelman_difference_2006]
-- discuss p-values in terms of statistical *clarity* [@dushoff_i_2018]
+- statistical *clarity* [@dushoff_i_2018]
 
 ```{r CIplot2}
 (gg0 +  geom_text(aes(x=x,y=y+err+0.1,colour=special,
                       label=paste0("p=",pval)))
   +   scale_colour_manual(values=c("black","red"),
-                      guide=FALSE))
+                      guide="none"))
 
 ```
 
 </div>
 
 
-## tables vs coefficient plots
+## regression table (OK)
 
 1978 automobile data [@chambers_graphical_1983]
 
@@ -240,7 +273,7 @@ lm1 <- lm(price~mpg+trunk+length+turn, data=auto)
 huxtable::huxreg(lm1,error_pos="right")
 ```
 </div>
-## coefficient plot
+## coefficient plot (better!)
 
 ```{r dw,out.width=500,message=FALSE}
 tt <- broom::tidy(lm1) 
@@ -349,12 +382,12 @@ they answer the wrong question
 set.seed(101)
 n <- 50
 dd_bad <- data.frame(x=1:n)
-dd_bad <- transform(dd_bad,y=0.1*x^2+x*rt(n,4))
+dd_bad <- transform(dd_bad,y=0.2*x^2+x*rt(n,4))
 m1 <- lm(y~x,dd_bad)
 ```
 
 ```{r data_bad}
-ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm")
+ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm", formula= y~x)
 ```
 
 ## diagnostics  {.centered}
@@ -363,6 +396,15 @@ ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm")
 ```{r diag_ex,fig.width=7,fig.height=7,out.width=600}
 par(mfrow=c(2,2),las=1,mgp=c(2,1,0),mar=c(4,3,0.5,0.5),oma=c(0,0,2,0))
 plot(m1)
+```
+
+(more [here](http://www.sthda.com/english/articles/39-regression-model-diagnostics/161-linear-regression-assumptions-and-diagnostics-in-r-essentials/))
+
+
+## diagnostics (`performance` pkg)
+
+```{r performance, fig.width = 8, fig.height = 8, out.width = "90%"}
+performance::check_model(m1)
 ```
 
 ## dealing with violations
@@ -401,12 +443,12 @@ think about how much you like statistics ...
 - open alternatives (Open Office)
 - data in plain sight
 - good enough for simple stuff
-- occasional traps [@mccullough_accuracy_2008]
-- archive your data as CSV, not XLSX
+- occasional traps (@mccullough_accuracy_2008; date handling; etc.)
+- **archive your data as CSV, not XLSX**
     
 ## stats packages
 
-- SPSS, JMP, SAS, ...
+- SPSS, JMP ...
 - more reliable than Excel
 - more powerful than Excel
 - point & click (mostly)
@@ -416,26 +458,9 @@ think about how much you like statistics ...
 - powerful; free & open
 - reproducible: script-based
 - hardest to learn
-- [R Commander](http://socserv.mcmaster.ca/jfox/Misc/Rcmdr/) if you need a GUI
+- graphical interfaces: [R Commander](http://socserv.mcmaster.ca/jfox/Misc/Rcmdr/) or [Jamovi](https://www.jamovi.org/)
 - great for data manipulation, graphics  
 (once you learn how)
-
-<blockquote>
-<div style="font-size:18px">
-<p>
-Using this analogy programs like SPSS are busses, easy to use for the standard things, but very frustrating if you want to do something that is not already
-preprogrammed.
-</p>
-<p>
-R is a 4-wheel drive SUV (though environmentally friendly) with a bike on the
-back, a kayak on top, good walking and running shoes in the passenger seat, and
-mountain climbing and spelunking gear in the back. R can take you anywhere you
-want to go if you take time to learn how to use the equipment, but that is
-going to take longer than learning where the bus stops are in SPSS.
-</p>
-</div>
-Greg Snow, R-help (May 2006)
-</blockquote>
 
 ## t-test (R)
 
