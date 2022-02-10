@@ -27,6 +27,9 @@ peak_reduction.Rout: peak_reduction.R
 %.html: %.rmd
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
 
+%.html: %.md
+	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
+
 %.md: %.rmd
 	Rscript -e "library(\"knitr\"); knit(\"$<\")"
 

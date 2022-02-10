@@ -35,7 +35,7 @@ The verb "to be" is vague and can usually be replaced by something more concrete
 
 "and" splices: "and" is often used to connect clauses that are only loosely connected: "ducks are large and when they are approached by humans they make noise". These passages can be stronger if they are split into separate sentences or separated with a semicolon.
 
-"effect" is overused and vague. "has a positive effect on", "has a positive impact of", "positively influences" → "increases".  "Affect" is better than "effect" (verbs stronger than nouns), but even here you should try to use a more specific word ("increases", "decreases"); "increases" is a lot better than "affects positively". I don't like "impacts" as a verb (but I recognize that's old-fashioned/peevish).
+"effect" is overused and vague. "has a positive effect on", "has a positive impact of", "positively influences" → "increases".  "Affect" is better than "effect" (verbs stronger than nouns), but even here you should try to use a more specific word ("increases", "decreases"); "increases" is a lot better than "affects positively". I don't like "impacts" as a verb (but I recognize that's old-fashioned/peevish). "Negatively impacts" should be "hurts" or "decreases" or ...
 
 For ecologists: "density-dependence" is vague. I try to avoid *reifying* density dependence (i.e., convert it from a label that describes a class of phenomena to a *thing*). "Density-dependent mortality" (or fecundity or whatever) is better than "density dependence" alone; the more specific you can be (e.g. attributing the effects to competition for limited resources or nest sites or whatever), the better.
 
