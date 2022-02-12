@@ -1,0 +1,137 @@
+---
+title: "sorting out complex contrasts"
+bibliography: "contrasts.bib"
+nocite: '@*'
+---
+
+The problem: we have a rather complex design (factorial combinations of
+`doublehit` {no stress = "NS", single hit = "SH", double hit = "DH"} and
+`genotype` {"B6", "TCR"}. We want to get estimates such as "main effect of genotype";
+normally we could do this either by setting appropriate contrasts and letting
+the modeling function (`lm`, `glm`, etc.) do the work, or by using a package
+(`effects`, `emmeans`, `margins`, `marginaleffects`, ...) that will do it for
+us after fitting the model.
+
+Sometimes, though (e.g. when using `DESeq2`, or `multcomp`) you have to specify the contrasts
+directly, or figure out how to switch from one set of parameters/contrasts to another (e.g. the default
+treatment contrasts to sum-to-zero contrasts), e.g. https://support.bioconductor.org/p/62550/ .
+
+The key to figuring this out is to know that
+
+- the *contrast matrix* for a single categorical variable defines how we get from the parameters used for that variable to their effects on the predicted values.
+- R uses the contrasts that are set for all of the categorical predictors in your model to construct the *model matrix* that computes the predicted values for each observation
+- the *design matrix* is a simple version of the model matrix for a model with only categorical predictors, with one row for each unique combination of the predictors
+- the *inverse contrast matrix* (horrible name, feel free to suggest a better one) does the opposite of the contrast/design matrix, i.e. it tells you how to go from predicted values (or means of groups) to parameters
+
+
+Some setup:
+```{r setup, message=FALSE}
+library(faux) ## for nicer contrast naming
+## helper/cosmetics for later on 
+shortcolnames <- function(x) {
+  colnames(x) <-
+    gsub("doublehit", "dh",
+         gsub("genotype", "gen",
+              gsub(".?[Ii]ntercept.?", "int", colnames(x))))
+  return(x)
+}
+## cosmetic
+my_print <- function(x, frac = FALSE) {
+  attr(x, "assign") <- attr(x, "contrasts") <- NULL
+  x <- shortcolnames(x)
+  if (frac) x <- as.character(MASS::fractions(x))
+  print(x, quote = FALSE, width = 1000)
+}
+```
+
+For the first example we'll follow the linked example and use populations A and B and environments X and Y.
+
+
+```{r}
+## make the design matrix
+dat1 <- expand.grid(pop = c("A", "B"),
+                    env = c("X", "Y"))
+dat1 <- lapply(dat1, faux::contr_code_treatment)
+## rownames (for later use; the same for both of the design matrices
+rnm <- with(dat1, paste(pop, env, sep = "_"))
+## design matrix 1: with standard treatment contrasts
+D_treat <- model.matrix(~ pop*env, data  = dat1)
+## design matrix 2: sum-to-zero contrasts on both factors
+dat2 <- lapply(dat1, faux::contr_code_sum)
+D_sumtozero <- model.matrix(~ pop*env, data  = dat2)
+rownames(D_treat) <- rownames(D_sumtozero) <- rnm
+```
+
+Logically, if we want the average difference between `A` and `B` in both conditions, we can use
+
+```
+A(X) = intercept
+A(Y) = intercept + env.Y-X
+B(X) = intercept + pop.B-A
+B(Y) = intercept + pop.B-A + env.Y-X + interaction
+-----
+1/2*((B(Y) - A(Y)) + (B(X) - A(X))) =
+1/2* (intercept + pop.B-A + env.Y-X + interaction
+   -  intercept           - env.Y-X
+   +  intercept + pop.B-A
+   -  intercept  =
+1/2* (   0      + 2*pop.B-A + 0     + interaction )
+= {0, pop.B-A, 0, 1/2*interaction}
+```
+   
+If we want to skip all the algebra (which just gets worse as we make the problem more complicated, we can do this by finding the matrix that will transform original (treatment contrast) parameters to new (sum-to-zero contrast) parameters. 
+
+In the first step, we would multiply by the design matrix `D_treat` to go backward from the estimated treatment-contrast parameters to the 
+
+We will need to transform from parameters → predicted means → new parameters: this means that if we were multiplying by a parameter vector `b` estimated by the treatment-contrast model we would first multiply by `D_treat` (to convert to predicted means) and then by the *inverse* of `D_sumtozero` (to convert to parameters on the new scale), so we would have `(C_sumtozero %*% D_treat) %*% b` (`%*%` denotes matrix multiplication in R):
+
+```{r}
+C_sumtozero <- solve(D_sumtozero)
+my_print(C_sumtozero %*% D_treat, frac  = TRUE)
+```
+
+These results ({0, -1/2, 0, -1/4} for population, {0, 0, -1/2, -1/4} for environment) differ from the linked example: they are opposite in sign and half the magnitude (because we are comparing population A to the intercept (halfway between A and B), rather than population B to the intercept; the same logic for environment (X vs. intercept rather than Y vs. X). (These difference change the interpretation of the contrasts, but not their Z- or t-scores or p-values.)
+
+Now do it all again for the 3 × 2 experiment: how would we compute (for example) the average difference in response between genotypes TCR and B6?
+
+```
+B6(NS) = intercept
+B6(SH) = intercept + dh.SH-NS
+B6(DH) = intercept + dh.DH-NS
+TCR(NS) = intercept + gen.TCR-B6
+TCR(SH) = intercept + gen.TCR-B6 + dh.DH-NS + interac1 (SH:TCR)
+TDR(DH) = intercept + gen.TCR-B6 + dh.DH-NS + interac2 (DH:TCR)
+
+-----
+1/3*((TCR(NS) - B6(NS)) + (TCR(SH) - B6(SH)) + (TCR(DH) - B6(DH)))
+1/3* (intercept +  gen.TCR-B6 
+   -  intercept
+   +  intercept +  gen.TCR-B6 + dh.SH-NS            + interac1
+   -  intercept               - dh.SH-NS
+   +  intercept +  gen.TCR-B6            + dh.DH-NS            + interac2
+   -  intercept                         -  dh.DH-NS
+   )
+1/3* (   0      +3*gen.TCR-B6                       + interac1 + interac2)
+=   {0, 0, 0, 1*gen.TCR-B6,  0, 1/3*interac1, 1/3*interac2}
+```
+
+
+```{r}
+dat1 <- expand.grid(doublehit = c("NS","SH","DH"),
+                    genotype = c("B6", "TCR"))
+dat1 <- lapply(dat1, faux::contr_code_treatment)
+rnm <- with(dat1, paste(doublehit, genotype, sep = "_"))
+D_treat <- model.matrix(~ doublehit*genotype, data = dat1)
+dat2 <- lapply(dat1, faux::contr_code_sum)
+D_sumtozero <- model.matrix(~ doublehit*genotype, data = dat2)
+rownames(D_treat) <- rownames(D_sumtozero) <- rnm
+```
+
+```{r}
+C_sumtozero <- solve(D_sumtozero)
+my_print(C_sumtozero %*% D_treat, frac = TRUE)
+```
+
+Once again the listed contrasts are half as large (because we are comparing to the intercept rather than difference between groups) and negative (because we are comparing B6 to the intercept rather than TCR to B6).
+
+## References
