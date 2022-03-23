@@ -5,6 +5,10 @@
 ## run from head of private repo
 ## need to enable "insecure mode" in Gmail
 ## Google Account -> Security
+
+## app passwords
+
+## https://support.google.com/accounts/answer/185833?hl=en
 library(dplyr)
 ## library(googlesheets4)
 library(mailR)
@@ -33,7 +37,7 @@ send_mail <- function(subject,
                       body_file,
                       fake=TRUE,
                       attach_file,
-                      gpass=getPass::getPass(),
+                      gpass = NULL,
                       sender="bbolker@gmail.com",
                       user.name=gsub("@.*$","",sender),
                       port=465,
@@ -41,17 +45,26 @@ send_mail <- function(subject,
                       host.name="smtp.gmail.com"
                       ) {
 
-
     if (!missing(body_text)) {
         body_file <- "body.tmp"
         writeLines(body_text,con=body_file)
     }
 
-    ## FIXME: multiple attachments?
-    astr <- if (!is.null(attach_file) && file.exists(attach_file)) {
-                attach_file
-            } else NULL
-    mailR::send.mail(from = sender,
+  ## cache password **in global working dir** ... sloppy ...
+  if (is.null(gpass)) {
+    if (!is.null(.gpass))
+      gpass <- .gpass
+  }
+  if (gpass == "RESET" || is.null(gpass)) {
+    gpass <- getPass::getPass()
+    .gpass <<- gpass
+  }
+
+  ## FIXME: multiple attachments?
+  astr <- if (!is.null(attach_file) && file.exists(attach_file)) {
+            attach_file
+          } else NULL
+  mailR::send.mail(from = sender,
               to = recipient,
               subject = subject,
               body = body_file,
@@ -65,6 +78,8 @@ send_mail <- function(subject,
               send = !fake)
     cat(recipient,"\n")
 }
+
+.gpass <- NULL
 
 ## sub-tasks:
 ##   find files with appropriate tags and extensions in subdir
