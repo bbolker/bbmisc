@@ -36,7 +36,7 @@ send_mail <- function(subject,
                       body_text,
                       body_file,
                       fake=TRUE,
-                      attach_file,
+                      attach_files,
                       gpass = NULL,
                       sender="bbolker@gmail.com",
                       user.name=gsub("@.*$","",sender),
@@ -61,9 +61,18 @@ send_mail <- function(subject,
   }
 
   ## FIXME: multiple attachments?
-  astr <- if (!is.null(attach_file) && file.exists(attach_file)) {
-            attach_file
-          } else NULL
+  if (!is.null(attach_files) && !is.na(attach_files)) {
+    attach_files <- trimws(strsplit(attach_files, ";")[[1]])
+    missing <- which(!sapply(attach_files, file.exists))
+    if (length(missing)>0) {
+      stop("missing attachments: ", paste(missing, collapse=", "))
+    }
+  }
+
+  if (length(attach_files) == 1 && is.na(attach_files)) {
+    attach_files <- NULL
+  }
+
   mailR::send.mail(from = sender,
               to = recipient,
               subject = subject,
@@ -74,7 +83,7 @@ send_mail <- function(subject,
                           passwd = gpass,
                           ssl = ssl),
               authenticate = TRUE,
-              attach.files=astr,
+              attach.files = attach_files,
               send = !fake)
     cat(recipient,"\n")
 }
@@ -131,13 +140,14 @@ do_mail <- function(data,
 
   get_attach <- function(doc_name, data) {
     if (is.null(doc_name) || is.na(data[[doc_name]]) || is.null(data[[doc_name]])) return(NULL)
+    if (is.null(doc_dir)) return(data[[doc_name]])
     file.path(doc_dir, data[[doc_name]])
   }
 
   ## testing
   if (self_test) {
     first_data <- data[1,]
-    first_doc <- if (is.null(doc_name)) NULL else na.omit(data[[doc_name]])[1]
+    first_doc_data <- if (is.null(doc_name)) NULL else data[which(!is.na(data[[doc_name]]))[1],]
     do.call(send_mail,
             c(list(...),
               list(
@@ -145,13 +155,13 @@ do_mail <- function(data,
                   recipient = self_email,
                   body_text = substitute_strings(body_text, first_data),
                   gpass = gpass,
-                  attach_file = get_attach(first_doc, data),
+                  attach_file = get_attach(doc_name, first_doc_data),
                   fake = FALSE),
               mail_args))
   }
 
   for (i in seq(nrow(data))) {
-    if (!is.null(doc_name) && !skip_nodoc && !is.na(fn <- data[[doc_name]][i])) next
+    if (!is.null(doc_name) && !skip_nodoc && is.na(fn <- data[[doc_name]][i])) next
     do.call(send_mail,
             c(list(...),
               list(
