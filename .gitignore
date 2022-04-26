@@ -10,3 +10,5 @@ figure
 *_cache
 *_files
 *_beamer-tikzDictionary
+*.o
+*.so
