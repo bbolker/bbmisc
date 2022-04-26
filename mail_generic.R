@@ -141,7 +141,10 @@ do_mail <- function(data,
   get_attach <- function(doc_name, data) {
     if (is.null(doc_name) || is.na(data[[doc_name]]) || is.null(data[[doc_name]])) return(NULL)
     if (is.null(doc_dir)) return(data[[doc_name]])
-    file.path(doc_dir, data[[doc_name]])
+    ## ugh!
+    tmp <- sapply(strsplit(data[[doc_name]],";")[[1]],
+                 \(x) file.path(doc_dir, x))
+    paste(tmp, collapse = ";")
   }
 
   ## testing
