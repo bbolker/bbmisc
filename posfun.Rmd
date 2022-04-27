@@ -129,7 +129,7 @@ plotfun <- function(f, maxd=2, xvec=xvec, poly = TRUE, ...) {
 print(plotfun(f))
 ```
 
-What if we went one more step (i.e. make $g(x') = \left( 1+a x' + bx'^2 + cx^3 \right)$?)
+What if we went one more step (i.e. make $g(x') = \left( 1+a x' + bx'^2 + cx'^3 \right)$?)
 
 Tried to do the algebra myself but Wolfram Alpha does it better: `Solve[D[D[D[eps/(1-x/eps+x^2/eps^2 + c x^3),x],x],x]==0, {c}]`
 
@@ -143,10 +143,10 @@ print(plotfun(f,3))
 
 By induction/guessing, we have
 $$
-f(x')  = \varepsilon \left(\sum_{i=0}^n (-1)^i \left(x'/\varepsilon\right)^i \right)
+f(x')  = \varepsilon \left(\sum_{i=0}^n (-1)^i y^i \right)^{-1}
 $$
-
-(what is this function?)
+where $y = 1-x'/\varepsilon$.
+(If the reciprocal of the sum converges to $1+y$ then we have $f(x') = \varepsilon (1+y) = \varepsilon (2-x'/\varepsilon)$ ... ?)
 
 ```{r d5}
 f <- function(x,eps=0.001) {
@@ -158,6 +158,16 @@ print(plotfun(f,5))
 
 Note that while the derivatives are indeed continuous, the magnitudes increase dramatically as we go to higher orders; this could conceivably cause problems for very sensitive problems ... ?
 
+
+A simpler representation:
+```{r f2}
+f2 <- function(x,eps=0.001) {
+    xp <- 1-x/eps
+    eps*(1/(1+xp+xp^2 +xp^3+xp^4+xp^5))
+}
+all.equal(f(xvec),f2(xvec))
+```
+
 ---
 
 Anders Nielsen's implementation:
@@ -165,7 +175,7 @@ Anders Nielsen's implementation:
 ```{r impl2}
 library(numDeriv)
 
-f<-Vectorize(
+f_an <- Vectorize(
     function(x, eps=0.001, n=2){
         if(x<eps){
             eps / sum( (-1)^(0:n)*((x-eps)^(0:n))/(eps^(0:n)))
@@ -175,24 +185,16 @@ f<-Vectorize(
     }
 )
 
-Df <- function(x)grad(f,x)
-DDf <- function(x)grad(Df,x)
+Df <- function(x) grad(f_an,x)
+DDf <- function(x) grad(Df,x)
 par(mfrow=c(1,3))
 from <- 0.001-0.001
 to <- 0.001+0.001
-plot(f,from,to, main=0)
-plot(Df,from,to, main=1)
-plot(DDf,from,to, main=2)
+plot(f_an, from, to, main=0)
+plot(Df, from, to, main=1)
+plot(DDf, from, to, main=2)
 ```
 
-A simpler representation:
-```{r f2}
-f2 <- function(x,eps=0.001) {
-    xp <- -(x/eps-1)
-    eps*(1/(1+xp+xp^2 +xp^3+xp^4+xp^5))
-}
-all.equal(f(xvec),f2(xvec))
-```
 
 ## Testing
 
@@ -221,9 +223,9 @@ f(x) = \begin{cases}
 \end{cases}
 $$
 
-(he doesn't necessarily take responsibility for the case statement/behaviour when $x < 0$).
+(JD doesn't necessarily take responsibility for the case statement/behaviour when $x < 0$).
 
-```{r f_exp}
+```{r f_exp, fig.height = 4, fig.width = 8}
 xvec <- seq(-0.02,0.02,length=601)
 f_exp <- function(x, eps = 0.001) { x + eps*exp(-x/eps) }
 pp <- plotfun(f_exp, poly = FALSE)

@@ -24,7 +24,7 @@ peak_reduction.Rout: peak_reduction.R
 
 ## Rules from Bolker
 
-%.html: %.rmd
+%.html: %.[Rr]md
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
 
 %.html: %.md
