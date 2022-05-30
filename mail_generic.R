@@ -65,7 +65,7 @@ send_mail <- function(subject,
     attach_files <- trimws(strsplit(attach_files, ";")[[1]])
     missing <- which(!sapply(attach_files, file.exists))
     if (length(missing)>0) {
-      stop("missing attachments: ", paste(missing, collapse=", "))
+      stop("missing attachments: ", paste(names(missing), collapse=", "))
     }
   }
 
