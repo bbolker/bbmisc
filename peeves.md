@@ -62,9 +62,9 @@ Don't overuse italics for emphasis. Italic overuse is one of my own weaknesses; 
 
 Avoid quotation marks except for actual, literal quotations. So-called "scare quotes" are hard to interpret, because they usually mean that you indicate that something shouldn't be taken literally, but it's not precise why or how. Is "duck" a new term that's being defined? Or are you saying "sort of a duck, but not really"? Or ... ?
 
-
-
 Don't use hyphens after adverbs ending with "ly": "partially closed" rather than "partially-closed"
+
+If you use LaTeX, plain double quotes (") may get converted to "fancy" quotes (i.e. “fancy”), sometimes incorrectly (“fancy“): use double-single-backquotes `` for open-double-quotes, and either double-single-quotes '' or plain double-quotes for close-double-quotes.
 
 ## Proofreading and citation
 
@@ -74,9 +74,7 @@ Everyone overuses their favorite kinds of punctuation or turns of phrase. Learn 
 
 If you are using [BibTeX](http://www.bibtex.org/), check for capitalization! Most journal styles automatically *set titles in all lower-case*, so you have to protect any words that should be Capitalized or CAPITALIZED with curly brackets {} (some reference managers automatically {protect} {every} {word} {in} {the} {title}, but I prefer that only necessary words are protected).
 
-You should have read, or at least looked at, every reference that you cite. Thanks to the internet it is now actually plausible that you have found a copy of Laplace's "Recherches sur le calcul intégral aux différences infiniment petites, et aux différences finies" (1776) online and read it, but I will definitely challenge you about obscure references during your committee meeting or thesis defence. If you read something in translation, you should cite the translation/translator; if you feel it's important to cite work that's cited in another work (because it is historically important or foundational), state that explicitly (e.g. "Laplace *Recherches sur le calcul ...* [1776], cited in Schmoo et al [2015])
-
-When using LaTeX, plain double quotes (") may get converted to "fancy" quotes (i.e. “fancy”), sometimes incorrectly (“fancy“): use double-single-backquotes `` for open-double-quotes, and either double-single-quotes '' or plain double-quotes for close-double-quotes.
+You should have read, or at least looked at, every reference that you cite. Thanks to the internet it is now plausible that you found a copy of Laplace's "Recherches sur le calcul intégral aux différences infiniment petites, et aux différences finies" (1776) [online](https://www.jstor.org/stable/2369270) and read it in the original French, but I will definitely challenge you about it during your committee meeting or thesis defence. If you read something in translation, you should cite the translation/translator; if you feel it's important to cite work that's cited in another work (because it is historically important or foundational), state that explicitly (e.g. "Laplace *Recherches sur le calcul ...* [1776], cited in Schmoo et al [2015]).
 
 I prefer *author-date* style citation. It is less compact than using numbered references, but it immediately lets readers who are familiar with the literature in your field know what study you're citing, without having to skip to the reference section.
 
