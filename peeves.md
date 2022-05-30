@@ -12,11 +12,15 @@ Here are some of  my opinions about writing.
 
 I don't have a favorite book on writing. I grew up with Strunk and White's [*Elements of Style*](https://en.wikipedia.org/wiki/The_Elements_of_Style). Although S&W's grammar advice is routinely (and justifiably) ridiculed by the linguists at [Language Log](https://languagelog.ldc.upenn.edu/nll/?p=15509), their stylistic advice is a good starting point &mdash; not *always* to be followed, but worth keeping in mind. I also like Orwell's [Politics and the English Language](https://www.orwellfoundation.com/the-orwell-foundation/orwell/essays-and-other-works/politics-and-the-english-language/) &mdash; also [denigrated by Language Log](https://languagelog.ldc.upenn.edu/nll/?p=992), also not to be taken as gospel, but a useful and enjoyable read.[^1]
 
-Prefer the active to the passive voice, and language that attributes agency to vague language. (You might prefer to use the passive voice in a methods section, because you may want to write in a way that downplays *who* followed the procedures; I still prefer the active voice here.) For example, replace "It has been observed that ducks like water (Schmoo et al 2015)" with "Schmoo et al (2015) observed that ducks like water" (but [see below](#ref2))."  It's usually clear to your audience that the statements you're making are your opinions, results, etc. (unless you give a reference, in which case it's clear that you're stating the conclusions of those authors). So your results section can say "Ducks like water" rather than "We observed that ducks like water"; your readers will know that this statement is your conclusion, based on your observations and logic. 
+Prefer the active to the passive voice, and language that attributes agency to vague language. (You might prefer to use the passive voice in a methods section, because you may want to write in a way that downplays *who* followed the procedures; I still prefer the active voice here.) For example, replace "It has been observed that ducks like water (Schmoo et al 2015)" with "Schmoo et al (2015) observed that ducks like water" (but [see below](#ref2))."
 
-Using the first-person singular in scientific writing is controversial, but I think you should do it if your audience will let you. If you are writing with co-authors you can use "we"; you may also be able to use "we" in the sense of "I and you, the reader" (this approach is common in mathematics textbooks: "Therefore we can easily conclude that ...").
+Using the first-person singular in scientific writing is controversial, but you should do it if your audience will let you. If you are writing with co-authors you can use "we"; you may also be able to use "we" in the sense of "I and you, the reader" (this approach is common in mathematics textbooks: "Therefore we can easily conclude that ...").
 
-Scientific readers are usually interested in the current state of the field rather than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's usually better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^2] Don’t introduce your paper by saying that many people have long been interested in the topic: "your paper should introduce the biological topic and explain why it’s interesting and important, not say that other people think the topic is interesting and important" ([Jeremy Fox](https://dynamicecology.wordpress.com/2015/04/20/dont-introduce-your-paper-by-talking-about-how-lots-of-people-are-interested-in-the-topic/)).
+Scientific readers are usually more interested in the current state of the field than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's generally better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^2]   
+
+It will be clear to your audience that statements in your paper represent you opinions, results, etc. &mdash; unless you give a reference, in which case it's clear that you're stating the conclusions of those authors. So you should say "Ducks like water" rather than "We observed/concluded that ducks like water"; your readers will know that this statement is based on your observations and logic.[^2]
+
+Don’t introduce your paper by saying that many people have long been interested in the topic: "your paper should introduce the biological topic and explain why it’s interesting and important, not say that other people think the topic is interesting and important" ([Jeremy Fox](https://dynamicecology.wordpress.com/2015/04/20/dont-introduce-your-paper-by-talking-about-how-lots-of-people-are-interested-in-the-topic/)).
 
 Be deliberate about where you put the strong point or punch line of a sentence or paragraph. Depending on the flow of your argument it should go either at the beginning or at the end, rarely in the middle.
 
@@ -66,7 +70,7 @@ Don't use hyphens after adverbs ending with "ly": "partially closed" rather than
 
 Always spell-check. Spell-checking won't catch everything, and you may have to skip over a lot of technical vocabulary that's not in the dictionary, but there's no excuse for not doing it.
 
-Everyone has punctuation or phrases that they overuse. Learn what yours are, and use your revision process to thin them out.
+Everyone overuses their favorite kinds of punctuation or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary.)
 
 If you are using [BibTeX](http://www.bibtex.org/), check for capitalization! Most journal styles automatically *set titles in all lower-case*, so you have to protect any words that should be Capitalized or CAPITALIZED with curly brackets {} (some reference managers automatically {protect} {every} {word} {in} {the} {title}, but I prefer that only necessary words are protected).
 
@@ -86,7 +90,7 @@ Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/)
 - horn-blowing: "importantly", "interestingly". Ideally, your writing will be spare enough that you don't need to emphasize particular results.
 - Ditto for "Note that" and "Notably".
 - "incredibly" (this is a *very* peeve/niche opinion, but I can't help reading this word with some of its etymological connotation of "unbelievably"; in any case, it's more informal than I like for scientific writing)
-- "Additionally": this usually sounds to me like you are making a list and don't know how to motivate the later items more specifically than "and I have another thing to tell you"
+- "Additionally": this sounds to me like you are making a list and don't know how to motivate the later items more specifically than "and I have another thing to tell you"
 - avoid contractions ("don't", "won't") in formal writing. 
 
 ## Organization
@@ -95,10 +99,13 @@ I often write the introduction last, and almost always write the abstract last.
 
 It sometimes works well to write a first draft and *then* write an outline by reducing the draft you wrote to a skeleton of bullet points.
 
+## Caveat
+
+As George Orwell says, "Break any of these rules sooner than say anything outright barbarous."
+
 ## [Muphry's law](https://en.wikipedia.org/wiki/Muphry%27s_law)
 
 I'm sure that I have violated some of my own rules while writing this document.
-
 
 ---
 
