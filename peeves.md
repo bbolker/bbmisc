@@ -46,13 +46,17 @@ A similar example from evolutionary biology: "species X has larger female-biased
 
 Avoid constructions of the type "A and B have effects C and D, respectively" - you save a few words this way but the reader has to work harder to associate A with C and B with D
 
-## punctuation
+## Punctuation
 
 I like punctuation that isn't part of a quoted phrase or sentence to be *outside* the quotation marks, even though that contradicts most American English style guides.
 
 I like to denote the introduction/definition of new technical terms by *italicizing them*. "Large ducks, or *gigantaducks*, are found in the tropics."
 
+Don't overuse italics for emphasis. Italic overuse is one of my own weaknesses; I remove italics from my paper when revising unless they're absolutely necessary.
+
 Avoid quotation marks except for actual, literal quotations. So-called "scare quotes" are hard to interpret, because they usually mean that you indicate that something shouldn't be taken literally, but it's not precise why or how. Is "duck" a new term that's being defined? Or are you saying "sort of a duck, but not really"? Or ... ?
+
+
 
 Don't use hyphens after adverbs ending with "ly": "partially closed" rather than "partially-closed"
 
