@@ -93,8 +93,11 @@ It sometimes works well to write a first draft and *then* write an outline by re
 
 I'm sure that I have violated some of my own rules while writing this document.
 
-[^1]: This advice does contradict the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.)
 
 ---
 
 Last updated 2022-05-30
+
+--- 
+
+[^1]: This advice does contradict the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.)
