@@ -1,6 +1,5 @@
 ---
 title: "BMB peeves"
-date: "5 December 2021"
 ---
 
 Here are some of  my opinions about writing.
@@ -29,7 +28,7 @@ Reading your own writing out loud is a good way to proofread and find awkward ph
 
 Phrase statements positively rather than negatively: "ducks are likely to be larger in the tropics" rather than "ducks are unlikely to be smaller in the tropics", or "our attempt to catch ducks failed" rather than "our attempt to catch ducks did not succeed". (Orwell specifically recommends avoiding the "not un-" construction.)
 
-I was brainwashed in high school that "this" should never be used without an antecedent ("Ducks are bigger in the tropics. This means that ...") "This" what? Try to include an antecedent whenever you can ("This enlargement means that ..."); it will generally make your writing stronger and more specific.
+I was brainwashed in high school that "this" should never be used without an antecedent ("Ducks are bigger in the tropics. This means that ...") "This" what? Try to include an antecedent whenever you can ("This enlargement means that ..."); it will make your writing stronger and more specific.
 
 Avoid redundancy, particularly when hedging. Instead of saying "in most cases, ducks tend to be larger" say *either* "in most cases, ducks are larger" *or* "ducks tend to be larger".
 
@@ -95,3 +94,7 @@ It sometimes works well to write a first draft and *then* write an outline by re
 I'm sure that I have violated some of my own rules while writing this document.
 
 [^1]: This advice does contradict the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.)
+
+---
+
+Last updated 2022-05-30
