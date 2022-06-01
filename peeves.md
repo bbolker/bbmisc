@@ -6,19 +6,19 @@ Here are some of  my opinions about writing.
 
 ## general points
 
-"Plain", straightforward writing, using concrete words whenever you can, is good. From Robertson Davies' novel *The Manticore* (1972):
+Plain, straightforward writing, using concrete words whenever you can, is good. From Robertson Davies' novel *The Manticore* (1972):
 
 > Ramsay always insisted that there was nothing that could not be expressed in the Plain Style if you knew what you were talking about. Everything else was Baroque Style, which he said was not for most people, or Jargon, which was the Devil's work.
 
-I don't have a favorite book on writing. I grew up with Strunk and White's [*Elements of Style*](https://en.wikipedia.org/wiki/The_Elements_of_Style). Although S&W's grammar advice is routinely (and justifiably) ridiculed by the linguists at [Language Log](https://languagelog.ldc.upenn.edu/nll/?p=15509), their stylistic advice is a good starting point &mdash; not *always* to be followed, but worth keeping in mind. I also like Orwell's [Politics and the English Language](https://www.orwellfoundation.com/the-orwell-foundation/orwell/essays-and-other-works/politics-and-the-english-language/) &mdash; also [denigrated by Language Log](https://languagelog.ldc.upenn.edu/nll/?p=992), also not to be taken as gospel, but a useful and enjoyable read.[^1]
+I don't have a favorite book on writing. I grew up with Strunk and White's [*Elements of Style*](https://en.wikipedia.org/wiki/The_Elements_of_Style). Although their grammar advice is routinely (and justifiably) ridiculed by the linguists at [Language Log](https://languagelog.ldc.upenn.edu/nll/?p=15509), their stylistic advice is a good starting point &mdash; not *always* to be followed, but worth keeping in mind. I also like Orwell's [Politics and the English Language](https://www.orwellfoundation.com/the-orwell-foundation/orwell/essays-and-other-works/politics-and-the-english-language/) &mdash; also [denigrated by Language Log](https://languagelog.ldc.upenn.edu/nll/?p=992), also not to be taken as gospel, but a useful and enjoyable read.[^1]
 
 Prefer the active to the passive voice, and language that attributes agency to vague language. (You might prefer to use the passive voice in a methods section, because you may want to write in a way that downplays *who* followed the procedures; I still prefer the active voice here.) For example, replace "It has been observed that ducks like water (Schmoo et al 2015)" with "Schmoo et al (2015) observed that ducks like water" (but [see below](#ref2))."
 
-Using the first-person singular in scientific writing is controversial, but you should do it if your audience will let you. If you are writing with co-authors you can use "we"; you may also be able to use "we" in the sense of "I and you, the reader" (this approach is common in mathematics textbooks: "Therefore we can easily conclude that ...").
+Using the first-person singular in scientific writing is controversial, but you should do it if your audience will let you. If you're writing with co-authors you can use "we"; you may also be able to use "we" in the sense of "I and you, the reader" (this approach is common in mathematics textbooks: "Therefore we can easily conclude that ...").
 
 Scientific readers are usually more interested in the current state of the field than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's generally better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^2]   
 
-It will be clear to your audience that statements in your paper represent you opinions, results, etc. &mdash; unless you give a reference, in which case it's clear that you're stating the conclusions of those authors. So you should say "Ducks like water" rather than "We observed/concluded that ducks like water"; your readers will know that this statement is based on your observations and logic.[^2]
+It will be clear to your audience that statements in your paper represent your opinions, results, etc. &mdash; unless you give a reference, in which case it's clear that you're stating the conclusions of those authors. So you should say "Ducks like water" rather than "We observed/concluded that ducks like water"; your readers will know that this statement is based on your observations and logic.[^2]
 
 Don’t introduce your paper by saying that many people have long been interested in the topic: "your paper should introduce the biological topic and explain why it’s interesting and important, not say that other people think the topic is interesting and important" ([Jeremy Fox](https://dynamicecology.wordpress.com/2015/04/20/dont-introduce-your-paper-by-talking-about-how-lots-of-people-are-interested-in-the-topic/)).
 
@@ -26,7 +26,7 @@ Be deliberate about where you put the strong point or punch line of a sentence o
 
 Verbs are usually punchier than nouns, including [gerunds](https://en.wikipedia.org/wiki/Gerund#Examples_of_use).
 
-As S&W say, "omit needless words". After writing a draft, go through and see what qualifications and waffles you can delete without changing the meaning of your sentences.
+As Strunk and White say, "omit needless words". After writing a draft, go through and see what qualifications and waffles you can delete without changing the meaning of your sentences.
 
 Reading your own prose out loud is a good way to proofread and find awkward phrasing.
 
@@ -50,7 +50,7 @@ For ecologists: "density-dependence" is vague. I try to avoid *reifying* density
 
 A similar example from evolutionary biology: "species X has larger female-biased sexual size dimorphism" → "species X has larger females relative to males" or "females are larger in species X"
 
-Avoid constructions of the type "A and B have effects C and D, respectively" - you save a few words this way but the reader has to work harder to associate A with C and B with D
+Avoid constructions of the type "A and B have effects C and D, respectively" &mdash; you save a few words this way but the reader has to work harder to associate A with C and B with D
 
 ## Punctuation
 
@@ -83,13 +83,14 @@ Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/)
 ## Words to avoid
 
 - "utili[sz]e" (use "use" instead)
-- "hypothesize" (why not just "think" or "suggest"?)
+- "hypothesize" (Can be useful if you are laying out a formal hypothesis, but why not just "think" or "suggest"?)
 - vague qualifiers: "quite", "very"
 - horn-blowing: "importantly", "interestingly". Ideally, your writing will be spare enough that you don't need to emphasize particular results.
 - Ditto for "Note that" and "Notably".
 - "incredibly" (this is a *very* peeve/niche opinion, but I can't help reading this word with some of its etymological connotation of "unbelievably"; in any case, it's more informal than I like for scientific writing)
 - "Additionally": this sounds to me like you are making a list and don't know how to motivate the later items more specifically than "and I have another thing to tell you"
 - avoid contractions ("don't", "won't") in formal writing. 
+- "creatures": this word connotes things that were created, which you might want to avoid in scientific writing. Just use "organisms" (or something general enough for your taxon of choice)
 
 ## Organization
 
