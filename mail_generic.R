@@ -163,9 +163,15 @@ do_mail <- function(data,
               mail_args))
   }
 
+if (is.null(data[[email_name]])) stop("can't find email variable ", email_name)
   for (i in seq(nrow(data))) {
-    if (!is.null(doc_name) && !skip_nodoc && is.na(fn <- data[[doc_name]][i])) next
-    do.call(send_mail,
+      if (!is.null(doc_name) && !skip_nodoc && is.na(fn <- data[[doc_name]][i])) next
+      email <- data[[email_name]][i]
+      if (is.na(email)) {
+          cat("skipping entry ",i,": NA e-mail address\n")
+          next
+      }
+      do.call(send_mail,
             c(list(...),
               list(
                    sender = self_email,
