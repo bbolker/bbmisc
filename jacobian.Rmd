@@ -185,11 +185,6 @@ Needs the `yacas` package installed (`sudo apt-get install yacas` on Debian-base
 This could do with more wrapping into a function ...
 
 ```{r ryacas_symb}
-x <- ysym("x")
-y <- ysym("y")
-## does translation
-ff <- c(sin(x), cos(x), atan(y/x), tan(x+y))
-vv <- c(x,y)
 ## helper: evaluate two-argument Yacas function
 y_fn2 <- function (x, y, fn, ...)  {
     x <- y_fn(x$yacas_cmd, fn, y$yacas_cmd, ...)
@@ -200,6 +195,11 @@ y_fn2 <- function (x, y, fn, ...)  {
     z <- ysym(y)
     return(z)
 }
+## define symbols
+x <- ysym("x")
+y <- ysym("y")
+ff <- c(sin(x), cos(x), atan(y/x), tan(x+y))
+vv <- c(x,y)
 (r1 <- y_fn2(ff, vv, "JacobianMatrix"))
 eval(as_r(r1), list(x=3, y = 2))
 rm(x, y)  ## clean up
