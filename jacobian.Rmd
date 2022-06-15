@@ -6,6 +6,8 @@ date: "`r format(Sys.Date(), '%d %b %Y')`"
 
 [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
+Source code [here](https://github.com/bbolker/bbmisc/blob/master/jacobian.Rmd)
+
 Inspired by [this tweet](https://twitter.com/BjornstadOttar/status/1535773594252353537): what are our options for calculating derivatives, and especially Jacobians, in R?
 
 ```{r pkgs, message=FALSE}
