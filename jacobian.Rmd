@@ -1,28 +1,101 @@
 ---
 title: "derivatives (especially higher-order) in R"
+author: "Ben Bolker"
+date: "`r format(Sys.Date(), '%d %b %Y')`"
 ---
 
-Inspired by [this tweet](https://twitter.com/BjornstadOttar/status/1535773594252353537): what are our options for calculating derivatives, and especially higher-order derivatives, in R?
+[CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
-```{r}
-remotes::install_github("quantumelixir/radx")
-```
+Inspired by [this tweet](https://twitter.com/BjornstadOttar/status/1535773594252353537): what are our options for calculating derivatives, and especially Jacobians, in R?
 
-```{r pkgs}
-library(Ryacas)
-library(madness)
+```{r pkgs, message=FALSE}
 library(cOde)
 library(calculus)
 library(numDeriv)
-library(radx)
+library(Ryacas)
+library(Deriv)
+if (!require("radx")) {
+    stop("please install the radx package via 'remotes::install_github(\"quantumelixir/radx\")'")
+}
 ```
 
-- are functions entered as expressions, character strings, or functions?
-- results as expressions, char strings, or functions?
-- numeric, symbolic, or automatic?
+Hidden code here defines `evalwrap()`, which translates from a character vector or matrix, or a vector expression, to a numerical evaluation function that takes named arguments.
 
+```{r evalwrap, echo = FALSE}
+## utility for "lifting" an expression vector, *or* a character vector/matrix,
+## to a function that returns numeric values
+## Does both evaluation and reshaping
+evalwrap <- function(c) {
+    function(...) {
+        ee <- list2env(list(...))
+        if (is.matrix(c)) {
+            nc <- ncol(c); nr <- nrow(c)
+        } else {
+            nc <- length(ls(ee)) ## number of vars
+            nr <- length(c)/nc
+        }
+        m <- matrix(NA_real_, ncol = nc, nrow = nr)
+        m[] <- vapply(c,
+                      function(x) {
+                          if (is.character(x)) x <- parse(text = x)
+                              eval(x, envir = ee)
+                      },
+                      FUN.VALUE = numeric(1))
+        return(m)
+    }
+}
+```
 
-```{r king_bjornstad, echo=FALSE}
+Some general questions:
+
+- What dimensionality of functions are we allowing? Scalar-valued only, or vector-valued?
+- What order of differentiation?
+
+In the examples below we will be looking for the *Jacobian*, i.e. the first derivative of a vector-valued function ($J(i,j) \equiv \partial(f_i)/\partial(x_j)$). When working with a scalar-valued function we might want just the gradient ($df/dx_i$) or the Hessian ($d^2\, f/d(x_i x_j)$) ...
+
+Also:
+
+- Should functions (from $R^m \to R^n$) be entered as (vectors or lists of) expressions or character strings? or as functions? If as functions, should they take a vector or list of arguments, or have each argument passed separately? (The `lift_*` functions from the `purrr` package can help translate among these options)
+- Are results returned as expressions or char strings (if symbolic) or numeric values or functions to compute numeric values?
+- What set of functions is handled? Is it possible/how hard is it to extend the set if you need something that's not included (e.g. `digamma`, Lambert $W$ ...)
+- Are we interested in numeric, symbolic, or automatic differentiation?
+   - **numeric** differentiation is slow but very general (we only need to have a function). Least accurate, slower but less inaccurate if something like Richardson extrapolation is used.
+   - **symbolic** differentiation: analytical results may be useful, if appropriately simplified. More accurate than numeric diff (we don't need to make a compromise between floating-point error and approximation error)
+   - **automatic** differentiation: fastest.
+- Is the method self-contained or does it a front-end for some other system?
+- If you need really fast evaluation you should probably be using an interface to C++, or Julia, or something (see ["See also"](#see-also) below)
+
+# Numeric differentiation
+
+## numDeriv
+
+```{r num_numDeriv}
+## f'n takes an m-vector and returns an n-vector
+f_nd <- function(p) {
+    with(as.list(p), 
+         c(sin(x), cos(x), atan(y/x), tan(x+y))
+         )
+}
+numDeriv::jacobian(f_nd, c(x = 3, y = 2))
+```
+
+## calculus (numeric)
+
+```{r}
+## f'n takes m arguments and returns an n-vector
+f_calc <- function(x, y) {
+    c(sin(x), cos(x), atan(y/x), tan(x+y))
+}
+calculus::jacobian(f_calc, c(x = 3, y = 2))
+```
+
+# Symbolic differentiation
+
+## KB code
+
+(Some hidden code here; Bjørnstad and King define a Jacobian function using `D()`)
+
+```{r kb_def, echo=FALSE}
 ## Bjørnstad/King function
 KB_Jacobian <- function (.vars, ...) {
     ## capture the elements
@@ -67,62 +140,130 @@ KB_Jacobian <- function (.vars, ...) {
 }
 ```
 
-```{r}
+```{r kb}
+## function takes a vector variable names (as symbols), returns an evaluation function that takes separate arguments
 f_kb <- KB_Jacobian(.vars = c(x,y), sin(x), cos(x), atan(y/x), tan(x+y))
-f_kb(y=2,x=3)
+f_kb(x=3,y=2)
 ```
 
 ## cOde
 
-```{r}
-## utility for "lifting" a character vector/matrix to a function that returns numeric values
-evalwrap <- function(c) {
-    function(...) {
-        ee <- list2env(list(...))
-        if (is.matrix(c)) {
-            nc <- ncol(c); nr <- nrow(c)
-        } else {
-            nc <- length(ls(ee)) ## number of vars
-            nr <- length(c)/nc
-        }
-        m <- matrix(NA_real_, ncol = nc, nrow = nr)
-        m[] <- vapply(c,
-                      function(x) eval(parse(text = x), envir = ee),
-                      FUN.VALUE = numeric(1))
-        return(m)
-    }
-}
-```
 
-```{r}
-library(cOde)
+```{r cOde_symb}
 charvec <- c(f1 = "sin(x)", f2 = "cos(x)", f3 = "atan(y/x)", f4 = "tan(x+y)")
-j_code <- jacobianSymb(f = charvec, variables = c("x", "y"))
+j_code <- cOde::jacobianSymb(f = charvec, variables = c("x", "y"))
+print(j_code)
 f_code <- evalwrap(j_code)
-f_code(y=2,x=3)
+f_code(x=3, y = 2)
 ```
 
-- input as character, output as character (would need to `eval(parse(...))`)
-- input returned as unpacked vector (would have to re-pack into a matrix)
+- input as character, output as character
+- input returned as unpacked vector
 - function components must be named
 - uses `deparse(D(...))` internally
+- my `evalwrap()` uses `eval(parse(text = ...))` + dimension calculation to return an evaluation function
 
-```{r}
-library(calculus)
+
+## calculus (symbolic)
+
+```{r calc_symb}
 j_calc <- calculus::jacobian(charvec, var = c("x", "y"))
-f_calc <- evalwrap(j_calc)
-f_calc(y=2,x=3)
+print(j_calc)
+f_calc2 <- evalwrap(j_calc)
+f_calc2(y=2,x=3)
 ```
 
-- input as character, output as character (would need to `eval(parse(...))`)
+- input as character, output as character
 - input returned as matrix (dimensions not named)
 
 
-## also: numDeriv, Deriv, madness, TMB (pytorch thing), (Nash autodiff thing?)
+## Ryacas
 
-## symbolic and numerical?
-## user-extended derivs table?
-## autodiff?
+Needs the `yacas` package installed (`sudo apt-get install yacas` on Debian-based Linux, but I guess it could be harder on other OSes?)
+This could do with more wrapping into a function ...
 
-
+```{r ryacas_symb}
+x <- ysym("x")
+y <- ysym("y")
+## does translation
+ff <- c(sin(x), cos(x), atan(y/x), tan(x+y))
+vv <- c(x,y)
+## helper: evaluate two-argument Yacas function
+y_fn2 <- function (x, y, fn, ...)  {
+    x <- y_fn(x$yacas_cmd, fn, y$yacas_cmd, ...)
+    y <- yac_str(x)
+    if (fn == "TeXForm") {
+        return(y)
+    }
+    z <- ysym(y)
+    return(z)
+}
+(r1 <- y_fn2(ff, vv, "JacobianMatrix"))
+eval(as_r(r1), list(x=3, y = 2))
+rm(x, y)  ## clean up
 ```
+
+Could wrap this in a function ...
+
+# Automatic differentiation
+
+## deriv
+
+Although it's not at all obvious from the documentation, the built-in R `deriv()` function does automatic differentiation - it calls it "algorithmic differentiation" (3.75M Google hits vs 47.8M GHits for "automatic differentiation", although a 2-second glance at the search results will tell you that these are synonyms).
+
+```{r deriv}
+jac <- function(exprs, vars) {
+    ## capture the elements in a non-evaluated form
+    ee <- substitute(exprs)
+    ## assumes that the expressions are combined via list(), c(), etc.
+    ## so we remove this part of the expression with [-1] and apply derivs() to each remaining element
+    exprs <- lapply(ee[-1], deriv, vars)
+    function(...) {
+        ## apply eval(), with the named values found in ..., to the individual expressions
+        results <- lapply(exprs, eval, list(...))
+        ## extract the gradient value from each result and combine into a matrix
+        do.call(rbind, lapply(results, attr, "gradient"))
+    }
+}
+f_jac <- jac(c(sin(x), cos(x), atan(y/x), tan(x+y)), c("x", "y"))
+f_jac(x = 3, y = 2)
+```
+
+## Deriv
+
+`Deriv` is a useful package that extends base-R `D()`/`deriv()`. It takes a wider range of input options, and allows user-extension of the derivatives table (although I've found that evaluation environments can be a little tricky if `Deriv()` is used in a package context).
+
+I'm not quite sure whether `Deriv::Deriv()` does symbolic or automatic differentiation, but based on the intermediate results it looks like auto ... ?
+
+```{r deriv_symb}
+## use ~ to protect the expression from premature evaluation
+j_deriv <- Deriv(~c(sin(x), cos(x), atan(y/x), tan(x+y)), c("x", "y"))                                                 
+print(j_deriv)
+f_deriv <- evalwrap(j_deriv)
+f_calc(y=2,x=3)
+```
+
+## radx
+
+This package looks very powerful, but is not on CRAN, and isn't active (see [github repo](https://github.com/quantumelixir/radx)). Powerful in principle, but more of a proof-of-concept.
+
+```{r}
+f_radx <- function(x,y) {
+    ## radx doesn't know tan() !
+    c(sin(x), cos(x), atan(y/x), sin(x+y)/cos(x+y))
+}
+t(radxeval(f_radx, point = c(3, 2), d = 1))
+```
+
+## See also
+
+- `madness`: higher-order autodiff, doesn't seem to be useful in this case?
+- The [NIMBLE package](https://github.com/nimble-dev/nimble/wiki/Automatic-differentiation-in-NIMBLE) can do C++ translation/autodiff (experimental: need to install `CppAD` as well)
+- `TMB`: autodiff in C++, close coupling to R, but clunky/hard to adapt for this use case? (Typical use case assumes $R^m \to R$)
+- recent versions of Radford Neal's `pqr` (a fork of R) have [autodiff extensions](https://radfordneal.wordpress.com/2020/07/25/new-version-of-p
+qr-with-automatic-differentiation-and-arithmetic-on-lists/)
+- it *might* be possible to use the (e.g. [torch package](https://torch.mlverse.org/docs/)) but definitely an off-label use ... (it's designed for doing autodiff in the context of neural networks ...)
+- other front ends: `RSymPy` (`sympy` Python library), [autodiffr](https://github.com/Non-Contradiction/autodiffr) (Julia's autodiff engines) 
+- a [vignette from John Nash's nlsr package](https://cran.r-project.org/package=nlsr/vignettes/nlsr-derivs.pdf) on differentiation options in R
+
+
