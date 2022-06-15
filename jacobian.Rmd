@@ -1,0 +1,128 @@
+---
+title: "derivatives (especially higher-order) in R"
+---
+
+Inspired by [this tweet](https://twitter.com/BjornstadOttar/status/1535773594252353537): what are our options for calculating derivatives, and especially higher-order derivatives, in R?
+
+```{r}
+remotes::install_github("quantumelixir/radx")
+```
+
+```{r pkgs}
+library(Ryacas)
+library(madness)
+library(cOde)
+library(calculus)
+library(numDeriv)
+library(radx)
+```
+
+- are functions entered as expressions, character strings, or functions?
+- results as expressions, char strings, or functions?
+- numeric, symbolic, or automatic?
+
+
+```{r king_bjornstad, echo=FALSE}
+## Bjørnstad/King function
+KB_Jacobian <- function (.vars, ...) {
+    ## capture the elements
+    vf <- substitute(list(...))[-1L]
+    ## capture
+    vars <- sapply(substitute(.vars), deparse)
+    if (length(vars)>1) vars <- vars[-1L]
+    ## differentiatiate each of the components
+    sapply(
+        vars,
+        \(var) sapply(vf,D,name=var)
+   ) -> jac
+   ## set up dimensions for the output
+   dd <- c(length(vf),length(vars))
+   dim(jac) <- NULL
+   ## figure out names
+   dn <- list(
+      ifelse(
+        nzchar(names(vf)),
+        names(vf),
+        sapply(vf,deparse)
+    ),
+    vars
+   )
+  ## the hard part
+  fun <- function (...) {
+    ## figure out the correct environment in which to evaluate everything  
+    e <- c(as.list(sys.frame(sys.nframe())),...)
+    ## evaluate each element of the jacobian
+    J <- vapply(jac,eval,numeric(1L),envir=e)
+    ## reset the dimensions and names  
+    dim(J) <- dd
+    dimnames(J) <- dn
+    J
+  }
+  ## !!
+  formals(fun) <- eval(
+    parse(text=paste0("alist(",paste0(c(vars,"..."),"=",collapse=","),")"))
+  )
+  ## return function as the result
+  fun
+}
+```
+
+```{r}
+f_kb <- KB_Jacobian(.vars = c(x,y), sin(x), cos(x), atan(y/x), tan(x+y))
+f_kb(y=2,x=3)
+```
+
+## cOde
+
+```{r}
+## utility for "lifting" a character vector/matrix to a function that returns numeric values
+evalwrap <- function(c) {
+    function(...) {
+        ee <- list2env(list(...))
+        if (is.matrix(c)) {
+            nc <- ncol(c); nr <- nrow(c)
+        } else {
+            nc <- length(ls(ee)) ## number of vars
+            nr <- length(c)/nc
+        }
+        m <- matrix(NA_real_, ncol = nc, nrow = nr)
+        m[] <- vapply(c,
+                      function(x) eval(parse(text = x), envir = ee),
+                      FUN.VALUE = numeric(1))
+        return(m)
+    }
+}
+```
+
+```{r}
+library(cOde)
+charvec <- c(f1 = "sin(x)", f2 = "cos(x)", f3 = "atan(y/x)", f4 = "tan(x+y)")
+j_code <- jacobianSymb(f = charvec, variables = c("x", "y"))
+f_code <- evalwrap(j_code)
+f_code(y=2,x=3)
+```
+
+- input as character, output as character (would need to `eval(parse(...))`)
+- input returned as unpacked vector (would have to re-pack into a matrix)
+- function components must be named
+- uses `deparse(D(...))` internally
+
+```{r}
+library(calculus)
+j_calc <- calculus::jacobian(charvec, var = c("x", "y"))
+f_calc <- evalwrap(j_calc)
+f_calc(y=2,x=3)
+```
+
+- input as character, output as character (would need to `eval(parse(...))`)
+- input returned as matrix (dimensions not named)
+
+
+## also: numDeriv, Deriv, madness, TMB (pytorch thing), (Nash autodiff thing?)
+
+## symbolic and numerical?
+## user-extended derivs table?
+## autodiff?
+
+
+```
