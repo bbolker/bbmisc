@@ -1,5 +1,5 @@
 ---
-title: "derivatives (especially higher-order) in R"
+title: "derivatives (especially Jacobians) in R"
 author: "Ben Bolker"
 date: "`r format(Sys.Date(), '%d %b %Y')`"
 ---
