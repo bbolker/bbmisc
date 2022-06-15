@@ -240,7 +240,7 @@ I'm not quite sure whether `Deriv::Deriv()` does symbolic or automatic different
 ```{r deriv_symb}
 ## use ~ to protect the expression from premature evaluation
 j_deriv <- Deriv(~c(sin(x), cos(x), atan(y/x), tan(x+y)), c("x", "y"))                                                 
-(print(j_deriv))
+print(j_deriv)
 f_deriv <- evalwrap(j_deriv)
 f_deriv(y=2,x=3)
 ```
