@@ -1,0 +1,153 @@
+---
+title: "indexing in R: why you should use `[[` more and `[`, `$` less"
+author: Ben Bolker
+date: 20 June 2022
+---
+
+```{r pkg, message = FALSE}
+library(dplyr)
+```
+There are lots of ways to *index* different data structures in R (i.e. extract particular components), and it's confusing. Here I'm going to go over some of the possibilities and explain why it's better to use `[[`-indexing whenever you can. Most of what appears below is stated either explicitly or implicitly in `help("Extract")`, but good luck figuring it out ...
+
+**tl;dr** you should use `[[` rather than any of the other options, whenever possible, when extracting a *single element* from a vector or list or data frame.
+
+I use "!!!" below to indicate trouble spots.
+
+**Indexing methods**: `[[` (lists, data frames, atomic vectors), `[` (lists, data frames, atomic vectors, and matrices), `$` (lists and data frames). The overlap is not surprising because data frames *are* lists, so anything that works with a list should work with a DF. They also look like matrices (but aren't!), so matrix-style indexing usually works.
+
+!!! "vector" is very confusing terminology in R. Technically **lists are vectors too**:
+
+>   A *vector* in R is either an atomic vector i.e., one of the atomic types, see ‘Details’, or of type (‘typeof’) or mode ‘list’ or ‘expression’.
+
+99.5% of the time when R users say "vector" they mean "atomic vector" (i.e. *not* a list).
+
+## examples
+
+```{r ex1}
+v <- 1:3  ## atomic vector
+vn <- c(a = 1, b = 2, c = 3) ## named vector
+m <- matrix(1:9, 3, 3) ## matrix
+## named matrix
+mn <- matrix(1:9, 3, 3,
+             dimnames = list(letters[1:3], LETTERS[1:3]))
+## list & named list
+L <- list(1, 2, 3)
+Ln <- list(a=1, b=2, cc=3)
+Ln2 <- list(cc=3, cd = 4, "weird name" = 5)
+DF <- data.frame(a = 1:3, b = 4:6, c = 7:9)
+tt <- tibble::tibble(a = 1:3, b = 4:6, c = 7:9)
+```
+
+## single brackets `[`
+
+Extract elements of a vector by integer index or character (non-integers are silently truncated)
+
+```{r b1}
+v[1]
+vn[1]
+vn["a"]
+vn["d"] ## !!! accessing a non-existent name or index
+        ##     silently returns NA; easy to miss
+v[4]    ## !!! ditto
+v[1.1]  ## !!! non-integer indices are silently truncated
+```
+
+```{r b1b}
+m[4]            ## !!! acts as though the matrix is a vector
+                ##     (usually not what you want)
+m[2,2]          ## best use of [; index a matrix by row & column
+mn[,"A"]        ## must use this to extract a column of a matrix
+try(mn[,"a"])   ## fails loudly on subscripting error
+try(mn[["A"]])  ## !!! can't use this
+try(mn[[,"A"]]) ## can't use this
+```
+
+R automatically drops dimensions (see [Burns inferno][1] 8.1.44)
+```{r dropdim}
+dim(mn[,"A"])                ## !!! automatically drops dimensions,
+                             ##     returns numeric vector
+dim(mn[,"A", drop = FALSE])  ## 
+```
+
+This difference can be confusing when you're programming; suppose the columns to extract are specified by the user. If they ask for two columns you get a matrix, if they ask for one you get an atomic vector ...
+
+
+Single brackets on *lists* (and data frames) return a *list of length 1* (not an atomic vector): see [Inferno 8.1.54][1], [Hadley Wickham 'pepper' image][2]
+
+```{r listex1}
+str(DF["a"])          ## still a data frame
+is.numeric(DF["a"])   ## !!! FALSE
+```
+These all work if you want to extract a single column:
+```{r listex2}
+is.numeric(DF[["a"]]) ## list-like: TRUE
+is.numeric(DF$a)      ## list-like: TRUE
+is.numeric(DF[,"a"])  ## matrix-like: TRUE
+```
+On the other hand `is.numeric(DF[,"a", drop = FALSE])` returns a DF (as it should).
+
+What about tibbles?
+
+```{r tibbles}
+is.numeric(tt[["a"]])      ## TRUE
+is.numeric(tt$a)           ## TRUE
+is.numeric(tt[,"a"])       ## FALSE!  drop = FALSE for tibbles
+                           ##   this fixes an 'infelicity' with
+                           ##   DF indexing design, but can be confusing
+is.numeric(tt |> pull(a))  ## approved tidyverse idiom
+```
+
+Indexing a non-existent element of a list returns `NULL` rather than `NA` (or error).
+The `$`-operator will do partial matching, silently by default ...
+```{r partialmatch}
+names(Ln)
+Ln$c             ## !!! doesn't warn that it's getting 'cc'
+options(warnPartialMatchDollar = TRUE)
+Ln$c             ## now warns
+Ln2$c            ## NULL because ambiguous (cc, cd)
+Ln2$`weird name` ## names with spaces etc have to use back-ticks
+nm <- "weird name"
+                 ## you can't do *indirect reference* with $
+Ln2$nm           ## i.e. this doesn't work (returns NULL)
+```
+
+`[[` allows *indirect reference* (using the value of a symbol to extract an element), which `$` doesn't (since it is intended as an interactive/programming shortcut):
+
+```{r indref}
+Ln2[[nm]]
+Ln2[["weird name"]]
+## can also create a new list element by indirect reference
+newnm <- "a"
+Ln2[[newnm]] <- 16
+Ln2[["a"]]
+Ln2[["c"]]  ## NULL (no partial matching)
+```
+
+Double brackets are arguably better than single brackets for extracting **single elements** of (atomic) vectors
+
+```{r dbv}
+vn["d"]         ## !!! returns NA: will propagate and cause an error
+                ##     later on *or* turn all of your results into NA
+try(vn[["d"]])  ## subscript error -- this is good!
+vn[1:3]
+try(vn[[1:3]])  ## doesn't work
+```
+
+Unfortunately matrix columns can *only* be indexed by `m[,i]` (`m[[i]]` doesn't work), and matrices *only* have `colnames()`, not `names()`). Matrices *must* be homogeneous (e.g. all-numeric). Save matrices for when you (1) actually want to do linear algebra; (2) want to do efficient rowwise extraction (still not as efficient as columnwise matrix extraction, but much better than working with rows of DFs or tibbles).
+
+Another reason why you should use `data.frame()` rather than `cbind()` in general to combine things column-wise (`cbind()` will automatically coerce all of your data to the most general type:
+
+```{r combine}
+m0 <- matrix(1, nrow = 3, ncol = 2)
+cbind(m0, "a") ## "a" is automatically recycled
+data.frame(m0, newcol = "a")
+t1 <- tibble(a = 1:3, b = 2:4)
+t2 <- tibble(c = LETTERS[1:3])
+## combines these but result is a data frame, not a tibble
+data.frame(t1, t2)
+tibble(t1, t2)
+bind_cols(t1, t2)  ## *NOT* like cbind() - doesn't coerce
+```
+
+[1]: https://www.burns-stat.com/pages/Tutor/R_inferno.pdf
+[2]: https://twitter.com/hadleywickham/status/643381054758363136
