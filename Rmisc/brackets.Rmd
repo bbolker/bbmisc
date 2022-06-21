@@ -7,13 +7,25 @@ date: 20 June 2022
 ```{r pkg, message = FALSE}
 library(dplyr)
 ```
-There are lots of ways to *index* different data structures in R (i.e. extract particular components), and it's confusing. Here I'm going to go over some of the possibilities and explain why it's better to use `[[`-indexing whenever you can. Most of what appears below is stated either explicitly or implicitly in `help("Extract")`, but good luck figuring it out ...
 
-**tl;dr** you should use `[[` rather than any of the other options, whenever possible, when extracting a *single element* from a vector or list or data frame.
+```{r options, include = FALSE}
+## make sure this is false to start with
+options(warnPartialMatchDollar = FALSE)
+```
+
+There are lots of ways to *index* different data structures in R (i.e. extract particular components). It's confusing. I'm going to illustrate some of the possibilities and explain why it's better to use `[[`-indexing rather than one of the other options whenever you can. Most of what appears below is stated either explicitly or implicitly in `help("Extract")`, but good luck figuring it out ...
+
+**tl;dr** you should use `[[` rather than any of the other options when extracting a *single element* (item or column) from a vector or list or data frame.
 
 I use "!!!" below to indicate trouble spots.
 
-**Indexing methods**: `[[` (lists, data frames, atomic vectors), `[` (lists, data frames, atomic vectors, and matrices), `$` (lists and data frames). The overlap is not surprising because data frames *are* lists, so anything that works with a list should work with a DF. They also look like matrices (but aren't!), so matrix-style indexing usually works.
+**Indexing methods**: 
+
+- `[[` (lists, data frames [DFs], atomic vectors)
+- `[` (lists, DFs, atomic vectors, and matrices)
+- `$` (lists and DFs)
+
+The overlap between list/DF/matrix indexing methods is not surprising because data frames *are* lists, so anything that works with a list should work with a DF. DFs also look like matrices (but aren't!), so matrix-style indexing usually works. We can also think about `subset()` (including its little-used `select=` argument) and tidyverse's `select()`/`filter()` verbs as indexing methods, but that's beyond the scope of this document. For the moment we will lump tidyverse tibbles in with DFs, although we mention a few important distinctions below.
 
 !!! "vector" is very confusing terminology in R. Technically **lists are vectors too**:
 
@@ -22,6 +34,8 @@ I use "!!!" below to indicate trouble spots.
 99.5% of the time when R users say "vector" they mean "atomic vector" (i.e. *not* a list).
 
 ## examples
+
+Some objects to play with:
 
 ```{r ex1}
 v <- 1:3  ## atomic vector
@@ -40,17 +54,49 @@ tt <- tibble::tibble(a = 1:3, b = 4:6, c = 7:9)
 
 ## single brackets `[`
 
-Extract elements of a vector by integer index or character (non-integers are silently truncated)
+`[` extracts elements of a vector by integer index or character (non-integers are silently truncated). It will extract one or more
 
 ```{r b1}
 v[1]
 vn[1]
+vn[1:3]
 vn["a"]
-vn["d"] ## !!! accessing a non-existent name or index
-        ##     silently returns NA; easy to miss
-v[4]    ## !!! ditto
-v[1.1]  ## !!! non-integer indices are silently truncated
+try(vn["a":"c"]) ## nice if this worked, but it doesn't
 ```
+
+Using `[` to access a non-existent element of an atomic vector *silently* returns `NA` ([Inferno 8.2.13][1]); it's easy to miss this. `[[` throws an error instead (hurray!)
+
+```{r}
+vn["d"]          ## !!! NA
+v[4]             ## !!! ditto
+v[1.1]           ## !!! non-integer indices are silently truncated
+try(v[[4]])      ## safer.
+```
+
+**Assigning** to a nonexistent index *creates* an element, with intervening `NA` values as required (!). `[[`, which is normally safer, doesn't save us here (!!!)
+
+```{r}
+v[5] <- 5     ## !!!
+v["e"] <- 2   ## !!!
+v[[10]] <- 1  ## !!!
+print(v)
+```
+
+An extreme case (extension and coercion to character type ...)
+
+```{r}
+v[1e5] <- "hello"
+length(v)
+format(object.size(v), unit = "Mb")
+```
+
+<img style="width:10%" src="../talks/pix/scream.jpeg" alt="The Scream"> 
+
+---
+
+## Single-bracket indexing of matrices
+
+Less over-accommodating weirdness, but still some traps.
 
 ```{r b1b}
 m[4]            ## !!! acts as though the matrix is a vector
@@ -62,7 +108,8 @@ try(mn[["A"]])  ## !!! can't use this
 try(mn[[,"A"]]) ## can't use this
 ```
 
-R automatically drops dimensions (see [Burns inferno][1] 8.1.44)
+R automatically drops dimensions (see [Burns inferno][1] 8.1.44):
+
 ```{r dropdim}
 dim(mn[,"A"])                ## !!! automatically drops dimensions,
                              ##     returns numeric vector
@@ -71,8 +118,25 @@ dim(mn[,"A", drop = FALSE])  ##
 
 This difference can be confusing when you're programming; suppose the columns to extract are specified by the user. If they ask for two columns you get a matrix, if they ask for one you get an atomic vector ...
 
+## Double brackets, atomic vectors
 
-Single brackets on *lists* (and data frames) return a *list of length 1* (not an atomic vector): see [Inferno 8.1.54][1], [Hadley Wickham 'pepper' image][2]
+Double brackets are better than single brackets for extracting **single elements** of (atomic) vectors.
+
+```{r dbv}
+vn["d"]         ## !!! returns NA: will propagate and cause an error
+                ##     later on *or* turn all of your results into NA
+try(vn[["d"]])  ## subscript error -- this is good!
+vn[1:3]
+try(vn[[1:3]])  ## doesn't work
+```
+
+## Indexing of lists (and data frames)
+
+Single brackets on *lists* (and data frames) return a *list of length 1* (not an atomic vector): see [Inferno 8.1.54][1]
+
+<img src="https://pbs.twimg.com/media/CO2_qPVWsAAErbv?format=png&name=900x900" width="50%">
+
+[Hadley Wickham 'pepper' image][2]
 
 ```{r listex1}
 str(DF["a"])          ## still a data frame
@@ -97,7 +161,8 @@ is.numeric(tt[,"a"])       ## FALSE!  drop = FALSE for tibbles
 is.numeric(tt |> pull(a))  ## approved tidyverse idiom
 ```
 
-Indexing a non-existent element of a list returns `NULL` rather than `NA` (or error).
+Indexing a non-existent element of a list returns `NULL` rather than `NA` (or error) ([Inferno 8.2.13][1])
+
 The `$`-operator will do partial matching, silently by default ...
 ```{r partialmatch}
 names(Ln)
@@ -123,17 +188,7 @@ Ln2[["a"]]
 Ln2[["c"]]  ## NULL (no partial matching)
 ```
 
-Double brackets are arguably better than single brackets for extracting **single elements** of (atomic) vectors
-
-```{r dbv}
-vn["d"]         ## !!! returns NA: will propagate and cause an error
-                ##     later on *or* turn all of your results into NA
-try(vn[["d"]])  ## subscript error -- this is good!
-vn[1:3]
-try(vn[[1:3]])  ## doesn't work
-```
-
-Unfortunately matrix columns can *only* be indexed by `m[,i]` (`m[[i]]` doesn't work), and matrices *only* have `colnames()`, not `names()`). Matrices *must* be homogeneous (e.g. all-numeric). Save matrices for when you (1) actually want to do linear algebra; (2) want to do efficient rowwise extraction (still not as efficient as columnwise matrix extraction, but much better than working with rows of DFs or tibbles).
+Unfortunately matrix columns can *only* be indexed by `m[,i]` (`m[[i]]` doesn't work), and matrices *only* have `colnames()`, not `names()` ([Inferno 8.2.40][1]). Matrices *must* be homogeneous (e.g. all-numeric). Save matrices for when you (1) actually want to do linear algebra; (2) want to do efficient rowwise extraction (still not as efficient as columnwise matrix extraction, but much better than working with rows of DFs or tibbles).
 
 Another reason why you should use `data.frame()` rather than `cbind()` in general to combine things column-wise (`cbind()` will automatically coerce all of your data to the most general type:
 
@@ -149,5 +204,33 @@ tibble(t1, t2)
 bind_cols(t1, t2)  ## *NOT* like cbind() - doesn't coerce
 ```
 
+## negative indexing gotchas
+
+Negative indices can be convenient for dropping elements, but not always ([Inferno 8.1.11][1]). `x[-which(...)]` can be particularly dangerous ([Inferno 8.1.13][1]).
+
+```{r}
+vn[-1]
+try(vn[-1:2])       ## !!! `-` has higher precedence than `:`
+vn[-(1:2)]          ## this is OK
+vn[-which(vn > 4)]  ## !!!
+vn[!(vn > 4)]       ## this works
+vn[vn <= 3]         ## this is clearer
+```
+
+Negative indexing doesn't work with element names (except maybe in `subset`)
+
+```{r}
+try(vn[-"a"])                    ## !!! oh well
+vn[names(vn) != "a"]             ## works but clunky
+vn[!names(vn) %in% c("a", "b")]  ## use ! ... %in% to exclude
+```
+
+Inferno has more stuff on what happens when you index with `NA` or `NULL` ...
+
 [1]: https://www.burns-stat.com/pages/Tutor/R_inferno.pdf
 [2]: https://twitter.com/hadleywickham/status/643381054758363136
+
+```{r include = FALSE, eval = FALSE}
+rmarkdown::render("brackets.Rmd")
+system('git add brackets.Rmd &&  git commit -m "brackets update" && git push')
+system('scp b
