@@ -233,4 +233,5 @@ Inferno has more stuff on what happens when you index with `NA` or `NULL` ...
 ```{r include = FALSE, eval = FALSE}
 rmarkdown::render("brackets.Rmd")
 system('git add brackets.Rmd &&  git commit -m "brackets update" && git push')
-system('scp b
+system('scp brackets.html ms.mcmaster.ca:~/public_html/misc/brackets.html')
+```
