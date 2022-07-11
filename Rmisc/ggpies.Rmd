@@ -1,0 +1,122 @@
+---
+title: "floating pies in ggplot2"
+author: "Ben Bolker"
+---
+
+Floating pie charts are a challenge in `ggplot2`.
+
+There are several Stack Overflow questions about this:
+
+- https://stackoverflow.com/questions/9684371/create-floating-pie-charts-with-ggplot
+- https://stackoverflow.com/questions/47718439/multiple-pies-with-scatterpie-or-ggforce
+
+The `scatterpie` package and `ggforce::geom_arc_bar()` functions can do it, but **only with `coord_fixed`**; that is, the coordinates of the pie wedges are computed in the native x/y coordinates, so if the user actually wants circles they have to use coordinates where 1 x and 1 y unit correspond to equal physical distances in the plotting region.
+
+This works OK if you want to plot pies on a map or in some other isotropic space. It's a pain if you want to put floating pies into an arbitrary coordinate system. Three potential ways to do this are:
+
+* (best?) write a new geom that sets up a viewport at the specified x/y location and plots a pie inside it, following a similar strategy to the [gridBase vignette](https://cran.r-project.org/web/packages/gridBase/vignettes/gridBase.pdf)
+* write a version of `ggforce::geom_arc_bar()` that finds the local aspect ratio and corrects for it
+* as below, construct individual pie charts and use (a hacked version of `annotation_custom()`) to insert them into the chart.
+
+This follows these StackOverflow/blog posts:
+
+- https://stackoverflow.com/questions/35532683/r-inserting-a-picture-into-faceted-ggplot-using-annotation-custom
+- https://stackoverflow.com/questions/10673481/add-a-geom-layer-for-a-single-panel-in-a-faceted-plot
+- https://clarewest.github.io/blog/post/2019-08-27-combining-inset-plots-with-facets-using-ggplot/
+
+	and uses (hacked versions of) tools from the `ggimage` plot
+
+```{r pkgs}
+library(tidyverse)
+library(gtools)  ## rdirichlet
+library(ggplot2)
+library(ggimage)
+library(cowplot) ## get_legend, plot_grid
+source("annotation.R")   ## hacked geom_subview/annotation_custom
+## https://github.com/bbolker/bbmisc/blob/master/Rmisc/annotation.R
+```
+
+## Simulate some data
+
+```{r dsim}
+rd <- function(n, alpha) {
+    gtools::rdirichlet(n, alpha) |> as.data.frame() |> setNames(paste0("c", 1:length(alpha)))
+}
+
+## fake data
+set.seed(101)
+df <- (expand_grid(x = LETTERS[1:4],
+                  f = letters[1:5])
+    |> mutate(y = rgamma(length(x), scale = 3, shape = 5),
+              s = rgamma(length(x), scale = 3, shape = 5))
+    ## would like to use dynamic nrow(.data) but ?? (need %>% ?)
+    |> bind_cols(rd(20, alpha = c(3,2,1)))
+    |> mutate(across(where(is.character), factor))
+)
+```
+
+
+## Function to construct a single pie chart from a one-row tibble
+
+```{r pie_fun}
+pie_fun <- function(x, scale_fill = NULL, legend = FALSE) {
+    ## FIXME: ensure matching levels for all pies?
+    r <- (x
+        |> pivot_longer(everything())
+        |> ggplot(aes(x=1, y=value, fill = name)) +
+           geom_bar(stat="identity", width=1) +
+           coord_polar(theta="y") +
+           theme_void() +
+           theme_transparent()
+    )
+    if (!legend) {
+        r <- r + theme(legend.position = "none")
+    }
+    if (!is.null(scale_fill)) {
+        r <- r + scale_fill
+    }
+    return(r)
+}
+```
+
+## Construct pie charts, extract legend
+
+```{r make_pies}
+dfpie <- (df
+    |> tidyr::nest(data = c(c1, c2, c3))
+    |> mutate(pie = map(data, pie_fun, scale_fill_brewer(palette="Dark2")))
+    ## all mappings, factor/numeric conversion etc. must be done up front!
+    ##  (geom_subview() does arithmetic directly on x, extracts mapped columns
+    ##   from data **by name**)
+    |> mutate(s = s/10, nx = as.numeric(x))
+)
+leg0 <- cowplot::get_legend(pie_fun(dfpie$data[[1]], scale_fill_brewer(palette="Dark2"),
+                           legend = TRUE))
+```
+
+## Put the pieces together
+
+```{r make_plot}
+## base plot
+p <- p0 <- (ggplot(dfpie, aes(x=x, y=y))
+    + geom_point()
+    + facet_wrap(~f))
+## add subviews
+p <- (p
+    + geom_subview(data = dfpie,
+                   aes(x = nx,
+                       y = y,
+                       width = s,
+                       height = s,
+                       subview = pie)))
+## add legend
+plot_grid(p, leg0, ncol=2, rel_widths=c(1, 0.2))
+```                          
+
+- to do:
+  - further encapsulation?
+  - expand x/y limits appropriately (`annotation_custom` doesn't do anything with limits)
+  - in this example, legend could live in the empty panel space ...
+- It's a bit weird that the panel info gets passed to `geom_subview` as the *original* variable,
+not as a variable called 'panel' or whatever (i.e. before ggdata processing) ...
+
