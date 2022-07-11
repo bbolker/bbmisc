@@ -64,3 +64,6 @@ p <- p + geom_subview(data = dfpie,
                           height = s,
                           subview = pie))
                           
+
+## it's a bit weird that the panel gets passed to geom_subview as the *original* variable,
+##  not as a variable called 'panel' or whatever (i.e. before ggdata processing)
