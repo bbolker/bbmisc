@@ -38,7 +38,26 @@ get_gnorm <- function(lwr=-1, upr=1, tail_prob=2*pnorm(lwr),
   return(c(mu=mu,optim(par=start,fn=tfun)$par))
 }
 
+plot_gnorm <- function(..., add = FALSE, xlim = NULL, ylim = NULL,
+                       lcol = 1, fill = NULL) {
+    p <- get_gnorm(...)
+    L <- list(...)
+    fx <- function(x) do.call("dgnorm", c(list(x, as.list(p))))
+    if (!add) {
+        if (is.null(xlim)) xlim <- do.call("qgnorm",
+                                           c(list(c(L$tail_prob/2,
+                                           (1-L$tail_prob/2))),
+                                           as.list(p)))
+        cc <-curve(fx, from = xlim[1], to = xlim[2])
+    } else {
+        cc <- curve(fx, add = TRUE)
+    }
+}
+              
+#' curve(fx, from=log(0.5), to=log(1200), n=501)
+#' abline(v=c(0,log(1000)), lty=2)
 
+}
 
 if (FALSE) {
   png("dgn.png")
