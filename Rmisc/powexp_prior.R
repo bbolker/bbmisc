@@ -35,18 +35,28 @@ get_gnorm <- function(lwr=-1, upr=1, tail_prob=2*pnorm(lwr),
     ctr_obs <- pfun(ctr_range)
     return((tail_prob-tail_obs)^2 + (ctr_prob-ctr_obs)^2)
   }
-  return(c(mu=mu,optim(par=start,fn=tfun)$par))
+  res <- c(mu=mu,optim(par=start,fn=tfun)$par)
+  ## attach args here after they've been evaluated
+  attr(res, "args") <- c(lwr = lwr, upr = upr, tail_prob = tail_prob,
+                         ctr_prob = ctr_prob)
+  return(res)
 }
 
+#' @param add add curve to existing plot?
+#' @param xlim x-limits
+#' @param ylim y-limits
+#' @param lcol line color
+#' @param fill fill colour (none if NULL)
 plot_gnorm <- function(..., add = FALSE, xlim = NULL, ylim = NULL,
-                       lcol = 1, fill = NULL) {
+                       lcol = 1, fill = NULL, qlim_ratio = 2) {
     p <- get_gnorm(...)
-    L <- list(...)
-    fx <- function(x) do.call("dgnorm", c(list(x, as.list(p))))
+    p_args <- attr(p, "args")
+    fx <- function(x) do.call("dgnorm", c(list(x), as.list(p)))
     if (!add) {
+        tp <- p_args[["tail_prob"]]
+        qlims <- c(tp/qlim_ratio, (1-tp/qlim_ratio))
         if (is.null(xlim)) xlim <- do.call("qgnorm",
-                                           c(list(c(L$tail_prob/2,
-                                           (1-L$tail_prob/2))),
+                                           c(list(qlims),
                                            as.list(p)))
         cc <-curve(fx, from = xlim[1], to = xlim[2])
     } else {
@@ -57,7 +67,7 @@ plot_gnorm <- function(..., add = FALSE, xlim = NULL, ylim = NULL,
 #' curve(fx, from=log(0.5), to=log(1200), n=501)
 #' abline(v=c(0,log(1000)), lty=2)
 
-}
+
 
 if (FALSE) {
   png("dgn.png")

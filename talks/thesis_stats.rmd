@@ -1,7 +1,7 @@
 ---
 title: statistics stuff to think about
 author: Ben Bolker
-date:  11 November 2021
+date:  9 November 2022
 bibliography: stats.bib
 csl: reflist2.csl
 output:
@@ -26,6 +26,8 @@ h3 {
 .title-slide {
    background-color: #55bbff;
 }
+<!-- https://stackoverflow.com/questions/50378349/force-column-break-in-rmarkdown-ioslides-columns-2-layout -->
+.forceBreak { -webkit-column-break-after: always; break-after: column; }
 </style>
 <!--    content: url(https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
 >
@@ -69,7 +71,7 @@ th_clean <-
 ## the most important thing {.build}
 
 > - Design your experiment well and execute it well:  
-you needn't worry too much in advance about statistics
+don't have to worry much about statistics
 > - Don't: you're doomed - statistics can't save you ![](skullcross_tiny.png)
 > - **randomization**, **replication**, **control**
 
@@ -82,11 +84,14 @@ you needn't worry too much in advance about statistics
 (i.e., randomize within groups)
 - related: experimental *blinding*
 
-## Yellowstone aspen regeneration [@brice_sampling_2021]
+## Yellowstone aspen regeneration {.smaller}
 
-```{r yellowstone, out.width="80%"}
+>  @brice_sampling_2021: Understanding trophic cascades in terrestrial wildlife communities is a major challenge because these systems are difficult to sample properly. We show how a tradition of non-random sampling has confounded this understanding in a textbook system (Yellowstone National Park) ...
+
+```{r yellowstone, out.width="60%"}
 knitr::include_graphics("pix/yellowstone_browse2.png")
 ```
+
 
 ## replication {.build}
 
@@ -99,8 +104,9 @@ if one exists
 >      * cheating is likely
 >      * *significance filter* $\to$ biased estimates
 - *overpowered* studies waste time, lives, $$$
-> - **pseudoreplication** [@hurlbert_pseudoreplication_1984;@davies_dont_2015]
+<!-- > - **pseudoreplication** [@hurlbert_pseudoreplication_1984;@davies_dont_2015]
 confounding sampling units with treatment units
+--> 
 
 ## power analysis
 
@@ -122,6 +128,11 @@ library("sos"); findFn("{power analysis}")
 
 With $n=15$ per group, are we likely to see a clear difference between 10% (control) and 20% (treatment) mortality (a **doubling** of mortality)?
 
+- `PollEv.com/bbolker2234`
+- Text `BBOLKER2234` to `22333` once to join
+
+[link](https://www.polleverywhere.com/multiple_choice_polls/ezjaxEkbvqJIiOnFFckQs)
+
 ## power analysis example (continued)
 
 <!-- would like to highlight power: line, but too hard -->
@@ -135,6 +146,8 @@ power.prop.test(n=15,p1=0.1,p2=0.2)
 
 How many samples per group would we need to get power=0.8?
 
+[link](https://www.polleverywhere.com/multiple_choice_polls/V1xRAqc4sf9UHBCGWYTz3)
+
 ---
 
 ```{r pow2,echo=TRUE}
@@ -146,16 +159,16 @@ power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
 ---
 
 <div style="font-size:40px; margin:auto; width:50%">
-**what should we do?**
+[**what should we do?**](https://www.polleverywhere.com/discourses/cyA0PTPQA1nI3Qb198idK)
 </div>
 
 ## increasing power (control)
 
-- increase sample size (ugh)
-- increase rejection threshold (e.g. $\alpha=0.1$)  
-(probably can't get away with this)
-- maximize *desired* variation (e.g. large doses)
-- measure a clearer outcome (gene expression, hormone levels, etc.)
+> - increasing sample size ... **is not the only option**
+> - increase rejection threshold (e.g. $\alpha=0.1$)
+> - maximize *desired* variation (e.g. large doses)
+> - measure a clearer outcome (gene expression, hormone levels, etc.)
+> - **ask a different (simpler) question**
 
 ---
 
@@ -181,13 +194,9 @@ power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
 > - reproducibility crisis: @ioannidis_why_2005, @simmons_false-positive_2011
 > - pre-register; think about what your questions are and how you will test them **before you look at your data**
 
-## fishing expeditions
-
-https://xkcd.com/882/
-
 ## "The Garden of Forking Paths" [@gelman_statistical_2014]
 
-(or "researcher degrees of freedom" [@simmons_false-positive_2011])
+aka "researcher degrees of freedom", @simmons_false-positive_2011
 
 ```{r forking_paths, echo=FALSE, out.width = "60%"}
 knitr::include_graphics("pix/forking_paths.jpg")
@@ -207,10 +216,10 @@ knitr::include_graphics("pix/forking_paths.jpg")
 [@gelman_difference_2006]
 - statistical *clarity* [@dushoff_i_2018]
 
-```{r CIplot}
+```{r CIplot, message = FALSE}
 dd <- data.frame(x=1:4,
-                 y=c(0.1,0.15,1.2,1.1),
-            err=c(0.09,0.17,1.3,0.6),
+                 y=c(0.05,0.15,1.2,1.1),
+               err=c(0.03,0.17,1.3,0.8),
             special=c("yes","no","no","yes"))
 dd <- transform(dd,
                 lwr = y-err,
@@ -228,6 +237,7 @@ gg0 <- ggplot(dd,aes(x,y,ymin=lwr,ymax=upr,
 print(gg0  +   scale_colour_manual(values=c("black","black"),
                               guide="none"
                               ))
+ggsave("blank_pvals.png")
 ```
 
 </div>
