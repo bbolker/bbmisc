@@ -8,4 +8,4 @@ We would like to be able to estimate parameter values for dynamic models with *a
    * note that 'process error' can occur at two weakly separable scales, i.e. 'sampling-level' (demographic noise, either 'simple' [Poisson noise/Poisson-process branching events] or overdispersed [Hooke processes, Gamma-white noise processes [Ionides and King], negative binomial/beta-binomial epidemic sampling]) or stochastic time-varying parameter values, especially transmission rates
 * 'plug-and-play' analysis of complex epidemic models
 * convenient inference, especially Bayesian
-* regularization/priors
+* regularization/priors: these are necessary in a Bayesian framework, and generally useful in 

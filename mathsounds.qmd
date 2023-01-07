@@ -1,14 +1,18 @@
 ---
 title: "Math sounds"
+author: "Ben Bolker"
+date: 6 Jan 2023
 ---
 
-Some demonstrations of using R (the `tuneR` package) and `bc` (the Unix utility calculator) to create sounds (music??) in R based on mathematical structures such as (1) iterations of the discrete logistic map in the chaotic regime or (2) the duodecimal digits of $\pi$.
+Some demonstrations of using R (the `tuneR` package) and `Rmpfr` (the R interface to the GNU MPFR arbitrary-precision floating point library) to create sounds (music??) in R based on mathematical structures such as (1) iterations of the discrete logistic map in the chaotic regime or (2) digits of rational/irrational/transcendental numbers in appropriate bases.
 
 ## Basics
 ```{r loadpkg, message=FALSE}
 library(tuneR)
 library(Rmpfr) ## for base conversion
 ```
+
+Ratios taken from [here](https://pages.mtu.edu/~suits/scales.html) since I was too lazy to think about them myself ...
 
 ```{r funs}
 ratios <- c(tonic=1,
@@ -88,13 +92,13 @@ I would use `pp(chaos, play=TRUE)` on my system to play the sound from within R,
 Now I want to play the value of $\pi$.
 Various people have discussed musical interpretations of $\pi$, and in particular the idea of a correspondence between the *duodecimal* representation of $\pi$ and a chromatic (12-tone) scale:
 
-* [http://turner.faculty.swau.edu/mathematics/materialslibrary/pi/pibases.html](snippets of $\pi$ in various bases)
-* [http://threesixty360.wordpress.com/2008/01/27/musical-pi-part-1/](musical $\pi$)
-
+* [snippets of $\pi$ in various bases](https://web.archive.org/web/20191029211406/http://turner.faculty.swau.edu/mathematics/materialslibrary/pi/pibases.html)
+* [musical $\pi$](http://threesixty360.wordpress.com/2008/01/27/musical-pi-part-1/)
 
 ```{r getpi}
 dd_pi <- format(4*atan(mpfr(1, precBits = 1000)), base = 12)
 ```
+(this could be packaged/simplified more)
 
 ```{r modbc}
 pi_dd_freq <- dd_pi |> base_to_num() |> mk_12()
@@ -117,24 +121,24 @@ tau_dd_freq <- dtau |> base_to_num() |> mk_12()
 pp(mk_sound(tau_dd_freq))
 ```
 
-```{r}
+```{r major_scale}
 freq <- 440*c(major_scale, 2)
 ```
 
-```{r}
+```{r penatonic_tau}
 dtau_5 <- (format(8*atan(mpfr(1, precBits = 1000)), base = 5)
     |> base_to_num()
     |> mk_pent()
 )
-pp(mk_sound(dtau_5), play = TRUE)
+## pp(mk_sound(dtau_5), play = TRUE)
 ```
 
-```{r}
+```{r major_tau}
 dtau_maj <- (format(8*atan(mpfr(1, precBits = 1000)), base = 8)
     |> base_to_num()
     |> mk_major()
 )
-pp(mk_sound(dtau_maj), play = TRUE)
+## pp(mk_sound(dtau_maj), play = TRUE)
 ```
 
 Other ideas:
@@ -166,9 +170,13 @@ if (!file.exists("duodec_7th.txt")) {
 }
 ```
 
+# old stuff
+
 ## 1/7
 
-```{r modbc7}
+Play a repeating decimal (need to update to new versions)
+
+```{r modbc7, eval = FALSE}
 ## reformat bc output to a single string
 dpi <- paste(gsub("\\\\","",readLines("duodec_7th.txt")),collapse="")
 ## reconvert the [0-9AB] values to integers 1-12
@@ -182,20 +190,16 @@ w4 <- do.call(bind,sapply(freq,sine,
 writeWave(w4,"d7.wav")
 ```
 
-https://pages.mtu.edu/~suits/scales.html
+Experimenting with tempering etc.
 
-```{r}
-play(mkseq(freq, 0.2), "play")
-play(mkseq(440*c(pentatonic_scale, 2), 0.2), "play")
-play(mkseq(440*c(ratios, 2), 0.2), "play")
-play(mkseq(440*c(even_ratios, 2), 0.2), "play")
-play(mkseq(440*rep(c(ratios["M3"], even_ratios["M3"]),5)), "play")
-play(mkseq(rep(c(657, 660),5), duration = 0.5), "play")
+```{r tempering, eval=FALSE}
+play(mk_sound(freq, 0.2), "play")
+play(mk_sound(440*c(pentatonic_scale, 2), 0.2), "play")
+play(mk_sound(440*c(ratios, 2), 0.2), "play")
+play(mk_sound(440*c(even_ratios, 2), 0.2), "play")
+play(mk_sound(440*rep(c(ratios["M3"], even_ratios["M3"]),5)), "play")
+play(mk_sound(rep(c(657, 660),5), duration = 0.5), "play")
 ```
-
-See `prepComb` to get rid of clicks?
-
-## old
 
 I thought briefly about trying to do the base conversion myself (e.g. see this [StackOverflow question on base conversion](http://stackoverflow.com/questions/5478508/encoding-whole-numbers-in-r-to-a-base-62-character-vector)), but dealing with non-integer values in arbitrary precision is more trouble than I want to deal with right now.
 
