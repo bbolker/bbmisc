@@ -26,10 +26,16 @@ ratios <- c(tonic=1,
             m6 = 8/5,
             M6 = 5/3,
             m7 = 9/5,
-            M7 = 15/8)
-even_ratios <- setNames(2^((0:11)/12), names(ratios))
+            M7 = 15/8,
+            octave = 2)
+even_ratios <- setNames(2^((0:12)/12), names(ratios))
 major_scale <- ratios[grep("^[^md]", names(ratios))]
-pentatonic_scale <- ratios[c("tonic","M2","M3","fifth","M6")]
+## harmonic minor
+## https://en.wikipedia.org/wiki/Minor_scale
+## lower 3d and 6th by a semitone
+minor_scale <- major_scale
+minor_scale[c(3,6)] <- ratios[c("m3","m6")]
+pentatonic_scale <- ratios[c("tonic","M2","M3","fifth","M6","octave")]
 mk_sound <- function(x, form = "sine", duration = 0.1) {
     x |>
         unname() |>
@@ -37,7 +43,7 @@ mk_sound <- function(x, form = "sine", duration = 0.1) {
         lapply(FUN = prepComb) |> 
         do.call(what=bind)
 }
-pp <- function(x, write=TRUE, play=FALSE,
+pp <- function(x, write=FALSE, play=TRUE,
                nm = deparse(substitute(x))) {
     if (write) {
         writeWave(x, paste0(nm, ".wav"))
@@ -45,21 +51,25 @@ pp <- function(x, write=TRUE, play=FALSE,
     if (play) play(x, "play")
     invisible(x)
 }
-mk_12 <- function(x, base = 220) exp(log(base)+log(2)/12*x)
+mk_12 <- function(x, base = 220, octaves = 1) exp(log(base)+octaves*log(2)/12*x)
+## FIXME: add an octave-scaling option? (Right now all ranges are 1-octave)
 mk_pent <- function(x, base = 220) pentatonic_scale[x]*base
 mk_major <- function(x, base = 220) major_scale[x]*base
+mk_minor <- function(x, base = 220) minor_scale[x]*base
 ## reformat formatted output to a single string
 ## reconvert the [0-9AB] values to integers 1-12
-base_to_num <- function(x) {
+base_to_num <- function(x, start = 0) {
+    if (!start %in% c(0,1)) stop("start should be 0 or 1")
     letterstring <- c(0:9, letters[1:2])
     dpi_ind <- strsplit(tolower(x),"")[[1]]
     dpi_ind <- dpi_ind[dpi_ind != "."]
-    vals <- match(dpi_ind, letterstring)-1
+    vals <- match(dpi_ind, letterstring)
+    if (start == 0) return(vals-1)
+    return(vals)
 }
 ```
 
 The basic example from `?Wave`: an A-440 sine wave.
-`"play"` is the WAV-player that works on my system.
 
 ```{r tuneR_ex,eval=FALSE}
 pp(Wobj <- sine(440, duration = 1, xunit = "time"))
@@ -82,10 +92,9 @@ A-220 and A-440 (since `X` varies from 0 to 1)
 
 ```{r chaoswav,cache=TRUE}
 chaos <- mk_sound(round(220*(1+X)))
-pp(chaos)
 ```
 
-I would use `pp(chaos, play=TRUE)` on my system to play the sound from within R, or [get the WAV file online](http://www.math.mcmaster.ca/bolker/misc/chaos.wav)
+I would use `pp(chaos)` on my system to play the sound from within R, or [get the WAV file online](http://www.math.mcmaster.ca/bolker/misc/chaos.wav)
 
 ## $\pi$
 
@@ -96,52 +105,74 @@ Various people have discussed musical interpretations of $\pi$, and in particula
 * [musical $\pi$](http://threesixty360.wordpress.com/2008/01/27/musical-pi-part-1/)
 
 ```{r getpi}
-dd_pi <- format(4*atan(mpfr(1, precBits = 1000)), base = 12)
+pi_val <- 4*atan(mpfr(1, precBits = 1000))
 ```
 (this could be packaged/simplified more)
 
 ```{r modbc}
-pi_dd_freq <- dd_pi |> base_to_num() |> mk_12()
+pi_dd_freq <- (pi_val 
+    |> format(base = 12)
+    |> base_to_num() 
+    |> mk_12() 
+    |> mk_sound()
+)
 ```
 
-```{r makepisound}
-pi_dd_sound <- mk_sound(pi_dd_freq)
-## pp(pi_dd_sound, play = TRUE, write = FALSE)
-```
-
-Again, use `play(w3,"play")` or [get the file online](http://www.math.mcmaster.ca/bolker/misc/dpi.wav)
+Again, use `pp(pi_dd_freq, play = TRUE)`.
 
 Does $\tau$ (i.e $2\pi$) sound much different?
 ```{r runbc2}
-dtau <- format(8*atan(mpfr(1, precBits = 1000)), base = 12)
-tau_dd_freq <- dtau |> base_to_num() |> mk_12()
-```
-
-```{r maketausound, cache=TRUE}
-pp(mk_sound(tau_dd_freq))
-```
-
-```{r major_scale}
-freq <- 440*c(major_scale, 2)
-```
-
-```{r penatonic_tau}
-dtau_5 <- (format(8*atan(mpfr(1, precBits = 1000)), base = 5)
-    |> base_to_num()
-    |> mk_pent()
+tau_val <- 8*atan(mpfr(1, precBits = 1000))
+tau_dd_freq <- (tau_val 
+    |> format(base = 12) 
+    |> base_to_num() 
+    |> mk_12() 
+    |> mk_sound()
 )
-## pp(mk_sound(dtau_5), play = TRUE)
 ```
+
+```{r pent_scale}
+pent_scale <- ((pentatonic_scale*220)
+    |> mk_sound(duration=0.5)
+)
+maj_scale <- ((major_scale*220)
+    |> mk_sound(duration=0.5)
+)
+min_scale <- ((minor_scale*220)
+    |> mk_sound(duration=0.5)
+)
+```
+```{r pentatonic_tau}
+dtau_5 <- (tau_val
+    |> format(base = 5)
+    |> base_to_num(start=1)
+    |> mk_pent()
+    |> mk_sound()
+)
+```
+
+As it turns out, the pentatonic scale is a little too boring.
 
 ```{r major_tau}
-dtau_maj <- (format(8*atan(mpfr(1, precBits = 1000)), base = 8)
-    |> base_to_num()
+tau_major <- (tau_val
+    |> format(base = 7)
+    |> base_to_num(start=1)
     |> mk_major()
+    |> mk_sound()
 )
-## pp(mk_sound(dtau_maj), play = TRUE)
 ```
 
-Other ideas:
+```{r minor_tau}
+tau_minor <- (tau_val
+    |> format(base = 8)
+    |> base_to_num(start=1)
+    |> mk_minor()
+    |> mk_sound()
+)
+```
+
+
+## Other ideas:
 
 * encapsulate some of this stuff in functions
 * connect the computation of duodecimal $\pi$ with [this StackExchange question](http://tex.stackexchange.com/questions/82867/create-elegant-display-of-digits-and-symbols) about typesetting it elegantly
@@ -164,13 +195,13 @@ reverse_dependencies_with_maintainers("tuneR",
 
 `library("sos"); findFn("music")` may be more useful (although still not too much there).
 
+# old stuff
+
 ```{r}
 if (!file.exists("duodec_7th.txt")) {
    system("echo 'obase=12; scale=230; 1/7' | bc -l >duodec_7th.txt")
 }
 ```
-
-# old stuff
 
 ## 1/7
 
