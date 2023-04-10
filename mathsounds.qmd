@@ -96,6 +96,24 @@ chaos <- mk_sound(round(220*(1+X)))
 
 I would use `pp(chaos)` on my system to play the sound from within R, or [get the WAV file online](http://www.math.mcmaster.ca/bolker/misc/chaos.wav)
 
+## Discrete logistic map take 2
+
+Compute 200 iterations of the discrete logistic map:
+```{r computelogistic}
+X0 <- 0.5
+n <- 1000
+r <- 2
+rstep <- 0.002
+## need 'i' (dummy variable) for Reduce()
+logmap2 <- function(X, i) { r <<- min(4.0, r + rstep); r*X*(1-X)  }
+X2 <- Reduce(logmap2, seq(n), init = X0, accumulate=TRUE)
+plot(X2)
+```
+
+```{r chaosbifwav,cache=TRUE}
+chaosbif <- mk_sound(round(220*(1+X)))
+```
+
 ## $\pi$
 
 Now I want to play the value of $\pi$.
