@@ -106,7 +106,7 @@ if one exists
 - *overpowered* studies waste time, lives, $$$
 <!-- > - **pseudoreplication** [@hurlbert_pseudoreplication_1984;@davies_dont_2015]
 confounding sampling units with treatment units
---> 
+-->
 
 ## power analysis
 
@@ -137,7 +137,7 @@ With $n=15$ per group, are we likely to see a clear difference between 10% (cont
 
 <!-- would like to highlight power: line, but too hard -->
 ```{r pow,echo=TRUE}
-power.prop.test(n=15,p1=0.1,p2=0.2)
+power.prop.test(n=15, p1=0.1, p2=0.2)
 ```
 
 **Uh-oh!**
@@ -151,7 +151,7 @@ How many samples per group would we need to get power=0.8?
 ---
 
 ```{r pow2,echo=TRUE}
-power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
+power.prop.test(power=0.8, p1=0.1, p2=0.2, sig.level=0.05)
 ```
 
 **Uh-oh!**
@@ -166,13 +166,13 @@ power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
 
 > - increasing sample size ... **is not the only option**
 > - increase rejection threshold (e.g. $\alpha=0.1$)
-> - maximize *desired* variation (e.g. large doses)
+> - maximize **treatment** variation (e.g. large doses)
 > - measure a clearer outcome (gene expression, hormone levels, etc.)
 > - **ask a different (simpler) question**
 
 ---
 
-- minimize *undesired* variation
+- minimize **non-treatment** variation
     - *within-subjects* designs  
 	(paired, randomized-block, crossover)
 - minimize environmental variation  
@@ -189,32 +189,100 @@ power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
 ## the other most important thing  {.build}
 
 > - **don't snoop!**  
-(= don't look at your results *before deciding how to analyze them*)
+(i.e don't look at your results  
+**before deciding how to analyze them**)
 > - (but **do** explore your data graphically after deciding on a tentative analysis plan!)
-> - reproducibility crisis: @ioannidis_why_2005, @simmons_false-positive_2011
+> - reproducibility crisis: @ioannidis_why_2005; @simmons_false-positive_2011 ("researcher degrees of freedom"); @gelman_statistical_2014 ("the garden of forking paths")
 > - pre-register; think about what your questions are and how you will test them **before you look at your data**
 
-## "The Garden of Forking Paths" [@gelman_statistical_2014]
-
-aka "researcher degrees of freedom", @simmons_false-positive_2011
-
+<!--
 ```{r forking_paths, echo=FALSE, out.width = "60%"}
 knitr::include_graphics("pix/forking_paths.jpg")
 ```
 
 - https://artsharela.org/event/carillon-quartet-the-garden-of-forking-paths/
 
+-->
+
+## do plot your data ...
+
+<!-- 
+# data exploration 
+
+## descriptive statistics
+
+- check that values are reasonable
+  - categorical
+      - tabulation, cross-tabulation
+  - univariate
+      - mean, standard deviation
+      - median, minimum, maximum
+  - bivariate
+      - correlations
+  
+## graphics
+
+- univariate
+    - histogram
+- grouped
+    - box-and-whisker (violin)
+- bivariate
+    - scatterplots
+- multivariate
+    - scatterplot matrices
+   
+-----
+
+-->
+
+<div class="columns-2">
+```{r graphex,echo=FALSE,fig.width=6,fig.height=6,message=FALSE}
+set.seed(101)
+dd <- as.data.frame(mvrnorm(100,mu=c(0,0),
+              Sigma=matrix(c(1,0.8,0.8,1),2)))
+dd <- setNames(rbind(dd,c(-2,2)),c("x","y"))
+dd$special <- c(rep("no",100),"yes")
+p <- ggplot(dd, aes(x, y,
+                    colour=special)) + geom_point(size=5)+
+    scale_colour_manual(values=c("black","red"),guide="none")+
+    th_clean+
+    labs(x="",y="")
+ggMarginal(p, type = "histogram")
+```
+
+```{r anscombe,echo=FALSE,message=FALSE,fig.width=3.5,fig.height=3.5}
+library("reshape2")
+ ff <- function(x,v) 
+     setNames(transform(
+        melt(as.matrix(x)),
+             v1=substr(Var2,1,1),
+             v2=substr(Var2,2,2))[,c(3,5)],
+          c(v,"s"))
+ f1 <- ff(anscombe[,1:4],"x")
+ f2 <- ff(anscombe[,5:8],"y")
+ f12 <- cbind(f1,f2)[,c("s","x","y")]
+## or:
+## library("data.table"); dat <- as.data.table(anscombe); melt(dat, measure.vars = patterns(c("x", "y")), value.name=c('x', 'y'))
+ggplot(f12,aes(x,y))+geom_point()+
+  facet_wrap(~s)+labs(x="",y="")+
+  th_clean
+```
+
+"Anscombe's quartet"; see also "Datasaurus" [@matejka_datasaurus_2017]
+
+</div>
+
 ## don't lean on p-values too much
 
 <div class="columns-2">
 <!-- spacing? -->
 
-- focus on effect sizes/CIs
 - eschew vacuous hypotheses
 - don't accept the null hypothesis
 - "the difference between significant and non-significant is not significant"
 [@gelman_difference_2006]
-- statistical *clarity* [@dushoff_i_2018]
+- statistical *clarity* [@dushoff_i_2019]
+- [link](https://www.polleverywhere.com/multiple_choice_polls/Xnq70HYpOp6LZObg7KBG3)
 
 ```{r CIplot, message = FALSE}
 dd <- data.frame(x=1:4,
@@ -254,7 +322,7 @@ ggsave("blank_pvals.png")
 - don't accept the null hypothesis
 - "the difference between significant and non-significant is not significant"
 [@gelman_difference_2006]
-- statistical *clarity* [@dushoff_i_2018]
+- statistical *clarity* [@dushoff_i_2019]
 
 ```{r CIplot2}
 (gg0 +  geom_text(aes(x=x,y=y+err+0.1,colour=special,
@@ -267,7 +335,7 @@ ggsave("blank_pvals.png")
 </div>
 
 
-## regression table (OK)
+## focus on effect sizes: regression table
 
 1978 automobile data [@chambers_graphical_1983]
 
@@ -283,7 +351,7 @@ lm1 <- lm(price~mpg+trunk+length+turn, data=auto)
 huxtable::huxreg(lm1,error_pos="right")
 ```
 </div>
-## coefficient plot (better!)
+## focus on effect sizes: coefficient plot
 
 ```{r dw,out.width=500,message=FALSE}
 tt <- broom::tidy(lm1) 
@@ -297,69 +365,6 @@ tt <- broom::tidy(lm1)
                "length","turning\nradius"))
 )
 ```
-<!-- 
-# data exploration 
-
-## descriptive statistics
-
-- check that values are reasonable
-  - categorical
-      - tabulation, cross-tabulation
-  - univariate
-      - mean, standard deviation
-      - median, minimum, maximum
-  - bivariate
-      - correlations
-  
-## graphics
-
-- univariate
-    - histogram
-- grouped
-    - box-and-whisker (violin)
-- bivariate
-    - scatterplots
-- multivariate
-    - scatterplot matrices
-   
------
-<div class="columns-2">
-```{r graphex,echo=FALSE,fig.width=6,fig.height=6,message=FALSE}
-set.seed(101)
-dd <- as.data.frame(mvrnorm(100,mu=c(0,0),
-              Sigma=matrix(c(1,0.8,0.8,1),2)))
-dd <- setNames(rbind(dd,c(-2,2)),c("x","y"))
-dd$special <- c(rep("no",100),"yes")
-p <- ggplot(dd, aes(x, y,
-                    colour=special)) + geom_point(size=5)+
-  scale_colour_manual(values=c("black","red"),guide=FALSE)+th_clean+labs(x="",y="")
-ggMarginal(p, type = "histogram")
-```
-
-```{r anscombe,echo=FALSE,message=FALSE,fig.width=3.5,fig.height=3.5}
-library("reshape2")
- ff <- function(x,v) 
-     setNames(transform(
-        melt(as.matrix(x)),
-             v1=substr(Var2,1,1),
-             v2=substr(Var2,2,2))[,c(3,5)],
-          c(v,"s"))
- f1 <- ff(anscombe[,1:4],"x")
- f2 <- ff(anscombe[,5:8],"y")
- f12 <- cbind(f1,f2)[,c("s","x","y")]
-## or:
-## library("data.table"); dat <- as.data.table(anscombe); melt(dat, measure.vars = patterns(c("x", "y")), value.name=c('x', 'y'))
-ggplot(f12,aes(x,y))+geom_point()+
-  facet_wrap(~s)+labs(x="",y="")+
-  th_clean
-
-```
-
-"Anscombe's quartet"; see also "Datasaurus" [@matejka_datasaurus_2017]
-
-</div>
-
--->
 
 # statistical tests
 
@@ -378,13 +383,12 @@ ggplot(f12,aes(x,y))+geom_point()+
 
 ## diagnostics
 
-- hypothesis tests are **not** generally appropriate:  
+- hypothesis tests are generally **not** appropriate:  
 they answer the wrong question
-- graphical diagnostics
+- graphical diagnostics, e.g.
     - residuals plots (linearity, heteroscedasticity)
     - influence plots (outliers)
     - Q-Q plots (Normality)
-    - Box-Cox plots (transformations)
 
 ## (the data set)  {.centered}
 
@@ -394,12 +398,15 @@ n <- 50
 dd_bad <- data.frame(x=1:n)
 dd_bad <- transform(dd_bad,y=0.2*x^2+x*rt(n,4))
 m1 <- lm(y~x,dd_bad)
+m2 <- lm(y~poly(x,2),dd_bad)
+## m3 <- robustbase::lmrob(y~poly(x,2),dd_bad)
 ```
 
 ```{r data_bad}
 ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm", formula= y~x)
 ```
 
+<!--
 ## diagnostics  {.centered}
 
 
@@ -408,13 +415,25 @@ par(mfrow=c(2,2),las=1,mgp=c(2,1,0),mar=c(4,3,0.5,0.5),oma=c(0,0,2,0))
 plot(m1)
 ```
 
-(more [here](http://www.sthda.com/english/articles/39-regression-model-diagnostics/161-linear-regression-assumptions-and-diagnostics-in-r-essentials/))
-
+-->
 
 ## diagnostics (`performance` pkg)
 
 ```{r performance, fig.width = 8, fig.height = 8, out.width = "90%"}
 performance::check_model(m1)
+```
+
+## fix the model
+
+```{r data_quad}
+ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm",
+                                                 formula= y~poly(x,2))
+```
+
+## new check
+
+```{r performance2, fig.width = 8, fig.height = 8, out.width = "90%"}
+performance::check_model(m2)
 ```
 
 ## dealing with violations
@@ -424,20 +443,20 @@ performance::check_model(m1)
 - non-parametric (rank-based) tests  
 (e.g. Mann-Whitney-Wilcoxon, Kruskal-Wallis)
 - relax assumptions/do fancier stats, e.g.
-    - logistic regression (0/1 outcomes)
+    - logistic regression (binary outcomes)
     - quadratic regression (nonlinearity)
 
 ## what should you use?
 
- - try to connect scientific & statistical questions
- - data type
-    - see [decision tree](http://www.tnstate.edu/eduadmin/StatisticsDecisionTree%20Use.pdf)  or [table](http://www.ats.ucla.edu/stat/mult_pkg/whatstat/default.htm)
-    - if your question *doesn't* fit in this tree,  
+- connect scientific & statistical questions
+- data type
+   - see [decision tree](http://www.tnstate.edu/eduadmin/StatisticsDecisionTree%20Use.pdf)  or [table](http://www.ats.ucla.edu/stat/mult_pkg/whatstat/default.htm)
+   - if your question *doesn't* fit in this tree,  
 think about how much you like statistics ...
- - nonparametric stats
-     - slight loss of power
-     - stronger assumptions than you think
-     - $p$-values only - no effect size
+- nonparametric stats
+    - slight loss of power
+    - stronger assumptions than you think
+    - $p$-values only - no effect size
  
 # computational platforms
 
@@ -453,7 +472,7 @@ think about how much you like statistics ...
 - open alternatives (Open Office)
 - data in plain sight
 - good enough for simple stuff
-- occasional traps (@mccullough_accuracy_2008; date handling; etc.)
+- occasional traps (@mccullough_accuracy_2008; date handling; etc. @ziemannGene2016)
 - **archive your data as CSV, not XLSX**
     
 ## stats packages

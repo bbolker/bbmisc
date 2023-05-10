@@ -1,0 +1,128 @@
+---
+title: "Fitting distributions in R"
+author: "Ben Bolker"
+---
+
+R offers many different ways to fit probability distributions.
+
+```{r pkgs, message = FALSE}
+library(fitdistrplus)
+library(bbmle)
+library(broom)
+```
+
+## digression: truncated normal
+
+If $\phi$ is the Normal density function and $\Phi$ is the Normal CDF, the (zero-)truncated Normal density is $\phi(x,\mu,\sigma)/(1-\Phi(0,\mu,\sigma))$.
+Compute on the log scale as much as possible, avoid computing $\log(1-\Phi)$ by using `lower.tail = FALSE` (could use `log1p()` if this weren't available).
+```{r dtruncnorm}
+dtruncnorm <- function(x, mean, sd, log = FALSE) {
+    logdens <- dnorm(x, mean, sd, log = TRUE) -
+        pnorm(0, mean, sd, log = TRUE, lower.tail = FALSE)
+    if (log) logdens else exp(logdens)
+}
+```
+
+Note that the mean and sd are the parameters of the *untruncated* distribution.
+
+Could also include a statement that returns `-Inf`/0 (depending on `log`) if `x<0`
+
+There's also a `truncnorm` package which is more general (allows arbitrary lower and upper bounds, everything is vectorized), and also provides a truncated Normal random deviate generator, which is less trivial to code (rejection sampling, i.e. generating Normal deviates and discarding the ones less than zero, is easy but is horribly inefficient the more of the distribution is truncated ...)
+
+```{r}
+all.equal(dtruncnorm(2.4, 2, 1),
+          truncnorm::dtruncnorm(2.4, a = 0, mean = 2, sd = 1))
+```
+
+
+```{r}
+set.seed(101)
+x <- truncnorm::rtruncnorm(200, a = 0, mean = 1, sd = 1)
+par(las = 1, bty = "l")
+hist(x, breaks = 20, freq = FALSE, main = "")
+curve(dtruncnorm(x, 1, 1), add = TRUE, col = 2, lwd = 2)
+```
+
+## functions to fit distributions
+
+`MASS` has the `fitdistr()` function, but it only handles a handful of common distributions. The `fitdistrplus` package can fit any distribution for which a probability distribution (`d*`) function is available (I think it probably needs to have a `log` argument).
+
+```{r fitdist}
+fitdist(x, dtruncnorm, start = list(mean = 0, sd = 1))
+```
+
+(not sure why we get the warning; we could go back and define `ptruncnorm`, or import it from the `truncnorm` package ...)
+
+The [probability distributions task view](https://cran.r-project.org/web/views/Distributions.html) can be useful.
+
+Distribution functions often have shortcomings that may make them hard to use with `fitdistr`:
+
+- need to be vectorized at least over the `x` variable
+- need to have a `log` argument/be capable of returning log-densities
+- return `NA` values rather than failing when given 'illegal' (e.g. negative `sd`) parameter values
+
+These problems can usually be worked around by writing a *wrapper function*.
+
+## `bbmle::mle2`
+
+`bbmle::mle2` is more flexible and robust:
+
+* allows fitting with covariates
+* allows fitting parameters on different scales (e.g. log-link)
+* allows choice of optimizers etc.
+* provides profile confidence intervals etc.
+
+Does require that the data be included in a data frame.
+
+The simple way:
+
+```{r mle2, warning = FALSE}
+(m1 <- mle2(x ~ dtruncnorm(mean, sd),
+     data = data.frame(x = x),
+     start = list(mean = 0, sd = 1)))
+```
+
+This works, but produces a bunch of warnings of the form
+
+> 11: In dnorm(x, mean, sd, log = TRUE) : NaNs produced<br>
+> 12: In pnorm(0, mean, sd, log = TRUE, lower.tail = FALSE) : NaNs produced
+
+These warnings indicate that the optimization algorithm has tried some negative values of `sd` on its way to the correct answer. This is typically harmless, but is worth avoiding in the general pursuit of clean code, and because in more difficult problems these kind of glitches could be more problematic.
+
+One option is to switch from the default optimizer (BFGS, chosen for compatibility with the base R `stats4::mle()` function) to something more robust, e.g. the Nelder-Mead optimizer:
+
+```{r mle2_nm}
+mle2(x ~ dtruncnorm(mean, sd),
+     data = data.frame(x = x),
+     start = list(mean = 0, sd = 1),
+     method = "Nelder-Mead")
+```
+
+In this case this choice avoids any negative trial values of `sd`/warnings, but that's partly luck - the more robust optimizer is less likely to go to weird places, but there's no explicit prevention of negative values.
+
+Instead we could use an optimizer that allows constraints (specifically, *box constraints*, where one or more parameters is bounded below and/or above), such as "L-BFGS-B" (limited-memory Broyden-Fletcher-Goldfarb-Shanno):
+
+```{r mle2_lbfgsb, warning = FALSE}
+mle2(x ~ dtruncnorm(mean, sd),
+     data = data.frame(x = x),
+     method = "L-BFGS-B",
+     lower = c(mean = -Inf, sd = 0.0001),
+     start = list(mean = 0, sd = 1))
+```
+
+A more general way to solve this problem is to fit the parameters on a transformed, *unconstrained* space (most typically fitting a log-transformed value for positive parameters, or a logit-transformed value for (0,1)-bounded parameters):
+
+```{r mle2_loglink}
+(m3 <- mle2(x ~ dtruncnorm(mean, exp(logsd)),
+     data = data.frame(x = x),
+     start = list(mean = 0, logsd = 0)))
+```
+
+Fitting this way means you don't need to use a constrained optimizer; it also tends to make the parameter magnitudes reasonable (which helps with numerical stability), and improves Wald approximations.
+
+
+`mle2` also has a `tidy` method in `broom` (only provides profile confidence intervals)
+
+```{r tidy}
+tidy(m3, conf.int = TRUE)
+```

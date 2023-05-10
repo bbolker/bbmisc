@@ -155,7 +155,7 @@ do_mail <- function(data,
     if (is.null(doc_dir)) return(data[[doc_name]])
     ## ugh!
     tmp <- sapply(strsplit(data[[doc_name]],";")[[1]],
-                 \(x) file.path(doc_dir, x))
+                 function(x) file.path(doc_dir, x))
     paste(tmp, collapse = ";")
   }
 

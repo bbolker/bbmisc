@@ -1,0 +1,276 @@
+---
+title: "Math sounds"
+author: "Ben Bolker"
+date: 6 Jan 2023
+---
+
+Some demonstrations of using R (the `tuneR` package) and `Rmpfr` (the R interface to the GNU MPFR arbitrary-precision floating point library) to create sounds (music??) in R based on mathematical structures such as (1) iterations of the discrete logistic map in the chaotic regime or (2) digits of rational/irrational/transcendental numbers in appropriate bases.
+
+## Basics
+```{r loadpkg, message=FALSE}
+library(tuneR)
+library(Rmpfr) ## for base conversion
+```
+
+Ratios taken from [here](https://pages.mtu.edu/~suits/scales.html) since I was too lazy to think about them myself ...
+
+```{r funs}
+ratios <- c(tonic=1,
+            m2=25/24,
+            M2=9/8,
+            m3 = 6/5,
+            M3 = 5/4,
+            fourth = 4/3,
+            d5 = 45/32,
+            fifth = 3/2,
+            m6 = 8/5,
+            M6 = 5/3,
+            m7 = 9/5,
+            M7 = 15/8,
+            octave = 2)
+even_ratios <- setNames(2^((0:12)/12), names(ratios))
+major_scale <- ratios[grep("^[^md]", names(ratios))]
+## harmonic minor
+## https://en.wikipedia.org/wiki/Minor_scale
+## lower 3d and 6th by a semitone
+minor_scale <- major_scale
+minor_scale[c(3,6)] <- ratios[c("m3","m6")]
+pentatonic_scale <- ratios[c("tonic","M2","M3","fifth","M6","octave")]
+mk_sound <- function(x, form = "sine", duration = 0.1) {
+    x |>
+        unname() |>
+        sapply(form, duration=duration, xunit="time") |>
+        lapply(FUN = prepComb) |> 
+        do.call(what=bind)
+}
+pp <- function(x, write=FALSE, play=TRUE,
+               nm = deparse(substitute(x))) {
+    if (write) {
+        writeWave(x, paste0(nm, ".wav"))
+    }
+    if (play) play(x, "play")
+    invisible(x)
+}
+mk_12 <- function(x, base = 220, octaves = 1) exp(log(base)+octaves*log(2)/12*x)
+## FIXME: add an octave-scaling option? (Right now all ranges are 1-octave)
+mk_pent <- function(x, base = 220) pentatonic_scale[x]*base
+mk_major <- function(x, base = 220) major_scale[x]*base
+mk_minor <- function(x, base = 220) minor_scale[x]*base
+## reformat formatted output to a single string
+## reconvert the [0-9AB] values to integers 1-12
+base_to_num <- function(x, start = 0) {
+    if (!start %in% c(0,1)) stop("start should be 0 or 1")
+    letterstring <- c(0:9, letters[1:2])
+    dpi_ind <- strsplit(tolower(x),"")[[1]]
+    dpi_ind <- dpi_ind[dpi_ind != "."]
+    vals <- match(dpi_ind, letterstring)
+    if (start == 0) return(vals-1)
+    return(vals)
+}
+```
+
+The basic example from `?Wave`: an A-440 sine wave.
+
+```{r tuneR_ex,eval=FALSE}
+pp(Wobj <- sine(440, duration = 1, xunit = "time"))
+```
+
+## Discrete logistic map
+
+Compute 200 iterations of the discrete logistic map:
+```{r computelogistic}
+params <- list(r=3.99)
+X0 <- 0.5
+n <- 200
+## need 'i' (dummy variable) for Reduce()
+logmap <- function(X, i) with(params, r*X*(1-X))
+X <- Reduce(logmap, seq(n), init = X0, accumulate=TRUE)
+```
+
+Convert this to 0.1-second sine tones with frequencies between
+A-220 and A-440 (since `X` varies from 0 to 1)
+
+```{r chaoswav,cache=TRUE}
+chaos <- mk_sound(round(220*(1+X)))
+```
+
+I would use `pp(chaos)` on my system to play the sound from within R, or [get the WAV file online](http://www.math.mcmaster.ca/bolker/misc/chaos.wav)
+
+## Discrete logistic map take 2
+
+Compute 200 iterations of the discrete logistic map:
+```{r computelogistic}
+X0 <- 0.5
+n <- 1000
+r <- 2
+rstep <- 0.002
+## need 'i' (dummy variable) for Reduce()
+logmap2 <- function(X, i) { r <<- min(4.0, r + rstep); r*X*(1-X)  }
+X2 <- Reduce(logmap2, seq(n), init = X0, accumulate=TRUE)
+plot(X2)
+```
+
+```{r chaosbifwav,cache=TRUE}
+chaosbif <- mk_sound(round(220*(1+X)))
+```
+
+## $\pi$
+
+Now I want to play the value of $\pi$.
+Various people have discussed musical interpretations of $\pi$, and in particular the idea of a correspondence between the *duodecimal* representation of $\pi$ and a chromatic (12-tone) scale:
+
+* [snippets of $\pi$ in various bases](https://web.archive.org/web/20191029211406/http://turner.faculty.swau.edu/mathematics/materialslibrary/pi/pibases.html)
+* [musical $\pi$](http://threesixty360.wordpress.com/2008/01/27/musical-pi-part-1/)
+
+```{r getpi}
+pi_val <- 4*atan(mpfr(1, precBits = 1000))
+```
+(this could be packaged/simplified more)
+
+```{r modbc}
+pi_dd_freq <- (pi_val 
+    |> format(base = 12)
+    |> base_to_num() 
+    |> mk_12() 
+    |> mk_sound()
+)
+```
+
+Again, use `pp(pi_dd_freq, play = TRUE)`.
+
+Does $\tau$ (i.e $2\pi$) sound much different?
+```{r runbc2}
+tau_val <- 8*atan(mpfr(1, precBits = 1000))
+tau_dd_freq <- (tau_val 
+    |> format(base = 12) 
+    |> base_to_num() 
+    |> mk_12() 
+    |> mk_sound()
+)
+```
+
+```{r pent_scale}
+pent_scale <- ((pentatonic_scale*220)
+    |> mk_sound(duration=0.5)
+)
+maj_scale <- ((major_scale*220)
+    |> mk_sound(duration=0.5)
+)
+min_scale <- ((minor_scale*220)
+    |> mk_sound(duration=0.5)
+)
+```
+```{r pentatonic_tau}
+dtau_5 <- (tau_val
+    |> format(base = 5)
+    |> base_to_num(start=1)
+    |> mk_pent()
+    |> mk_sound()
+)
+```
+
+As it turns out, the pentatonic scale is a little too boring.
+
+```{r major_tau}
+tau_major <- (tau_val
+    |> format(base = 7)
+    |> base_to_num(start=1)
+    |> mk_major()
+    |> mk_sound()
+)
+```
+
+```{r minor_tau}
+tau_minor <- (tau_val
+    |> format(base = 8)
+    |> base_to_num(start=1)
+    |> mk_minor()
+    |> mk_sound()
+)
+```
+
+
+## Other ideas:
+
+* encapsulate some of this stuff in functions
+* connect the computation of duodecimal $\pi$ with [this StackExchange question](http://tex.stackexchange.com/questions/82867/create-elegant-display-of-digits-and-symbols) about typesetting it elegantly
+* try other waveforms (e.g. `tuneR` has `sawtooth` and `square` in addition to `sine`)
+* try other bases (e.g. base 8, setting the music in a "proper" key?
+* try other constants ($e$, the golden ratio $\phi$ ...)
+* use/extend/adapt `tuneR::notenames` to translate sequences to [abc format](http://abcnotation.com) and from there to PostScript/PDF/Musi[cx]tex/midi etc. (or use `tuneR::lilyinput` to get [lilypond](http://www.lilypond.org)-compatible output).
+* logistic map: try setting up various null distributions, e.g. (1) a Gaussian with the same serial autocorrelation or (2) a white-noise permutation with the same marginal distribution or (3) a randomized-phase permutation with the same power spectrum *and* marginal distribution but no nonlinear structure
+* do an "aural bifurcation diagram" for the logistic map?
+* Other links:
+ * [Play it by R](http://playitbyr.org/index.html) is a `ggplot`-style "sonification" package that uses `Csound` to generate sound files (and display them on a web page): some of the examples here might be easily condensed into that framework.  Could possibly make a "duodecimal pitch scaling" scale to plug in to Play it by R?
+ * [MidiCSV](http://www.fourmilab.ch/webtools/midicsv/) is a CSV $\leftrightarrow$ Midi converter (public domain) that could be handy in conjunction with `tuneR` (could be built into an R package??)
+ 
+* I thought a [handy script for finding package dependencies](http://developer.r-project.org/CRAN/Scripts/depends.R) would give us more information about music packages, but not really:
+```{r find_depends,message=FALSE,warning=FALSE, eval = FALSE}
+source(url("http://developer.r-project.org/CRAN/Scripts/depends.R"))
+reverse_dependencies_with_maintainers("tuneR",
+      c("Depends", "Imports", "LinkingTo","Suggests"))
+```
+
+`library("sos"); findFn("music")` may be more useful (although still not too much there).
+
+# old stuff
+
+```{r}
+if (!file.exists("duodec_7th.txt")) {
+   system("echo 'obase=12; scale=230; 1/7' | bc -l >duodec_7th.txt")
+}
+```
+
+## 1/7
+
+Play a repeating decimal (need to update to new versions)
+
+```{r modbc7, eval = FALSE}
+## reformat bc output to a single string
+dpi <- paste(gsub("\\\\","",readLines("duodec_7th.txt")),collapse="")
+## reconvert the [0-9AB] values to integers 1-12
+letterstring <- c(0:9,LETTERS[1:2])
+dpi_ind <- strsplit(dpi,"")[[1]][-1] ## drop decimal point!
+vals <- match(dpi_ind,letterstring)
+## convert to chromatic tones from A-220 up
+freq <- exp(log(220)+log(2)/12*(vals-1))
+w4 <- do.call(bind,sapply(freq,sine,
+    duration=0.1,xunit="time"))
+writeWave(w4,"d7.wav")
+```
+
+Experimenting with tempering etc.
+
+```{r tempering, eval=FALSE}
+play(mk_sound(freq, 0.2), "play")
+play(mk_sound(440*c(pentatonic_scale, 2), 0.2), "play")
+play(mk_sound(440*c(ratios, 2), 0.2), "play")
+play(mk_sound(440*c(even_ratios, 2), 0.2), "play")
+play(mk_sound(440*rep(c(ratios["M3"], even_ratios["M3"]),5)), "play")
+play(mk_sound(rep(c(657, 660),5), duration = 0.5), "play")
+```
+
+I thought briefly about trying to do the base conversion myself (e.g. see this [StackOverflow question on base conversion](http://stackoverflow.com/questions/5478508/encoding-whole-numbers-in-r-to-a-base-62-character-vector)), but dealing with non-integer values in arbitrary precision is more trouble than I want to deal with right now.
+
+Instead, following suggestions in some of the linked material above, the easiest way to do this is to call the `bc` program.  The following call sets the output base to duodecimal (`obase=12`); specifies 200 digits of precision (`scale=200`); and computes $4\cdot\text{atan}(1)$
+([Wikipedia](http://en.wikipedia.org/wiki/Bc_programming_language#Calculating_Pi_to_10000_places)):
+```{r runbc, eval = FALSE}
+if (!file.exists("duodec_pi.txt")) {
+   system("echo 'obase=12; scale=230; 4*a(1)' | bc -l >duodec_pi.txt")
+}
+```
+
+If you don't have `bc` on your system you can also 
+[get the output file online](http://www.math.mcmaster.ca/bolker/misc/duodec_pi.txt).
+
+```{r eval=FALSE}
+if (!file.exists("duodec_tau.txt")) {
+   system("echo 'obase=12; scale=230; 8*a(1)' | bc -l >duodec_tau.txt")
+}
+## reformat bc output to a single string
+dtau <- paste(gsub("\\\\","",readLines("duodec_tau.txt")),collapse="")
+## reconvert the [0-9AB] values to integers 1-12
+letterstring <- c(0:9,LETTERS[1:2])
+dtau_ind <- strsplit(dtau,"")[[1]][-2] ## drop decimal point!
+vals <- match(dtau_ind,letterstring)
+```
