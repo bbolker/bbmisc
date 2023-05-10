@@ -117,3 +117,17 @@ Last updated 2022-05-30
 [^2]: This advice contradicts the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.) Or: "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)" [Whitman, *Song of Myself*](https://poets.org/poem/song-myself-51)
 
 [^3]: published in 1776,
+
+## to add
+
+'unique', 'complex', 'dynamic', 'nonlinear', 'important' (vague)
+"show don't tell"
+'it has been hypothesized that'
+transitions: 'in terms of,' 'furthermore'
+'it is important to note that'
+
+transitions stemming from natural flow
+outlining after writing
+synthesis
+topic sentences
+
