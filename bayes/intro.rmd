@@ -300,6 +300,6 @@ legend(3, 0.5, c("mode", "median", "mean"),
 
 ---
 
-Last updated: `r format(Sys.time(), "%d %B %Y")`
+Last updated: `r format(Sys.time(), "%d %B %Y %H:%M")`
 
 
