@@ -131,11 +131,12 @@ for(i in 1:5) {
 
 Bolker 2008 Figure 4.2: Decomposition of the unconditional probability of the observed data ($\pr(D)$) into
 the sum of the probabilities of the intersection of the data with each possible
-hypothesis ($\sum_{j=1}^N \pr(D \cap H_j)$). The entire gray ellipse in the middle represents $\pr(D)$.
-Each wedge (e.g. the hashed area $H_5$ ) represents an alternative hypothesis.
+hypothesis ($\sum_{j=1}^N \pr(D | H_j) \pr(H_j)$). The entire gray ellipse in the middle represents $\pr(D)$.
+Each wedge (e.g. the hashed area $H_5$) represents an alternative hypothesis; the area corresponds to $\pr(H_5)$.
 The ellipse is divided into "pizza slices" (e.g. $D \cap H_5$ , hashed and colored
 area). The area of each slice corresponds to $D \cap H_j$ ($\pr(D \cap H_j) = \pr(D|H_j) \pr(H_j)$) , the joint probability of
-the data $D$ (ellipse) and the particular hypothesis $H_j$ (wedge).
+the data $D$ (ellipse) and the particular hypothesis $H_j$ (wedge). The posterior probability $\pr(H_j|D)$ is the 
+fraction of the ellipse taken by $H_j$, i.e. the area of the pizza slice divided by the area of the ellipse.
 
 ## Bayesian inference
 
