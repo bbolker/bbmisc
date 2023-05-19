@@ -8,9 +8,10 @@ Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no respon
 
 ![](pix/cc-attrib-nc.png)
 
-```{r include=FALSE}
+```{r setup, include=FALSE}
 library(knitr)
 library(pander)
+library(emdbook)
 ```
 
 # Introduction
@@ -128,7 +129,13 @@ for(i in 1:5) {
 }
 ``` 
 
-The sum of the gray areas $\sum_i \pr(D \cap H_i) = \sum_i \pr(D|H_i) \pr(H_i)$ is equal to $\pr(D)$, the overall probability of the data. The prior probability of $H_5$ is the hashed area. The posterior probability of $H_5$ is the area in the $D \cap H_5$ wedge, divided by the gray region ($\pr(D)$).
+Bolker 2008 Figure 4.2: Decomposition of the unconditional probability of the observed data ($\pr(D)$) into
+the sum of the probabilities of the intersection of the data with each possible
+hypothesis ($\sum_{j=1}^N \pr(D \cap H_j)$). The entire gray ellipse in the middle represents $\pr(D)$.
+Each wedge (e.g. the hashed area $H_5$ ) represents an alternative hypothesis.
+The ellipse is divided into "pizza slices" (e.g. $D \cap H_5$ , hashed and colored
+area). The area of each slice corresponds to $D \cap H_j$ ($\pr(D \cap H_j) = \pr(D|H_j) \pr(H_j)$) , the joint probability of
+the data $D$ (ellipse) and the particular hypothesis $H_j$ (wedge).
 
 ## Bayesian inference
 
@@ -162,6 +169,39 @@ legend(3, 0.5, c("mode", "median", "mean"),
 	* _Quantiles_ are principled, but not easy in >1 dimension
 	* Highest posterior density is straightforward, but scale-dependent
 	* They're the same if the posterior distribution is symmetric
+
+```{r ci, echo = FALSE}
+x = subset(ReedfrogPred,pred=="pred" & density==10 & size=="small")
+k = x$surv
+op=par(lwd=2,bty="l",las=1,cex=1.5)
+curve(dbeta(x,shape1=sum(k)+1,shape2=40-sum(k)+1),
+      xlab="Predation probability\nper capita",
+      ylab="Probability density",
+      from=0.4,to=1,yaxs="i")
+c1 = tcredint("beta",list(shape1=sum(k)+1,shape2=40-sum(k)+1),
+  verbose=TRUE)
+v = with(as.list(c1),seq(lower,upper,length=100))
+w = dbeta(v,shape1=sum(k)+1,shape2=40-sum(k)+1)
+polygon(c(v,rev(v)),c(w,rep(0,length(w))),col="gray")
+curve(dbeta(x,shape1=sum(k)+1,shape2=40-sum(k)+1),add=TRUE)
+abline(h=c1["p"],lty=2)
+qs = qbeta(c(0.025,0.975),shape1=sum(k)+1,shape2=40-sum(k)+1)
+v2 = seq(0.4,qs[1],length=100)
+w2 = dbeta(v2,shape1=sum(k)+1,shape2=40-sum(k)+1)
+polygon(c(v2,rev(v2)),c(w2,rep(0,length(w2))),density=10)
+v3 = seq(qs[2],1,length=100)
+w3 = dbeta(v3,shape1=sum(k)+1,shape2=40-sum(k)+1)
+polygon(c(v3,rev(v3)),c(w3,rep(0,length(w3))),density=10)
+text(0.75,2.1,"95%\ncredible\ninterval")
+text(0.5,1.4,"2.5% tails")
+arrows(c(0.5,0.5),c(1.2,1.2),c(0.58,0.88),
+       c(0.27,0.30),angle=15)
+par(op)
+rm(x)
+rm(k)
+```
+
+Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail areas (hashed), for the tadpole predation data (weak prior: shape=(1,1))."
 
 <!-- TO DO: pix of tail/quantile, HPD intervals -->
 
