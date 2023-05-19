@@ -76,7 +76,9 @@ $$
 \end{split}
 $$
 
-The denominator is the probability of observing the data under *any* of the hypotheses:
+If $D$ is the data, then $\pr(H_i)$ is the prior probability of hypothesis $H_i$ and $\pr(D|H_i)$ is the **likelihood** of hypothesis $H_i$.
+
+The denominator is the probability of observing the data under *any* of the hypotheses. It looks scary, and it is computationally scary (when the $H_i$ represent a set of continuous parameter values, the sum becomes an integral; when a model has lots of continuous parameters, it becomes a high-dimensional integral). **However**, most tools for Bayesian inference represent elegant ways *to avoid ever having to compute the denominator explicitly*, so in practice you won't have to worry about it. You may sometimes see Bayes' Rule written out as $\textrm{posterior} \propto \textrm{likelihood} \times \textrm{prior}$, where $\propto$ means "proportional to", to emphasize that we can often avoid thinking about the denominator.
 
 ```{r bayesfig, echo = FALSE}
 r <- 0
@@ -278,3 +280,12 @@ The sum of the gray areas $\sum_i \pr(D \cap H_i) = \sum_i \pr(D|H_i) \pr(H_i)$ 
 	* You can simulate a model forward in time and get credible intervals not only for the parameters, but what you expect to happen
 
 ## References
+
+::: {#refs}
+:::
+
+---
+
+Last updated: `r format(Sys.time(), "%d %B %Y")`
+
+
