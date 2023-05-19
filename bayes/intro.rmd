@@ -1,0 +1,275 @@
+---
+title: Bayesian approaches
+bibliography: bayes.bib
+---
+
+```{r include=FALSE}
+library(knitr)
+library(pander)
+```
+
+# Introduction
+
+## Why Bayes?
+
+* magic black boxes for estimation ([BEAST](https://www.beast2.org/), [MrBayes](https://nbisweden.github.io/MrBayes/), [BayesTraits](http://www.evolution.reading.ac.uk/BayesTraitsV4.0.1/BayesTraitsV4.0.1.html), ...)
+* build-your-own model [@mcelreathStatistical2020; @mccarthyBayesian2007; @clarkModels2020; @hobbsBayesian2015]
+* better handling of uncertainty/error propagation [@elderdUncertainty2006a; @ludwigUncertainty1996]
+* informative priors for data-poor decisions [@mccarthyProfiting2005]
+* priors for regularization [@lemoineMoving2019]
+* alternative inferential approach
+
+## What do you need to know?
+
+* basic meanings of output (point estimates, CIs)
+* nuts and bolts of particular tools
+* usually, more about probability distributions than you already knew
+* for build-your-own, lots more about your model
+* basics of Markov Chain Monte Carlo diagnostics
+
+## Tools
+
+- mixed models: `rstanarm`, `MCMCglmm`, `brms`, `INLA`
+- build-your-own: toolboxes `BUGS` et al. (`JAGS`), `Stan`, `TMB`, `greta`, ...
+- MCMC diagnostic tools
+
+## Inference
+
+```{r statstab, echo=FALSE, results = "asis"}
+tab <- data.frame(Frequentist = c(
+                      "null-hypothesis significance testing; AIC etc (every stats textbook; @burnhamModel2002)",
+                      "MLE etc. + confidence intervals [@bolkerEcological2008a]"),
+                  Bayesian = c("Bayes factors; Bayesian indices of significance [@makowskiIndices2019]",
+                            "posterior means/medians and credible intervals"))
+rownames(tab) <- c("Discrete hypothesis testing",
+                   "Continuous/quantitative (estimation with uncertainty)")
+knitr::kable(tab)
+```
+
+
+## Bayes Theorem 
+
+* If $A_i$ are *alternative events* (exactly one must happen), then:
+
+$$
+\newcommand{\pr}{\textrm{Pr}}
+\pr(A_i|B) = \frac{\pr(B|A_i) \pr(A_i)}{\sum \pr(B|A_j) \pr(A_j)}
+$$
+
+* $\pr(A_i)$ the *prior* probability of $A_i$
+* $\pr(A_i|B)$ is the *posterior* probability of  $A_i$, given event $B$
+
+* People argue about Bayesian inference, but nobody argues about Bayes
+	 theorem
+
+* Now let's change $A_i$ to $H_i$ ("hypothesis", which can denote a model *or* a particular parameter value) and $B$ to $D$ ("data"); we get 
+
+$$
+\begin{split}
+	\pr(H_i|D) & = \frac{\pr(D|H_i) \pr(H_i)}{\sum \pr(D|H_j) \pr(H_j)} \\
+	& = \frac{\pr(D|H_i) \pr(H_i)}{\pr(D)}
+\end{split}
+$$
+
+The denominator is the probability of observing the data under *any* of the hypotheses:
+
+```{r bayesfig, echo = FALSE}
+r <- 0
+d <- acos(r)
+scale <- c(0.5,0.3)
+npoints <- 100
+centre <- c(0.5,0.5)
+a <- seq(0, 2 * pi, len = npoints)
+m <- matrix(c(scale[1] * cos(a + d/2) + centre[1], 
+              scale[2] * cos(a - d/2) + centre[2]), npoints, 2)
+e <- 0.05
+hyp_pts = matrix(c(0.37,1.04,
+  1+e,0.8+e,
+  1,-e,
+  0.4,-e,
+  -e,0.25),
+  byrow=TRUE,ncol=2)
+lab.pts = matrix(c(0.091,0.255,0.597,0.557,
+  0.869,0.709,0.549,0.511,
+  0.170,0.22,
+  ##y
+  0.865,0.613,
+  0.932,0.698,0.191,0.477,
+  0.087,0.277,0.077,0.31),
+  ncol=2)
+##hyp_pts <- hyp_pts[c(5,1:4),]
+## lab.pts <- lab.pts[c(5,1:4),]
+par(mar=c(0.2,0.2,0.2,0.2))
+plot(1,1,type="n",xlim=c((-e),1+e),ylim=c(-e,1+e),ann=FALSE,
+     xlab="",ylab="",axes=FALSE,xaxs="i",yaxs="i")
+box()
+polygon(m,col="lightgray",lwd=2)
+polygon(c(-e,0.5,0.4,-e),c(0.25,0.5,-e,-e),density=8,angle=0,
+        col="darkgray")
+lines(m,lwd=2)
+segments(rep(0.5,nrow(hyp_pts)),rep(0.5,nrow(hyp_pts)),
+         hyp_pts[,1],hyp_pts[,2])
+##text(lab.pts[,1],lab.pts[,2],1:10)
+int <- "∩"
+for(i in 1:5) {
+  r = 2*i-1
+  r2 = 2*i
+  text(lab.pts[r,1],lab.pts[r,2],adj=0,cex=2,
+       bquote(H[.(i)]))
+  text(lab.pts[r2,1],lab.pts[r2,2],adj=0, cex = 2,
+       bquote(D*.(int)*H[.(i)]))
+}
+``` 
+
+The sum of the gray areas $\sum_i \pr(D \cap H_i) = \sum_i \pr(D|H_i) \pr(H_i)$ is equal to $\pr(D)$, the overall probability of the data. The prior probability of $H_5$ is the hashed area. The posterior probability of $H_5$ is the area in the $D \cap H_5$ wedge, divided by the gray region ($\pr(D)$).
+
+## Bayesian inference
+
+* Go from a *statistical model* of how your data are generated, to a
+	probability model of parameter values
+	* Requires *prior* distributions describing the assumed likelihood
+	 of parameters before these observations are made
+	* Use Bayes theorem to go from probability of the data given
+	 parameters to the probability of parameters given data
+
+* Once we have a posterior distribution, we can calculate a best guess for each parameter
+	* Mean, median or mode
+	* Only median is scale-independent
+
+## Confidence intervals
+
+* We do hypothesis tests using "credible intervals" -- these are like confidence intervals, except that we really believe (relying on our assumptions) that there is a 95% chance that the value is in the credible interval
+	* There are a lot of ways to do this. You need to decide in advance.
+	* _Quantiles_ are principled, but not easy in >1 dimension
+	* Highest posterior density is straightforward, but scale-dependent
+
+* Example, a linear relationship is significant if the credible interval for the slope does not include zero
+
+* A difference between groups is significant if the credible interval for the difference does not include zero
+
+## Advantages
+
+* Assumptions more explicit
+* Probability statements more straightforward
+* Very flexible
+* Can combine information from different sources
+
+## Disadvantages
+
+* More assumptions required
+* More difficult to calculate answers
+	* easy problems are easy
+	* medium problems are hard
+	* very hard or impossible problems are hard
+
+# Assumptions
+
+## Prior distributions
+
+* Typically, start with a prior distribution that has little
+	"information"
+	* Let the data do the work
+
+* This often means a normal (or lognormal, or gamma) with a very large
+	variance
+	* We can test for sensitivity to this choice
+
+* Can also use a uniform distribution (on log, or linear scale) with
+	 very broad coverage
+
+## Examples
+
+* "Complete ignorance" can be harder to specify than you think
+
+	* Linear vs. log scale: do we expect the probability of being
+	     between 10 and 11 grams to be the same as the prob. of being
+	     between 100 and 101 grams, or the same as the prob. of being
+	     between 100 and 110 grams??
+
+	* Linear vs. inverse scale: if we are waiting for things to happen, do we pick our prior on the time scale (number of minutes per bus) or the rate scale (number of buses per minute)?
+
+	* Discrete hypotheses: subdivision (nest predation example: do we
+	     consider species separately, or grouped by higher-level taxon?)
+
+## Improper priors
+
+* There is no uniform distribution over the real numbers
+* But for Bayesian analysis, we can pretend that there is
+	* This is conceptually cool, and _usually_ works out fine
+	* Must be able to guarantee that the _posterior_ distribution exists
+	* Also need to choose a scale for your uniform prior
+
+## Statistical models
+
+* A statistical model allows us to calculate the *likelihood* of the
+	data based on parameters
+	* Relationships between quantities, e.g.:
+	* X is linearly related to Y
+	* The variance of X is linearly related to Z
+	* Distributions
+	* X has a Poisson (or normal, or lognormal) distribution
+
+# Making a probability model
+
+## Assumptions
+
+* We need enough assumptions to actually calculate the "likelihood" of our data given parameters
+
+* To make a probability model we need prior distributions for all of
+	the parameters we wish to estimate
+* We then need to make explicit assumptions about how our data are
+	generated, and calculate a likelihood for the data corresponding to
+	any set of parameters
+
+## A simple example
+
+* for a single observation of counts
+* assume the likelihood is Poisson
+* assume the prior on the rate parameters is Gamma distributed
+* we can write down the answer immediately (with Calc II)
+
+# MCMC methods
+
+## What about hard problems?
+
+* Bayesian methods are very flexible
+
+* We can write down reasonable priors, and likelihoods, to cover a
+	wide variety of assumptions and situations
+
+* Unfortunately, we usually can't *integrate* -- calculate the
+	denominator of Bayes' formula
+
+* Instead we use *Markov chain Monte Carlo* methods to sample randomly
+	from the posterior distribution
+
+	* Simple to do, but hard to know how long you have to simulate to
+	 get a good sample of the posterior distribution
+
+## MCMC sampling
+
+* Rules that assure that we will visit each point in parameter space
+	 in proportion to its likelihood ... eventually
+
+* Checking convergence:
+
+	* Look at your parameter estimates: do they seem to have settled to bouncing back and forth) rather than going somewhere?
+
+	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge?
+
+## Packages
+
+* There is a lot of software, including R packages, that will do MCMC
+	sampling for you
+
+* We will give you examples
+
+# Sampling from the posterior
+
+## Great power ⇒ great responsibility
+
+* Once you have calculated (or estimated) a Bayesian posterior, you can calculate whatever you want!
+	* In particular, you can attach a probability to any combination of the parameters
+	* You can simulate a model forward in time and get credible intervals not only for the parameters, but what you expect to happen
+
+## References
