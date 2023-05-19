@@ -1,7 +1,12 @@
 ---
 title: Bayesian approaches
 bibliography: bayes.bib
+author: "Ben Bolker"
 ---
+
+Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
+
+![](pix/cc-attrib-nc.png)
 
 ```{r include=FALSE}
 library(knitr)
