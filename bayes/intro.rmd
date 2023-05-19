@@ -140,18 +140,32 @@ The sum of the gray areas $\sum_i \pr(D \cap H_i) = \sum_i \pr(D|H_i) \pr(H_i)$ 
 	 parameters to the probability of parameters given data
 
 * Once we have a posterior distribution, we can calculate a best guess for each parameter
-	* Mean, median or mode
+	* Mean, median or mode (also called MAP/*maximum a posteriori* in Bayesian contexts)
 	* Only median is scale-independent
+	
+```{r pointests, fig.width = 8, fig.height = 4}
+par(las = 1, bty = "l")
+cc <- curve(dlnorm(x, meanlog = 0, sdlog = 1), from = 0.001, to = 8,
+            ann = FALSE, axes = FALSE)
+with(cc, polygon(c(x, rev(x)), c(y, rep(0, length(y))), border = "black", col = "gray"))
+cvec <- c("purple", "blue", "red")
+abline(v=c(exp(-1), exp(0), exp(1/2)), col = cvec, lwd = 2) ## mode
+legend(3, 0.5, c("mode", "median", "mean"),
+       col = cvec,
+       lty = 1, lwd = 2, bty = "l")
+```
 
 ## Confidence intervals
 
-* We do hypothesis tests using "credible intervals" -- these are like confidence intervals, except that we really believe (relying on our assumptions) that there is a 95% chance that the value is in the credible interval
+* We do hypothesis tests using "credible intervals" --- these are like confidence intervals, except that we really believe (relying on our assumptions) that there is a 95% chance that the value is in the 95% credible interval
 	* There are a lot of ways to do this. You need to decide in advance.
 	* _Quantiles_ are principled, but not easy in >1 dimension
 	* Highest posterior density is straightforward, but scale-dependent
+	* They're the same if the posterior distribution is symmetric
+
+<!-- TO DO: pix of tail/quantile, HPD intervals -->
 
 * Example, a linear relationship is significant if the credible interval for the slope does not include zero
-
 * A difference between groups is significant if the credible interval for the difference does not include zero
 
 ## Advantages
