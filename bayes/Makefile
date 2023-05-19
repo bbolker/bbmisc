@@ -12,7 +12,7 @@ $(DOCDIR)/README.md: README.md
 	cp $< $(DOCDIR)
 
 
-$(DOCDIR)/%: %
+$(DOCDIR)/%: % bayes.bib
 	mkdir -p $(DOCDIR)
 	mv $< $(DOCDIR)
 
