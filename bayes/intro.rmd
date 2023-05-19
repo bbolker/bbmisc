@@ -143,7 +143,7 @@ The sum of the gray areas $\sum_i \pr(D \cap H_i) = \sum_i \pr(D|H_i) \pr(H_i)$ 
 	* Mean, median or mode (also called MAP/*maximum a posteriori* in Bayesian contexts)
 	* Only median is scale-independent
 	
-```{r pointests, fig.width = 8, fig.height = 4}
+```{r pointests, fig.width = 8, fig.height = 4, echo = FALSE}
 par(las = 1, bty = "l")
 cc <- curve(dlnorm(x, meanlog = 0, sdlog = 1), from = 0.001, to = 8,
             ann = FALSE, axes = FALSE)
