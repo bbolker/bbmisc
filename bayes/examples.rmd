@@ -1,0 +1,44 @@
+---
+title: Examples
+bibliography: bayes.bib
+author: "Ben Bolker"
+---
+
+Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
+
+![](pix/cc-attrib-nc.png)
+
+```{r setup, include=FALSE}
+library(knitr)
+library(pander)
+library(emdbook)
+```
+
+```{r}
+library(MCMCglmm)
+data(Traffic, package = "MASS")
+## help("Traffic", package = "MASS")
+Traffic <- transform(Traffic,
+                     year.f = factor(year))
+m1 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
+         family = "poisson", data = Traffic)
+## MCMCglmm is fussier that glm() - need "poisson" in quotes
+m2 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
+               family = "poisson", data = Traffic,
+               prior = list(R=list(nu=1, V=1),
+                            G=list(G1=list(nu=0.002, V=1))))
+
+library(broom.mixed)
+tidy(m2, conf.int = TRUE)
+```
+
+## References
+
+::: {#refs}
+:::
+
+---
+
+Last updated: `r format(Sys.time(), "%d %B %Y %H:%M")`
+
+

@@ -1,0 +1,100 @@
+---
+title: Examples
+bibliography: bayes.bib
+author: "Ben Bolker"
+---
+
+Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
+
+![](pix/cc-attrib-nc.png)
+
+```{r setup, include=FALSE}
+library(knitr)
+library(pander)
+library(emdbook)
+```
+
+```{r pkgs, message = FALSE}
+library(MCMCglmm)
+library(brms)
+library(lme4)
+library(glmmTMB)
+library(tmbstan)
+library(rstanarm)
+```
+
+```{r}
+data(Traffic, package = "MASS")
+## help("Traffic", package = "MASS")
+Traffic <- transform(Traffic,
+                     year.f = factor(year))
+m1 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
+               family = "poisson", data = Traffic,
+               verbose = FALSE)
+## MCMCglmm is fussier that glm() - need "poisson" in quotes
+```
+
+`units` trace plot in particular is bad:
+```{r}
+plot(m1$VCV[,"units", drop = FALSE])
+```
+(`$Sol` are fixed-effect parameters, `$VCV` are random-effects variance/covariance parameters; they are matrix-like)
+
+
+```{r}
+m2 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
+               family = "poisson", data = Traffic,
+               prior = list(R=list(nu=0.002, V=1),
+                            G=list(G1=list(nu=1, V=1))),
+               verbose = FALSE)
+plot(log(m2$VCV[,"units", drop = FALSE]))
+```
+
+Effective sample sizes are small:
+
+```{r}
+summary(m2)
+```
+
+```{r longfit, cache = TRUE}
+system.time(
+    m3 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
+                   family = "poisson", data = Traffic,
+                   prior = list(R=list(nu=0.002, V=1),
+                                G=list(G1=list(nu=1, V=1))),
+                   nitt = 1e5,
+                   verbose = FALSE)
+)
+plot(log(m3$VCV[,"units", drop = FALSE]))
+coda::effectiveSize(m3$VCV)
+```
+
+See https://xkcd-excuse.com/
+
+```{r cache=TRUE}
+system.time(
+    m4 <- brm(y ~ limit + year.f + (1|day),
+              family = "poisson", data = Traffic)
+)
+```
+
+```{r}
+summary(m4)
+```
+
+```{r}
+library(broom.mixed)
+tidy(m2, conf.int = TRUE)
+```
+
+
+## References
+
+::: {#refs}
+:::
+
+---
+
+Last updated: `r format(Sys.time(), "%d %B %Y %H:%M")`
+
+
