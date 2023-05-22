@@ -23,70 +23,18 @@ library(tmbstan)
 library(rstanarm)
 ```
 
-```{r}
-data(Traffic, package = "MASS")
-## help("Traffic", package = "MASS")
-Traffic <- transform(Traffic,
-                     year.f = factor(year))
-m1 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
-               family = "poisson", data = Traffic,
-               verbose = FALSE)
-## MCMCglmm is fussier that glm() - need "poisson" in quotes
-```
+## brain dump
 
-`units` trace plot in particular is bad:
-```{r}
-plot(m1$VCV[,"units", drop = FALSE])
-```
-(`$Sol` are fixed-effect parameters, `$VCV` are random-effects variance/covariance parameters; they are matrix-like)
+* scale dependence
+* issues with improper priors (scale dependence, identifiability/computational issues)
+* issues with proper uniform priors
+   * Cromwell's rule
+   * 'stacking' problems (wide on logit scale)
+   * problems when informative (posterior squashing)
+* 'stacking' problems (wide priors on logit or log scale)
+* refs: @bannerUse2020; https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations ; @cromeNovel1996; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @ibrahimpower2015; @finkcompendium1997; @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales"); @gelmanPrior2006; @carpenterComputational2017; @inchaustiStatistical2023
 
-
-```{r}
-m2 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
-               family = "poisson", data = Traffic,
-               prior = list(R=list(nu=0.002, V=1),
-                            G=list(G1=list(nu=1, V=1))),
-               verbose = FALSE)
-plot(log(m2$VCV[,"units", drop = FALSE]))
-```
-
-Effective sample sizes are small:
-
-```{r}
-summary(m2)
-```
-
-```{r longfit, cache = TRUE}
-system.time(
-    m3 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
-                   family = "poisson", data = Traffic,
-                   prior = list(R=list(nu=0.002, V=1),
-                                G=list(G1=list(nu=1, V=1))),
-                   nitt = 1e5,
-                   verbose = FALSE)
-)
-plot(log(m3$VCV[,"units", drop = FALSE]))
-coda::effectiveSize(m3$VCV)
-```
-
-See https://xkcd-excuse.com/
-
-```{r cache=TRUE}
-system.time(
-    m4 <- brm(y ~ limit + year.f + (1|day),
-              family = "poisson", data = Traffic)
-)
-```
-
-```{r}
-summary(m4)
-```
-
-```{r}
-library(broom.mixed)
-tidy(m2, conf.int = TRUE)
-```
-
+![](pix/workflow.png)
 
 ## References
 
