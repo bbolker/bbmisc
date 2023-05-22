@@ -1,6 +1,6 @@
 DOCDIR=../docs/bayes
 
-all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html
+all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html $(DOCDIR)/examples.html
 
 ## fix: one specific rule for moving html to $DOCDIR, another more general rule for copying to $DOCDIR
 $(DOCDIR)/bayes.bib: bayes.bib
