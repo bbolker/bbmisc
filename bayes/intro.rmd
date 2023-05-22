@@ -334,6 +334,8 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 	* In particular, you can attach a probability to any combination of the parameters
 	* You can simulate a model forward in time and get credible intervals not only for the parameters, but what you expect to happen
 
+[CRAN Bayesian inference task view](https://cran.r-project.org/web/views/Bayesian.html)
+
 ## References
 
 ::: {#refs}

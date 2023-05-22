@@ -10,27 +10,100 @@ Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no respon
 
 ```{r setup, include=FALSE}
 library(knitr)
+knitr::opts_chunk$set(eval = FALSE)  ## skip eval for now
 library(pander)
 library(emdbook)
 ```
 
-```{r}
-library(MCMCglmm)
-data(Traffic, package = "MASS")
-## help("Traffic", package = "MASS")
-Traffic <- transform(Traffic,
-                     year.f = factor(year))
-m1 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
-         family = "poisson", data = Traffic)
-## MCMCglmm is fussier that glm() - need "poisson" in quotes
-m2 <- MCMCglmm(y ~ limit + year.f, random = ~  day,
-               family = "poisson", data = Traffic,
-               prior = list(R=list(nu=1, V=1),
-                            G=list(G1=list(nu=0.002, V=1))))
+## Simplifed Bayes workflow
 
+1. Decide on model specification; journal it, along with justifications
+2. Decide on priors, including prior predictive simulations
+4. Data exploration (graphical)
+5. Fit model
+6. MCMC diagnostics
+7. Model diagnostics, including comparing posterior predictive sims to data
+8. Interpret/predict/etc.
+
+## Examples
+
+```{r pkgs, message = FALSE}
+library(lme4)
+library(brms)
 library(broom.mixed)
-tidy(m2, conf.int = TRUE)
+library(ggplot2); theme_set(theme_bw())
 ```
+
+We'll fit the model `Reaction ~ Days + (Days|Subject)` (a linear regression + random-slopes model)
+
+\[
+\newcommand{\XX}{\mathbf X}
+\newcommand{\ZZ}{\mathbf Z}
+\newcommand{\bbeta}{\boldsymbol \beta}
+\newcommand{\bb}{\mathbf b}
+\newcommand{\zero}{\boldsymbol 0}
+\begin{split}
+\textrm{Reaction} & \sim \textrm{Normal}(\XX \bbeta + \ZZ \bb, \sigma^2) \\
+\bb & \sim \textrm{MVNorm}(\zero, \Sigma) \\
+\Sigma & = \textrm{block-diag}, \left( 
+\begin{array}{cc}
+\sigma^2_i & \sigma_{is} \\
+\sigma_{is} & \sigma^2_{s}
+\end{array}
+\right)
+\end{split}
+\]
+
+
+```{r}
+form1 <- Reaction ~ Days + (Days|Subject)
+m_lmer <- lmer(form1, sleepstudy)
+```
+
+```{r}
+get_prior(form1, sleepstudy)
+```
+
+```{r}
+b_prior <- c(set_prior("normal(200, 50)", "Intercept"),
+             set_prior("normal(0, 10)", "b")
+             )
+```
+
+```{r}
+options(brms.backend = "cmdstanr")
+pp <- brm(form1, sleepstudy, prior = b_prior, sample_prior = 'only')
+```
+
+```{r}
+pp_df <- sleepstudy |> add_predicted_draws(pp)
+ggplot(pp_df,aes(Days, .prediction)) + geom_hex()
+```
+
+https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7
+
+```{r}
+devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
+b_prior2 <- c(set_prior("normal(200, 10)", "Intercept"),
+              set_prior("normal(0, 5)", "b"),
+              set_prior("student_t(3, 0, 0.1)", "sd")
+             )
+pp2 <- cbrm(Reaction ~ Days + (Days|Subject),
+            data = sleepstudy,
+            prior = b_prior2,
+            sample_prior = 'only',
+            chains = 1,
+            iter = 500,
+            algorithm = "sampling"
+            ## must specify algorithm
+            )
+pp2_df <- sleepstudy |> add_predicted_draws(pp2)
+ggplot(pp2_df,aes(Days, .prediction)) + geom_hex()
+ggplot(pp2_df,aes(Days, .prediction, group=interaction(Subject,.draw))) +
+    geom_line(alpha = 0.1)
+```
+
+Oops ...
 
 ## References
 

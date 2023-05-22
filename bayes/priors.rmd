@@ -15,12 +15,10 @@ library(emdbook)
 ```
 
 ```{r pkgs, message = FALSE}
-library(MCMCglmm)
 library(brms)
 library(lme4)
-library(glmmTMB)
-library(tmbstan)
-library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
 ```
 
 ## brain dump
@@ -33,8 +31,18 @@ library(rstanarm)
    * problems when informative (posterior squashing)
 * 'stacking' problems (wide priors on logit or log scale)
 * refs: @bannerUse2020; https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations ; @cromeNovel1996; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @ibrahimpower2015; @finkcompendium1997; @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales"); @gelmanPrior2006; @carpenterComputational2017; @inchaustiStatistical2023
+* https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
 
 ![](pix/workflow.png)
+
+## baseline prior choices
+
+See [distribution explorer](https://distribution-explorer.github.io) ([backend](https://github.com/distribution-explorer/distribution-explorer.github.io))
+
+- real-valued parameters: regularizing Gaussian
+- variances: half-Student-t on the standard deviation scale *or* log-Normal
+- other positive-valued: Gamma or log-Normal
+- correlation/covariance matrices: [LKJ](https://distribution-explorer.github.io/multivariate_continuous/lkj.html) or "onion" [@lewandowskiGenerating2009a]. $\eta=1$ $\to$ uniform, $\eta>1$ favours a stronger diagonal (smaller correlations)
 
 ## References
 
