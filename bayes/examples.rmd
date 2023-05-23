@@ -10,7 +10,7 @@ Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no respon
 
 ```{r setup, include=FALSE}
 library(knitr)
-knitr::opts_chunk$set(eval = FALSE)  ## skip eval for now
+knitr::opts_chunk$set()
 library(pander)
 library(emdbook)
 ```
@@ -31,6 +31,7 @@ library(emdbook)
 library(lme4)
 library(brms)
 library(broom.mixed)
+library(tidybayes)
 library(ggplot2); theme_set(theme_bw())
 ```
 
@@ -55,55 +56,78 @@ We'll fit the model `Reaction ~ Days + (Days|Subject)` (a linear regression + ra
 \]
 
 
-```{r}
+```{r lmer_fit}
 form1 <- Reaction ~ Days + (Days|Subject)
 m_lmer <- lmer(form1, sleepstudy)
 ```
 
-```{r}
+```{r get_prior}
 get_prior(form1, sleepstudy)
 ```
 
-```{r}
+```{r prior0}
 b_prior <- c(set_prior("normal(200, 50)", "Intercept"),
              set_prior("normal(0, 10)", "b")
              )
 ```
 
-```{r}
+```{r prior1, cache=TRUE}
 options(brms.backend = "cmdstanr")
-pp <- brm(form1, sleepstudy, prior = b_prior, sample_prior = 'only')
+test_prior <- function(p) {
+    b <- brm(form1, sleepstudy, prior = p,
+             sample_prior = 'only',   ## for prior predictive sim
+             chains = 1, iter = 500,  ## very short sample for convenience
+             silent = 2               ## be vewy vewy quiet ...
+             )
+    p_df <- sleepstudy |> add_predicted_draws(b)
+    ## 'spaghetti plot'
+    gg0 <- ggplot(p_df,aes(Days, .prediction, group=interaction(Subject,.draw))) +
+        geom_line(alpha = 0.1)
+    print(gg0)
+    return(b)
+}
+test_prior(b_prior)
 ```
 
-```{r}
-pp_df <- sleepstudy |> add_predicted_draws(pp)
-ggplot(pp_df,aes(Days, .prediction)) + geom_hex()
-```
-
+Info on default priors (Student t with 3 df, mean 0, scale equal to rescaled MAD??)
 https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7
 
-```{r}
-devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
+```{r prior2, cache = TRUE}
+## attempt at caching version, but needs to be updated/hacked to work
+## devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
 b_prior2 <- c(set_prior("normal(200, 10)", "Intercept"),
               set_prior("normal(0, 5)", "b"),
               set_prior("student_t(3, 0, 0.1)", "sd")
              )
-pp2 <- cbrm(Reaction ~ Days + (Days|Subject),
-            data = sleepstudy,
-            prior = b_prior2,
-            sample_prior = 'only',
-            chains = 1,
-            iter = 500,
-            algorithm = "sampling"
-            ## must specify algorithm
-            )
-pp2_df <- sleepstudy |> add_predicted_draws(pp2)
-ggplot(pp2_df,aes(Days, .prediction)) + geom_hex()
-ggplot(pp2_df,aes(Days, .prediction, group=interaction(Subject,.draw))) +
-    geom_line(alpha = 0.1)
+test_prior(b_prior2)
 ```
 
-Oops ...
+```{r prior3, cache = TRUE}
+b_prior3 <- c(set_prior("normal(200, 5)", "Intercept"),
+              set_prior("normal(0, 2)", "b"),
+              set_prior("student_t(3, 0, 0.01)", "sd")
+             )
+test_prior(b_prior3)
+```
+
+```{r prior4, cache = TRUE}
+b_prior4 <- c(set_prior("normal(200, 5)", "Intercept"),
+              set_prior("normal(0, 2)", "b"),
+              set_prior("normal(0, 1)", "sd"),
+              set_prior("normal(0, 1)", "sigma")
+             )
+test_prior(b_prior4)
+```
+
+```{r prior5, cache = TRUE}
+b_prior5 <- c(set_prior("normal(200, 5)", "Intercept"),
+              set_prior("normal(0, 5)", "b"),
+              set_prior("student_t(10, 0, 3)", "sd"),
+              set_prior("student_t(10, 0, 3)", "sigma")
+             )
+test_prior(b_prior5)
+```
+
 
 ## References
 
