@@ -128,14 +128,17 @@ test_prior(b_prior4)
 
 Now relax a bit ...
 
-```{r prior5, cache = TRUE, dependson = "prior1"}
+```{r prior5, cache = TRUE, warning = FALSE, dependson = "prior1"}
 b_prior5 <- c(set_prior("normal(200, 10)", "Intercept"),
-              set_prior("normal(0, 5)", "b"),
+              set_prior("normal(0, 8)", "b"),
               set_prior("student_t(10, 0, 3)", "sd"),
               set_prior("student_t(10, 0, 3)", "sigma")
              )
 test_prior(b_prior5)
 ```
+
+TO DO: fit with default prior, chosen prior, compare with lmer ...
+setting seeds?
 
 ## References
 
