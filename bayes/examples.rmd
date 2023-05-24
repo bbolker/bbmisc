@@ -15,7 +15,7 @@ library(pander)
 library(emdbook)
 ```
 
-## Simplifed Bayes workflow
+# Simplified Bayes workflow
 
 1. Decide on model specification; journal it, along with justifications
 2. Decide on priors, including prior predictive simulations
@@ -25,13 +25,24 @@ library(emdbook)
 7. Model diagnostics, including comparing posterior predictive sims to data
 8. Interpret/predict/etc.
 
-## Examples
+# Examples
+
+## 'sleepstudy' data
+
+From `?lme4::sleepstudy`, "The average reaction time per day (in milliseconds) for subjects in a sleep deprivation study." A standard example for mixed models.
 
 ```{r pkgs, message = FALSE}
 library(lme4)
 library(brms)
+options(mc.cores = min(4, parallel::detectCores()-1))
+if (require("unix")) {
+    rlimit_as(10e9)  ## approx 10 GB?
+}
 library(broom.mixed)
+library(purrr)
+library(dplyr)
 library(tidybayes)
+library(bayesplot)
 library(ggplot2); theme_set(theme_bw())
 ```
 
@@ -55,11 +66,11 @@ We'll fit the model `Reaction ~ Days + (Days|Subject)` (a linear regression + ra
 \end{split}
 \]
 
-
-```{r lmer_fit}
+```{r form1}
 form1 <- Reaction ~ Days + (Days|Subject)
-m_lmer <- lmer(form1, sleepstudy)
 ```
+
+### prior predictive simulation
 
 ```{r get_prior}
 get_prior(form1, sleepstudy)
@@ -77,11 +88,12 @@ test_prior <- function(p) {
     ## https://discourse.mc-stan.org/t/suppress-all-output-from-brms-in-markdown-files/30117/3
     capture.output(
         b <- brm(form1, sleepstudy, prior = p,
-             sample_prior = 'only',   ## for prior predictive sim
-             chains = 1, iter = 500,  ## very short sample for convenience
-             silent = 2, refresh = 0  ## be vewy vewy quiet ...
-            )
-        )
+                 seed = 101,              ## reproducibility
+                 sample_prior = 'only',   ## for prior predictive sim
+                 chains = 1, iter = 500,  ## very short sample for convenience
+                 silent = 2, refresh = 0  ## be vewy vewy quiet ...
+                 )
+    )
     p_df <- sleepstudy |> add_predicted_draws(b)
     ## 'spaghetti plot' of prior preds
     gg0 <- ggplot(p_df,aes(Days, .prediction, group=interaction(Subject,.draw))) +
@@ -137,13 +149,70 @@ b_prior5 <- c(set_prior("normal(200, 10)", "Intercept"),
 test_prior(b_prior5)
 ```
 
+## fitting
+
 TO DO: fit with default prior, chosen prior, compare with lmer ...
 setting seeds?
+
+```{r lmer_fit}
+m_lmer <- lmer(form1, sleepstudy)
+```
+
+```{r brms_fit_reg, eval = FALSE}
+b_reg <- brm(form1, sleepstudy, prior = b_prior5,
+             seed = 101,               ## reproducibility
+             ## handle divergence
+        control = list(adapt_delta = 0.95)
+        )
+b_default <- brm(form1, sleepstudy,
+        seed = 101,              ## reproducibility
+        )
+```
+
+```{r load}
+load("examples1.rda")
+```
+
+## diagnose
+
+```{r traceplot}
+mcmc_trace(b_reg, regex_pars= "b_|sd_")
+```
+
+```{r proc_models}
+res_bayes <- (list(brms_default = b_default, brms_reg = b_reg)
+    |> purrr::map_dfr(~ tidy(., conf.int = TRUE), .id = "model")
+)
+## need to do separately - different conf.method choices
+res_lmer <- (m_lmer
+    |> tidy(conf.int = TRUE, conf.method = "profile")
+    |> mutate(model = "lmer", .before = 1)
+)
+res <- (bind_rows(res_lmer, res_bayes)
+    |> select(-c(std.error, statistic, component, group))
+    |> filter(term != "(Intercept)")
+)
+```
+
+```{r plot_models}
+ggplot(res, aes(estimate, term, colour = model)) +
+    geom_pointrange(aes(xmin = conf.low, xmax = conf.high),
+                    position = position_dodge(width = 0.5))
+
+```
+
+## To do
+
+- what's wrong with `b_prior5`? Looks reasonable, don't understand why the slope would be 
+- why errors when running brms examples via `make`?
+- how to cache results to avoid recompilation? (Can we switch priors without recompiling?)
+- how to avoid memory hit (is it just avoiding rstan backend?)
 
 ## References
 
 ::: {#refs}
 :::
+
 
 ---
 
