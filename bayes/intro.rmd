@@ -228,30 +228,72 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 
 ## Prior distributions
 
-* Typically, start with a prior distribution that has little
-	"information"
-	* Let the data do the work
-
-* This often means a normal (or lognormal, or gamma) with a very large
-	variance
+* Often start with a prior distribution that has little information
+	* Let the data do the work [@edwardsComment1996]
+* This often means a normal (or lognormal, or Gamma) with a very large variance
 	* We can test for sensitivity to this choice
-
-* Can also use a uniform distribution (on log, or linear scale) with
-	 very broad coverage
+* Can also use a very broad uniform distribution (on log, or linear scale)
+    * Common but sub-optimal?
 
 ## Examples
 
 * "Complete ignorance" can be harder to specify than you think
+* Linear vs. log scale: do we expect the probability of being between 10 and 11 grams to be equ
+  * = Prob(between 100 and 101 grams) **or**
+  * between 100 and 110 grams??
+* Linear vs. inverse scale: if we are waiting for things to happen, do we pick our prior on the time scale (number of minutes per bus) or the rate scale (number of buses per minute)?
 
-	* Linear vs. log scale: do we expect the probability of being
-	     between 10 and 11 grams to be the same as the prob. of being
-	     between 100 and 101 grams, or the same as the prob. of being
-	     between 100 and 110 grams??
+```{r contprior, echo = FALSE, fig.cap = "@bolkerEcological2008a Fig 4.4: The difficulty of defining an uninformative prior on continuous scales.  If we assume that the probabilities are uniform on one scale (linear or logarithmic), they must be non-uniform on the other."}
+minx <- 10
+maxx <- 100
+dx <- maxx-minx
+dlx <- log(maxx/minx)
+dlx10 <- log10(maxx/minx)
+xlim <- c(0,110)
+Lxlim <- c(9,110)
+op <- par(cex=2,las=1,bty="l",lwd=2,mfrow=c(1,2),
+          mar=c(5,4,3,0.5)+0.1,yaxs="i")
+curve(ifelse(x>minx & x<maxx,1/dx,0),from=xlim[1],to=xlim[2],
+      xlab="Mass",ylab="Probability density",ylim=c(0,0.04),main="linear scale",type="s",
+      cex.main=1.5,xlim=c(0,100),n=400,axes=FALSE)
+axis(side=1,at=c(10,100))
+axis(side=2,at=c(0,0.02,0.04))
+box()
+curve(ifelse(x>minx & x<maxx,1/x*1/dlx,0),from=xlim[1],to=xlim[2],
+      lty=2,n=400,add=TRUE)
+legend("topright",c("uniform","log-uniform"),lty=1:2)
+curve(ifelse(x>log(minx) & x<log(maxx),1/dlx,0),
+      from=log(Lxlim[1]),to=log(Lxlim[2]),
+            ylim=c(0,1.2),
+      xlab="Log mass",ylab="",axes=FALSE,lty=2,main="log scale",type="s",
+      cex.main=1.5,n=400)
+curve(ifelse(x>log(minx) & x<log(maxx),exp(x)/dx,0),from=log(Lxlim[1]),to=log(Lxlim[2]),
+      add=TRUE,n=400)
+axis(side=1,
+     at=log(c(10,100)),
+     labels = paste("log(",c(10,100),")",sep=""))
+axis(side=2,at=c(0,0.5,1))
+box()
+par(op)
+```
 
-	* Linear vs. inverse scale: if we are waiting for things to happen, do we pick our prior on the time scale (number of minutes per bus) or the rate scale (number of buses per minute)?
+* Discrete hypotheses: subdivision (nest predation example: do we consider species separately, or grouped by higher-level taxon?)
 
-	* Discrete hypotheses: subdivision (nest predation example: do we
-	     consider species separately, or grouped by higher-level taxon?)
+
+```{r discprior, echo = FALSE, fig.cap = "@bolkerEcological2008a Fig 4.3: The difficulty of defining an uninformative prior for discrete hypotheses. Dark gray bars are priors that assume predation by each species is equally likely; light gray bars divide predation by group first, then by species within group."}
+op <- par(cex=1.5,las=1,bty="l",lwd=2,yaxs="i")
+gcols <- gray(c(0.2,0.8))
+b1 <- barplot(t(matrix(c(1/3,1/3,1/3,1/4,1/4,1/2),ncol=2)),beside=TRUE,
+              xlab="Predator",ylab="Probability",space=c(0.2,2),
+              col=gcols,yaxs="i")
+axis(side=1,at=colMeans(b1),c("raccoon","squirrel","snake"))
+segments(b1[1,1],0.4,b1[2,2],0.4)
+text((b1[1,1]+b1[2,2])/2,0.45,"mammalian")
+par(xpd=NA)
+legend(2,0.57,c("by species","by group"),
+       ncol=2,fill=gcols,bty="n")
+par(op)
+```
 
 ## Improper priors
 
@@ -263,8 +305,7 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 
 ## Statistical models
 
-* A statistical model allows us to calculate the *likelihood* of the
-	data based on parameters
+* A statistical model allows us to calculate the *likelihood* of the data based on parameters
 	* Relationships between quantities, e.g.:
 	* X is linearly related to Y
 	* The variance of X is linearly related to Z
@@ -276,12 +317,8 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 ## Assumptions
 
 * We need enough assumptions to actually calculate the "likelihood" of our data given parameters
-
-* To make a probability model we need prior distributions for all of
-	the parameters we wish to estimate
-* We then need to make explicit assumptions about how our data are
-	generated, and calculate a likelihood for the data corresponding to
-	any set of parameters
+* To make a probability model we need prior distributions for all of the parameters we wish to estimate
+* We then need to make explicit assumptions about how our data are generated, and calculate a likelihood for the data corresponding to any set of parameters
 
 ## A simple example
 
@@ -295,36 +332,33 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 ## What about hard problems?
 
 * Bayesian methods are very flexible
-
 * We can write down reasonable priors, and likelihoods, to cover a
 	wide variety of assumptions and situations
-
-* Unfortunately, we usually can't *integrate* -- calculate the
-	denominator of Bayes' formula
-
-* Instead we use *Markov chain Monte Carlo* methods to sample randomly
-	from the posterior distribution
-
-	* Simple to do, but hard to know how long you have to simulate to
-	 get a good sample of the posterior distribution
+* Unfortunately, we usually can't *integrate* -- calculate the 	denominator of Bayes' formula
+* Instead we use *Markov chain Monte Carlo* methods to sample randomly from the posterior distribution
+   * Simple to do, but takes a long time and hard to know for sure that it's working
 
 ## MCMC sampling
 
-* Rules that assure that we will visit each point in parameter space
-	 in proportion to its likelihood ... eventually
-
+* Rules that assure that we will visit each point in parameter space in proportion to its likelihood ... eventually
+    * Metropolis-Hastings (jumping)
+	* Gibbs sampling (sample one parameter, or sets of parameters, at a time)
+	* Hamiltonian Monte Carlo ('shoot' along trajectories)
+* Efficient sampling moves 'the right amount' per step to cover the likely space
 * Checking convergence:
+    * Are your steps behaving sensibly? ("Divergences": HMC-specific)
+	* Are your parameters bouncing back and forth rather than going somewhere? (trace plot)
+	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge? (R-hat statistic)
+	* Are you sampling enough (effective sample size)?
 
-	* Look at your parameter estimates: do they seem to have settled to bouncing back and forth) rather than going somewhere?
-
-	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge?
+![](pix/parlett.png)
 
 ## Packages
 
-* There is a lot of software, including R packages, that will do MCMC
-	sampling for you
-
-* We will give you examples
+* There is a lot of software, including R packages, that will do MCMC sampling for you
+* GLMM-like: `brms`, `rstanarm`, `MCMCglmm`, `INLA`
+* various statistical models: `MCMCpack`
+* build-your-own: JAGS (wrapped by `rjags`/`r2jags`), [Stan](https://mc-stan.org/) (wrapped by [rethinking](https://github.com/rmcelreath/rethinking)), [greta](https://greta-stats.org/), [TMB](https://kaskr.github.io/adcomp/_book/Introduction.html) (`TMB`/`tmbstan`), [NIMBLE](https://r-nimble.org/)
 
 # Sampling from the posterior
 

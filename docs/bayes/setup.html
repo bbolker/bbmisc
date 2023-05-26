@@ -359,12 +359,18 @@ pre code {
 </div>
 
 
-<p>From <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>:</p>
+<ol start="0" style="list-style-type: decimal">
+<li>If you don’t have ‘development tools’ (compilers etc.) installed, do that first. You can try the instructions <a href="https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain">here</a> or <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain">here</a></li>
+<li>Install <code>rstan</code> (<code>install.packages(&quot;rstan&quot;)</code>)</li>
+<li>Install <code>cmdstanr</code> From <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>:</li>
+</ol>
 <pre class="r"><code>if (!require(&quot;cmdstanr&quot;)) {
     install.packages(&quot;cmdstanr&quot;, repos = c(&quot;https://mc-stan.org/r-packages/&quot;, getOption(&quot;repos&quot;)))
 }
 check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
-<p>Installing the <code>cmdstan</code> tool chain: see <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain">here</a></p>
+<ol start="3" style="list-style-type: decimal">
+<li>Install other packages</li>
+</ol>
 <pre class="r"><code>pkgs &lt;- c(&quot;lme4&quot;, &quot;brms&quot;, &quot;broom.mixed&quot;, &quot;dplyr&quot;, &quot;purrr&quot;, &quot;tidybayes&quot;, &quot;bayesplot&quot;, &quot;ggplot2&quot;, &quot;posterior&quot;)
 ip &lt;- installed.packages()
 pkgs &lt;- setdiff(pkgs, rownames(ip))
