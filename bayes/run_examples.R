@@ -29,6 +29,11 @@ b_prior5 <- c(set_prior("normal(200, 10)", "Intercept"),
               set_prior("student_t(10, 0, 3)", "sigma")
              )
 
+b_prior6 <- c(set_prior("normal(0, 20)", "b"),
+              set_prior("student_t(10, 0, 3)", "sd"),
+              set_prior("student_t(10, 0, 3)", "sigma")
+              )
+
 ## ----lmer_fit-----------------------------------------------------------------
 m_lmer <- lmer(form1, sleepstudy)
 
@@ -44,6 +49,16 @@ b_reg <-
         )
 
 
+b_reg2 <- 
+    brm(form1, sleepstudy, prior = b_prior6,
+        seed = 101,               ## reproducibility
+        ## silent = 2, refresh = 0,  ## be vewy vewy quiet ...
+        ## handle divergence
+        ## (currently makes memory use balloon ...)
+        control = list(adapt_delta = 0.95)
+        )
+
+
 ## ----brms_fit_default, cache = TRUE-------------------------------------------
 b_default <-
     brm(form1, sleepstudy,
@@ -51,6 +66,6 @@ b_default <-
         ## silent = 2, refresh = 0  ## be vewy vewy quiet ...
         )
 
-save(list=c("b_reg", "b_default", "m_lmer"),
+save(list=c("b_reg", "b_reg2", "b_default", "m_lmer"),
      file = "examples1.rda")
 

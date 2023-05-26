@@ -302,6 +302,12 @@ par(op)
 	* This is conceptually cool, and _usually_ works out fine
 	* Must be able to guarantee that the _posterior_ distribution exists
 	* Also need to choose a scale for your uniform prior
+	
+## Checking priors
+
+* **prior predictive simulation**
+* pick parameters from the prior distribution, simulate data, summarize/plot
+* adjust parameters to allow all *reasonable* outcomes, eliminate ridiculous outcomes
 
 ## Statistical models
 
@@ -345,11 +351,14 @@ par(op)
 	* Gibbs sampling (sample one parameter, or sets of parameters, at a time)
 	* Hamiltonian Monte Carlo ('shoot' along trajectories)
 * Efficient sampling moves 'the right amount' per step to cover the likely space
-* Checking convergence:
+* Checking results
     * Are your steps behaving sensibly? ("Divergences": HMC-specific)
 	* Are your parameters bouncing back and forth rather than going somewhere? (trace plot)
 	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge? (R-hat statistic)
 	* Are you sampling enough (effective sample size)?
+* Checking model fit
+    * **posterior** predictive simulation
+	* sample from posterior, simulate, summarize; are important patterns in the data captured by the results?
 
 ![](pix/parlett.png)
 
