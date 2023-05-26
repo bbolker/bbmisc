@@ -362,19 +362,10 @@ pre code {
 <p>From <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>:</p>
 <pre class="r"><code>if (!require(&quot;cmdstanr&quot;)) {
     install.packages(&quot;cmdstanr&quot;, repos = c(&quot;https://mc-stan.org/r-packages/&quot;, getOption(&quot;repos&quot;)))
-}</code></pre>
-<pre><code>## Loading required package: cmdstanr</code></pre>
-<pre><code>## This is cmdstanr version 0.5.3</code></pre>
-<pre><code>## - CmdStanR documentation and vignettes: mc-stan.org/cmdstanr</code></pre>
-<pre><code>## - CmdStan path: /home/bolker/.cmdstan/cmdstan-2.32.2</code></pre>
-<pre><code>## - CmdStan version: 2.32.2</code></pre>
-<pre class="r"><code>check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
-<p>Installing the <code>cmdstan</code> tool chain: see <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain">here</a> library(posterior)</p>
-<pre><code>https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain
-
-
-```r
-pkgs &lt;- c(&quot;lme4&quot;, &quot;brms&quot;, &quot;broom.mixed&quot;, &quot;dplyr&quot;, &quot;purrr&quot;, &quot;tidybayes&quot;, &quot;bayesplot&quot;, &quot;ggplot2&quot;, &quot;posterior&quot;)
+}
+check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
+<p>Installing the <code>cmdstan</code> tool chain: see <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain">here</a></p>
+<pre class="r"><code>pkgs &lt;- c(&quot;lme4&quot;, &quot;brms&quot;, &quot;broom.mixed&quot;, &quot;dplyr&quot;, &quot;purrr&quot;, &quot;tidybayes&quot;, &quot;bayesplot&quot;, &quot;ggplot2&quot;, &quot;posterior&quot;)
 ip &lt;- installed.packages()
 pkgs &lt;- setdiff(pkgs, rownames(ip))
 if (length(pkgs)&gt;0) install.packages(pkgs)</code></pre>

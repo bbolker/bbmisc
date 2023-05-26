@@ -4,7 +4,7 @@ title: "package setup"
 
 From  https://mc-stan.org/cmdstanr/articles/cmdstanr.html:
 
-```{r}
+```{r cmdstanr, message = FALSE}
 if (!require("cmdstanr")) {
     install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 }
@@ -12,11 +12,9 @@ check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
 ```
 
 Installing the `cmdstan` tool chain: see [here](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain)
-library(posterior)
-```
-https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain
 
-```{r}
+
+```{r other_pkgs, message = FALSE}
 pkgs <- c("lme4", "brms", "broom.mixed", "dplyr", "purrr", "tidybayes", "bayesplot", "ggplot2", "posterior")
 ip <- installed.packages()
 pkgs <- setdiff(pkgs, rownames(ip))
