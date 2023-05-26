@@ -1,6 +1,6 @@
 DOCDIR=../docs/bayes
 
-all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html $(DOCDIR)/examples.html
+all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html $(DOCDIR)/examples.html $(DOCDIR)/setup.html
 
 ## bizarrely, examples.rmd fails when run via 'make'
 ##   but NOT when run via Rscript -e ... from the command line???
@@ -16,18 +16,18 @@ $(DOCDIR)/README.md: README.md
 	mkdir -p $(DOCDIR)
 	cp $< $(DOCDIR)
 
-
 $(DOCDIR)/%: % bayes.bib
 	mkdir -p $(DOCDIR)
 	mv $< $(DOCDIR)
 
-examples.html: examples.rmd examples1.rda
+## also depend on examples1.rda (beyond default)
+$(DOCDIR)/examples.html: examples.rmd examples1.rda
 	Rscript  -e "rmarkdown::render('examples.rmd')"
 
 examples1.rda: run_examples.R
 	R CMD BATCH --vanilla examples1.rda
 
 %.html: %.rmd
-
+	Rscript  -e "rmarkdown::render('$<')"
 
 

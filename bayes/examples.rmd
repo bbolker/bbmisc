@@ -175,6 +175,10 @@ load("examples1.rda")
 
 ## diagnose
 
+```{r summary}
+summary(b_reg)
+```
+
 ```{r traceplot}
 mcmc_trace(b_reg, regex_pars= "b_|sd_")
 ```
