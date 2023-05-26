@@ -6,6 +6,9 @@ author: "Ben Bolker"
 
 Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
 
+<!-- trouble controlling width of get_prior chunk ... ???
+<!-- https://stackoverflow.com/questions/36845178/width-of-r-code-chunk-output-in-rmarkdown-files-knitr-ed-to-html/ -->
+
 ![](pix/cc-attrib-nc.png)
 
 ```{r setup, include=FALSE}
@@ -34,16 +37,20 @@ From `?lme4::sleepstudy`, "The average reaction time per day (in milliseconds) f
 ```{r pkgs, message = FALSE}
 library(lme4)
 library(brms)
-options(mc.cores = min(4, parallel::detectCores()-1))
-if (require("unix")) {
-    rlimit_as(10e9)  ## approx 10 GB?
-}
 library(broom.mixed)
 library(purrr)
 library(dplyr)
 library(tidybayes)
 library(bayesplot)
 library(ggplot2); theme_set(theme_bw())
+```
+
+```{r limits, include = FALSE}
+## hacks to avoid crashes etc. on BMB's machine
+options(mc.cores = min(4, parallel::detectCores()-1))
+if (require("unix")) {
+    rlimit_as(10e9)  ## approx 10 GB?
+}
 ```
 
 We'll fit the model `Reaction ~ Days + (Days|Subject)` (a linear regression + random-slopes model)
@@ -72,15 +79,24 @@ form1 <- Reaction ~ Days + (Days|Subject)
 
 ### prior predictive simulation
 
-```{r get_prior}
+`brms` has a convenience function `get_prior()` that lays out the parameters/priors that need to be set,
+and their default values ...
+
+```{r get_prior, R.options = list(width = 10000)}
 get_prior(form1, sleepstudy)
 ```
+
+[Info on brms default priors](https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7): half-Student $t$ with 3 df, mean 0, SD equal to (rescaled) MAD
+
+Constraining intercept and slope to 'reasonable' values:
 
 ```{r prior0}
 b_prior <- c(set_prior("normal(200, 50)", "Intercept"),
              set_prior("normal(0, 10)", "b")
              )
 ```
+
+Helper function for prior predictive simulations: run a short MCMC chain, plot results. (We're going to **ignore/suppress warnings** for this stage ...)
 
 ```{r prior1, cache = TRUE}
 options(brms.backend = "cmdstanr")
@@ -104,18 +120,21 @@ test_prior <- function(p) {
 test_prior(b_prior)
 ```
 
-Info on default priors (Student t with 3 df, mean 0, scale equal to rescaled MAD??)
-https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7
+<!-- ## attempt at caching version, but needs to be updated/hacked to work
+ devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
+ -->
 
-```{r prior2, cache = TRUE, dependson = "prior1"}
-## attempt at caching version, but needs to be updated/hacked to work
-## devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
+Decrease random-effects SDs:
+
+```{r prior2, cache = TRUE, warning = FALSE, dependson = "prior1"}
 b_prior2 <- c(set_prior("normal(200, 10)", "Intercept"),
               set_prior("normal(0, 5)", "b"),
               set_prior("student_t(3, 0, 0.1)", "sd")
-             )
+              )
 test_prior(b_prior2)
 ```
+
+(??why is this not noisy due to large `sigma`??)
 
 Make all scales even smaller?
 
@@ -149,10 +168,17 @@ b_prior5 <- c(set_prior("normal(200, 10)", "Intercept"),
 test_prior(b_prior5)
 ```
 
-## fitting
+In hindsight, should relax more.  Set intercept back to default value, widen fixed-effect (slope) prior
 
-TO DO: fit with default prior, chosen prior, compare with lmer ...
-setting seeds?
+```{r prior6, cache = TRUE, warning = FALSE, dependson = "prior1"}
+b_prior6 <- c(set_prior("normal(0, 20)", "b"),
+              set_prior("student_t(10, 0, 3)", "sd"),
+              set_prior("student_t(10, 0, 3)", "sigma")
+             )
+test_prior(b_prior6)
+```
+
+## fitting
 
 ```{r lmer_fit}
 m_lmer <- lmer(form1, sleepstudy)
@@ -179,12 +205,16 @@ load("examples1.rda")
 summary(b_reg)
 ```
 
+Rhat, ESS look OK
+
+`regex_pars` specifies a **regular expression** for deciding which parameters to show
+
 ```{r traceplot}
 mcmc_trace(b_reg, regex_pars= "b_|sd_")
 ```
 
 ```{r proc_models}
-res_bayes <- (list(brms_default = b_default, brms_reg = b_reg)
+res_bayes <- (list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
     |> purrr::map_dfr(~ tidy(., conf.int = TRUE), .id = "model")
 )
 ## need to do separately - different conf.method choices
@@ -195,15 +225,21 @@ res_lmer <- (m_lmer
 res <- (bind_rows(res_lmer, res_bayes)
     |> select(-c(std.error, statistic, component, group))
     |> filter(term != "(Intercept)")
+    |> mutate(facet = ifelse(grepl("^cor", term), "cor",
+                      ifelse(grepl("Days", term), "Days",
+                             "int")))
 )
 ```
 
 ```{r plot_models}
-ggplot(res, aes(estimate, term, colour = model)) +
+ggplot(res, aes(estimate, term, colour = model, shape = model)) +
     geom_pointrange(aes(xmin = conf.low, xmax = conf.high),
-                    position = position_dodge(width = 0.5))
-
+                    position = position_dodge(width = 0.5)) +
+    facet_wrap(~ facet, scale = "free",ncol = 1) +
+    guides(colour = guide_legend(reverse=TRUE),
+           shape = guide_legend(reverse=TRUE))
 ```
+
 
 ## To do
 

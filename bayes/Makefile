@@ -25,9 +25,10 @@ $(DOCDIR)/examples.html: examples.rmd examples1.rda
 	Rscript  -e "rmarkdown::render('examples.rmd')"
 
 examples1.rda: run_examples.R
-	R CMD BATCH --vanilla examples1.rda
+	R CMD BATCH --vanilla run_examples.R
 
 %.html: %.rmd
 	Rscript  -e "rmarkdown::render('$<')"
 
+## moving examples.html to docs/ not working ...
 
