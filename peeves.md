@@ -57,11 +57,11 @@ A similar example from evolutionary biology: "species X has larger female-biased
 
 Always spell-check. Spell-checking won't catch everything, and you may have to skip over a lot of technical vocabulary that's not in the dictionary, but there's no excuse for not doing it.
 
-Everyone overuses their favorite kinds of punctuation or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary.)
+Everyone overuses their favorite kinds of punctuation or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary.)[^4]
 
 If you are using [BibTeX](http://www.bibtex.org/), check for capitalization! Most journal styles automatically set titles in all lower-case, so you have to protect any words that should be Capitalized or CAPITALIZED with curly brackets {} (some reference managers automatically {protect} {every} {word} {in} {the} {title}, but I prefer that only necessary words are protected).
 
-You should have read, or at least looked at, every reference that you cite. Thanks to the internet it is now plausible that you found a copy of Laplace's "Recherches sur le calcul intégral aux différences infiniment petites, et aux différences finies" (1771) online and read it in the original French[^4], but I will definitely challenge you about it during your committee meeting or thesis defence. If you read something in translation, you should cite the translation/translator; if you feel it's important to cite work that's cited in another work (because it is historically important or foundational), state that explicitly (e.g. "Laplace *Recherches sur le calcul ...* [1771], cited in Schmoo et al [2015]").
+You should have read, or at least looked at, every reference that you cite. Thanks to the internet it is now plausible that you found a copy of Laplace's "Recherches sur le calcul intégral aux différences infiniment petites, et aux différences finies" (1771) online and read it in the original French[^5], but I will definitely challenge you about it during your committee meeting or thesis defence. If you read something in translation, you should cite the translation/translator; if you feel it's important to cite work that's cited in another work (because it is historically important or foundational), state that explicitly (e.g. "Laplace *Recherches sur le calcul ...* [1771], cited in Schmoo et al [2015]").
 I prefer author-date style citation. It is less compact than using numbered references, but it immediately lets readers who are familiar with the literature in your field know what study you're citing, without having to skip to the reference section.
 
 Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/) because it is free, powerful, and convenient, but you can use anything that works for you and your co-authors. Using a citation manager means you can keep track of everything you've read whether or not you use it in your paper; any modern citation manager + document preparation system will make the process of switching reference formats nearly painless.
@@ -101,13 +101,15 @@ Last updated 2023-05-27
 
 --- 
 
-[^1]: I've titled the document "peeves" in recognition of the fact that opinions about language and writing are necessarily subjective; the linguists at Language Log, who are also referred to elsewhere in this document, call *prescriptivist* opinions about language ["peeves"](https://languagelog.ldc.upenn.edu/nll/?p=3144)]
+[^1]: I've titled the document "peeves" in recognition of the fact that opinions about language and writing are necessarily subjective; the linguists at Language Log, who are also referred to elsewhere in this document, call [prescriptivist](https://dictionary.cambridge.org/dictionary/english/prescriptivist) opinions about language ["peeves"](https://languagelog.ldc.upenn.edu/nll/?p=3144)
 
 [^2]: My mother, Joan Bolker, wrote a book on [*Writing Your Dissertation in Fifteen Minutes a Day*](https://www.amazon.ca/Writing-Your-Dissertation-Fifteen-Minutes/dp/080504891X), edited an anthology of essays about writing called [*The Writer's Home Companion*](https://www.amazon.ca/Writers-Home-Companion-Anthology-Writing/dp/0805048936), and gave advice for medical researchers and writers in [*Writing Medicine*](https://www.lulu.com/en/ca/shop/joan-bolker/writing-medicine/paperback/product-1jz9mq6d.html?page=1&pageSize=4). All are highly recommended, but they focus on the *process* of writing rather than on mechanics like word choice and structure.)
 
 [^3]: This advice contradicts the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.) Or: "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)" [Whitman, *Song of Myself*](https://poets.org/poem/song-myself-51)
 
-[^4]: published in 1776,
+[^4]: I also like footnotes, but they're rarely used, and rarely a good idea, in scientific writing. (They're common in the humanties.)
+
+[^5]: published in 1776,
 
 
 
