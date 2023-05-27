@@ -2,7 +2,7 @@
 title: "BMB peeves"
 ---
 
-Here are some of  my opinions about writing.^[1]
+Here are some of  my opinions about writing.[^1]
 
 ## general points
 

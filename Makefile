@@ -67,3 +67,6 @@ makestuff/Makefile:
 -include makestuff/visual.mk
 -include makestuff/projdir.mk
 
+peeves:
+	Rscript -e 'rmarkdown::render("peeves.md")'
+	mv peeves.html docs/
