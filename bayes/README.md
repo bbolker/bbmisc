@@ -6,5 +6,5 @@
 * 2 June: priors and troubleshooting
 
 * [priors brain dump](priors.html)
-* [examples (stub)](examples.html)
+* [examples](examples.html)
 * [bibliography](bayes.bib) (BibTeX)

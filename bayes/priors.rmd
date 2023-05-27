@@ -30,7 +30,7 @@ library(tidybayes)
    * 'stacking' problems (wide on logit scale)
    * problems when informative (posterior squashing)
 * 'stacking' problems (wide priors on logit or log scale)
-* refs: @bannerUse2020; https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations ; @cromeNovel1996; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @ibrahimpower2015; @finkcompendium1997; @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales"); @gelmanPrior2006; @carpenterComputational2017; @inchaustiStatistical2023
+* refs: @bannerUse2020; https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations ; @cromeNovel1996; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @ibrahimpower2015; @finkcompendium1997; @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales"); @gelmanPrior2006; @carpenterComputational2017; @inchaustiStatistical2023; @sarmaPrior2020
 * https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
 
 ![](pix/workflow.png)

@@ -6,9 +6,6 @@ author: "Ben Bolker"
 
 Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
 
-<!-- trouble controlling width of get_prior chunk ... ???
-<!-- https://stackoverflow.com/questions/36845178/width-of-r-code-chunk-output-in-rmarkdown-files-knitr-ed-to-html/ -->
-
 ![](pix/cc-attrib-nc.png)
 
 ```{r setup, include=FALSE}
@@ -37,12 +34,18 @@ From `?lme4::sleepstudy`, "The average reaction time per day (in milliseconds) f
 ```{r pkgs, message = FALSE}
 library(lme4)
 library(brms)
+options(brms.backend = "cmdstanr")
 library(broom.mixed)
 library(purrr)
 library(dplyr)
 library(tidybayes)
 library(bayesplot)
 library(ggplot2); theme_set(theme_bw())
+```
+
+```{r test_stan}
+ss <- cmdstanr:::get_cmdstan_flags("STANCFLAGS")
+cat(ss, "\n")
 ```
 
 ```{r limits, include = FALSE}
@@ -99,7 +102,6 @@ b_prior <- c(set_prior("normal(200, 50)", "Intercept"),
 Helper function for prior predictive simulations: run a short MCMC chain, plot results. (We're going to **ignore/suppress warnings** for this stage ...)
 
 ```{r prior1, cache = TRUE}
-options(brms.backend = "cmdstanr")
 test_prior <- function(p) {
     ## https://discourse.mc-stan.org/t/suppress-all-output-from-brms-in-markdown-files/30117/3
     capture.output(
@@ -243,10 +245,8 @@ ggplot(res, aes(estimate, term, colour = model, shape = model)) +
 
 ## To do
 
-- what's wrong with `b_prior5`? Looks reasonable, don't understand why the slope would be 
-- why errors when running brms examples via `make`?
+- what's wrong with `b_prior5`? Looks reasonable, don't understand why the slope would be weird ...
 - how to cache results to avoid recompilation? (Can we switch priors without recompiling?)
-- how to avoid memory hit (is it just avoiding rstan backend?)
 
 ## References
 
