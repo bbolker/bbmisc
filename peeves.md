@@ -10,7 +10,7 @@ Write plainly and straightforwardly, using concrete words whenever you can. From
 
 > Ramsay always insisted that there was nothing that could not be expressed in the Plain Style if you knew what you were talking about. Everything else was Baroque Style, which he said was not for most people, or Jargon, which was the Devil's work.
 
-I don't have a favorite book on writing. I grew up with Strunk and White's [*Elements of Style*](https://en.wikipedia.org/wiki/The_Elements_of_Style). Although their grammar advice is routinely (and justifiably) ridiculed by the linguists at [Language Log](https://languagelog.ldc.upenn.edu/nll/?p=15509), their stylistic advice is a good starting point &mdash; not *always* to be followed, but worth keeping in mind. I also like Orwell's [Politics and the English Language](https://www.orwellfoundation.com/the-orwell-foundation/orwell/essays-and-other-works/politics-and-the-english-language/) &mdash; also [denigrated by Language Log](https://languagelog.ldc.upenn.edu/nll/?p=992), also not to be taken as gospel, but a useful and enjoyable read.[^2]
+I don't have a favorite book on writing. I grew up with Strunk and White's [*Elements of Style*](https://en.wikipedia.org/wiki/The_Elements_of_Style). Although their grammar advice is routinely (and justifiably) ridiculed by the linguists at [Language Log](https://languagelog.ldc.upenn.edu/nll/?p=15509), their stylistic advice is a good starting point &mdash; not *always* to be followed, but worth keeping in mind. I also like Orwell's [Politics and the English Language](https://www.orwellfoundation.com/the-orwell-foundation/orwell/essays-and-other-works/politics-and-the-english-language/) &mdash; also [denigrated by Language Log](https://languagelog.ldc.upenn.edu/nll/?p=992), also not to be taken as gospel, but a useful and enjoyable read.
 
 Prefer the active to the passive voice, and language that attributes agency to vague language. (You might prefer to use the passive voice in a methods section, because you may want to write in a way that downplays *who* followed the procedures; I still prefer the active voice here.) For example, replace "It has been observed that ducks like water (Schmoo et al 2015)" with "Schmoo et al (2015) observed that ducks like water" (but [see below](#ref2))."
 
@@ -78,14 +78,13 @@ Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/)
 - avoid contractions ("don't", "won't") in formal writing. 
 - "creatures": this word connotes things that were created, which you might want to avoid in scientific writing. Just use "organisms" (or something general enough for your taxon of choice)
 - "unique", "complex", "dynamic", "nonlinear": are you using those words to denote something specific, or are you arm-waving about how cool and interesting your subject is?
-- "are likely to be"/"are probably" can often be replaced by "may be"
- - the verb "to be" can often be replaced by a more specific and active construction. 
+ - the verb "to be" can often be replaced by a more specific and active construction. "There are ..." should usually be replaced by a more specific transition (why are you giving the reader this piece of information?)
  
 ## Organization
 
 * I often write the introduction last, and almost always write the abstract last.
-* I hate writing formal outlines, but it works for  some people. It sometimes works for me to write a first draft and *then* write an outline by reducing the draft I wrote to a skeleton of bullet points, rearranging the information I put in the first draft into a better order.
-* If you find yourself using vague connectors like "furthermore" or "in terms of", or if the topic sentences of your paragraphs are vague, you may need to think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
+* I hate writing formal outlines, but it works for  some people. I sometimes write a first draft and *then* write an outline by reducing the draft I wrote to a skeleton of bullet points, rearranging the information I put in the first draft into a better order.
+* If you find yourself using vague connectors like "furthermore", "additionally", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
 * If each section in a literature review covers a single reference source you may need to synthesize more, with each section covering several related references that cover the same topic. Otherwise your paper may be repetitive (because multiple references are likely to cover similar topics) and feel list-y.
 
 ## Caveat
@@ -98,7 +97,7 @@ I'm sure that I have violated some of my own rules while writing this document.
 
 ---
 
-Last updated 2022-05-30
+Last updated 2023-05-27
 
 --- 
 
