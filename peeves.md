@@ -4,7 +4,7 @@ title: "BMB peeves"
 
 Here are some of  my opinions about writing.[^1]
 
-## general points
+## General points
 
 Write plainly and straightforwardly, using concrete words whenever you can. From Robertson Davies' novel *The Manticore* (1972):
 
@@ -18,7 +18,7 @@ Using the first-person singular in scientific writing is controversial, but you 
 
 Scientific readers are generally more interested in the current state of the field than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's generally better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^2]
 
-If you are referring to a fact that you observed or a conclusion you reached, it should be clear to your audience that statements in your paper represent your opinions &mdash; unless you give a reference, in which case it's clear that you're stating the conclusions of those authors. So you should say "Ducks like water" rather than "We observed/concluded that ducks like water"; your readers will know that this statement is based on your observations and logic.[^3].
+When referring to observations or conclusions based on your own work described in the paper, you should say "Ducks like water" rather than "We observed (concluded that, found that, etc.) ducks like water"; it's more succinct, and your readers will be able to infer that such statements are based on your observations and/or logic.[^3].
 
 Don’t introduce your paper by saying that many people have long been interested in the topic: "your paper should introduce the biological topic and explain why it’s interesting and important, not say that other people think the topic is interesting and important" ([Jeremy Fox](https://dynamicecology.wordpress.com/2015/04/20/dont-introduce-your-paper-by-talking-about-how-lots-of-people-are-interested-in-the-topic/)).
 
@@ -33,15 +33,15 @@ Reading your own prose out loud is a good way to proofread and find awkward phra
 ## More advice
 
 * Phrase statements positively rather than negatively: "ducks are likely to be larger in the tropics" rather than "ducks are unlikely to be smaller in the tropics", or "our attempt to catch ducks failed" rather than "our attempt to catch ducks did not succeed". (Orwell specifically recommends avoiding the "not un-" construction.)
-* I was brainwashed in high school that "this" should never be used without an antecedent ("Ducks are bigger in the tropics. This means that ...") "This" what? Although I don't believe it's a hard-and-fast rule, include an antecedent whenever you can ("This enlargement means that ..."); it will make your writing stronger and more specific.
+* I had it beaten into me in high school that "this" should never be used without an antecedent ("Ducks are bigger in the tropics. This means that ...") "This" what? Although I no longer believe it's a hard-and-fast rule, include an antecedent whenever you can ("This enlargement means that ..."); it will make your writing clearer.
 * Avoid redundancy, particularly when hedging. Instead of saying "in most cases, ducks tend to be larger" say *either* "in most cases, ducks are larger" *or* "ducks tend to be larger".
-* The verb "to be" is vague and can usually be replaced by more concrete and specific phrasing. "There is/are" is a vague way to start a sentence.
+* The verb "to be" is vague and can usually be replaced by more concrete and specific phrasing. "There is/are" is a vague way to start a sentence. (Think about *why* you're giving the reader this piece of information, and try to work that motivation into your transition.)
 * "May" or "may be" can replace "could suggest that" or "is probably" or "is likely" and other waffle-phrases
 * "and" splices: "and" is often used to connect clauses that are only loosely connected: "Ducks are large and when they are approached by humans they make noise". These passages can be stronger if they are split into separate sentences ("Ducks are large. When they are approached by humans they make noise.") or separated with a semicolon ("Ducks are large; when they are approached by humans they make noise.")
 * "effect" is overused and vague. "has a positive effect on", "has a positive impact of", "positively influences" → "increases".  "Affect" is better than "effect" (verbs stronger than nouns), but even here you should try to use a more specific word ("increases", "decreases"); "increases" is a lot better than "affects positively". I don't like "impacts" as a verb (I recognize that this preference is old-fashioned/peevish). "Negatively impacts" should be "hurts" or "decreases" or ...
 * For ecologists: "density-dependence" is vague. I try to avoid *reifying* density dependence (i.e., convert it from a label that describes a class of phenomena to a *thing*). "Density-dependent mortality" (or fecundity or whatever) is better than "density dependence" alone; the more specific you can be (e.g. attributing the effects to competition for limited resources or nest sites or whatever), the better.
 
-A similar example from evolutionary biology: "species X has larger female-biased sexual size dimorphism" → "species X has larger females relative to males" or "females are larger in species X"
+    A similar example from evolutionary biology: "species X has larger female-biased sexual size dimorphism" → "species X has larger females relative to males" or "females are larger in species X"
 * Avoid constructions of the type "A and B have effects C and D, respectively" &mdash; you save a few words this way but the reader has to work harder to associate A with C and B with D
 
 ## Punctuation
@@ -78,7 +78,6 @@ Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/)
 - avoid contractions ("don't", "won't") in formal writing. 
 - "creatures": this word connotes things that were created, which you might want to avoid in scientific writing. Just use "organisms" (or something general enough for your taxon of choice)
 - "unique", "complex", "dynamic", "nonlinear": are you using those words to denote something specific, or are you arm-waving about how cool and interesting your subject is?
- - the verb "to be" can often be replaced by a more specific and active construction. "There are ..." should usually be replaced by a more specific transition (why are you giving the reader this piece of information?)
  
 ## Organization
 
@@ -86,6 +85,9 @@ Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/)
 * I hate writing formal outlines, but it works for  some people. I sometimes write a first draft and *then* write an outline by reducing the draft I wrote to a skeleton of bullet points, rearranging the information I put in the first draft into a better order.
 * If you find yourself using vague connectors like "furthermore", "additionally", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
 * If each section in a literature review covers a single reference source you may need to synthesize more, with each section covering several related references that cover the same topic. Otherwise your paper may be repetitive (because multiple references are likely to cover similar topics) and feel list-y.
+* Your introduction should include only the key information necessary to interest the reader in your topic and motivate them to read the rest of the paper. This information can include some brief background and context, but more in-depth discussion of the context and comparison to other work should wait until the discussion.
+* Most or all of what you say in the discussion should be based on new information that the reader has gained by reading the rest of the paper. Don't repeat information from the introduction unnecessarily.
+* It's important to be transparent about the limitations of your study. I usually include these caveats as the second-to-last paragraph of the discussion (followed, of course, by a final paragraph that is upbeat about the paper's value). Try to find a happy medium between dismissive of your work's limitations and over-apologizing for them.
 
 ## Caveat
 
