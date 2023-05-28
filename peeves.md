@@ -101,8 +101,6 @@ I'm sure that I have violated some of my own rules while writing this document.
 
 Last updated 2023-05-27
 
---- 
-
 [^1]: I've titled the document "peeves" in recognition of the fact that opinions about language and writing are necessarily subjective; the linguists at Language Log, who are also referred to elsewhere in this document, call [prescriptivist](https://dictionary.cambridge.org/dictionary/english/prescriptivist) opinions about language ["peeves"](https://languagelog.ldc.upenn.edu/nll/?p=3144)
 
 [^2]: My mother, Joan Bolker, wrote a book on [*Writing Your Dissertation in Fifteen Minutes a Day*](https://www.amazon.ca/Writing-Your-Dissertation-Fifteen-Minutes/dp/080504891X), edited an anthology of essays about writing called [*The Writer's Home Companion*](https://www.amazon.ca/Writers-Home-Companion-Anthology-Writing/dp/0805048936), and gave advice for medical researchers and writers in [*Writing Medicine*](https://www.lulu.com/en/ca/shop/joan-bolker/writing-medicine/paperback/product-1jz9mq6d.html?page=1&pageSize=4). All are highly recommended, but they focus on the *process* of writing rather than on mechanics like word choice and structure.)
