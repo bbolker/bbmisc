@@ -66,6 +66,8 @@ I prefer author-date style citation. It is less compact than using numbered refe
 
 Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/) because it is free, powerful, and convenient, but you can use anything that works for you and your co-authors. Using a citation manager means you can keep track of everything you've read whether or not you use it in your paper; any modern citation manager + document preparation system will make the process of switching reference formats nearly painless.
 
+When citing scholarly work that is available online (e.g. a peer-reviewed journal article or conference proceedings, or an article in a preprint archive), give the full citation information, not just the URL or [DOI](https://www.doi.org/); it's more formal, and readers who are familiar with the literature in your area will be able to know what you're citing without having to click through a link. Do include the URL or DOI in the citation, for convenience. Use the DOI in place of the URL of the publisher's web site wherever possible. 
+
 ## Vocabulary/words to avoid
 
 - "utili[sz]e" (use "use" instead)
