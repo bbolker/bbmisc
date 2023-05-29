@@ -353,8 +353,8 @@ par(op)
 * Efficient sampling moves 'the right amount' per step to cover the likely space
 * Checking results
     * Are your steps behaving sensibly? ("Divergences": HMC-specific)
-	* Are your parameters bouncing back and forth rather than going somewhere? (trace plot)
-	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge? (R-hat statistic)
+	* Are your parameters bouncing back and forth rather than going somewhere? (xotrace plot)
+	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge? (R-hat statistic) [@vatsRevisiting2018; @vehtariRankNormalization2021]
 	* Are you sampling enough (effective sample size)?
 * Checking model fit
     * **posterior** predictive simulation

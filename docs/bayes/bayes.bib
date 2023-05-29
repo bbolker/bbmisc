@@ -420,3 +420,68 @@
   keywords = {bayesian inference,descriptive analysis,prior distributions},
   file = {/home/bolker/Zotero/storage/S3K8XVIH/Sarma and Kay - 2020 - Prior Setting in Practice Strategies and Rational.pdf}
 }
+
+@article{vatsRevisiting2018,
+  title = {Revisiting the {{Gelman-Rubin Diagnostic}}},
+  author = {Vats, Dootika and Knudson, Christina},
+  year = {2018},
+  month = dec,
+  journal = {arXiv:1812.09384 [stat]},
+  eprint = {1812.09384},
+  primaryclass = {stat},
+  urldate = {2019-01-29},
+  abstract = {Gelman and Rubin's (1992) convergence diagnostic is one of the most popular methods for terminating a Markov chain Monte Carlo (MCMC) sampler. Since the seminal paper, researchers have developed sophisticated methods of variance estimation for Monte Carlo averages. We show that this class of estimators find immediate use in the Gelman-Rubin statistic, a connection not established in the literature before. We incorporate these estimators to upgrade both the univariate and multivariate Gelman-Rubin statistics, leading to increased stability in MCMC termination time. An immediate advantage is that our new Gelman-Rubin statistic can be calculated for a single chain. In addition, we establish a relationship between the Gelman-Rubin statistic and effective sample size. Leveraging this relationship, we develop a principled cutoff criterion for the Gelman-Rubin statistic. Finally, we demonstrate the utility of our improved diagnostic via examples.},
+  archiveprefix = {arxiv},
+  keywords = {Statistics - Computation,Statistics - Methodology},
+  file = {/home/bolker/Zotero/storage/39ZWMWD7/Vats and Knudson - 2018 - Revisiting the Gelman-Rubin Diagnostic.pdf;/home/bolker/Zotero/storage/9A2YQJRA/1812.html}
+}
+
+@article{lambertRobust2022,
+  title = {{{R}}{${_\ast}$}: {{A Robust MCMC Convergence Diagnostic}} with {{Uncertainty Using Decision Tree Classifiers}}},
+  shorttitle = {{{R}}{${_\ast}$}},
+  author = {Lambert, Ben and Vehtari, Aki},
+  year = {2022},
+  month = jun,
+  journal = {Bayesian Analysis},
+  volume = {17},
+  number = {2},
+  pages = {353--379},
+  publisher = {{International Society for Bayesian Analysis}},
+  issn = {1936-0975, 1931-6690},
+  doi = {10.1214/20-BA1252},
+  urldate = {2022-11-30},
+  abstract = {Markov chain Monte Carlo (MCMC) has transformed Bayesian model inference over the past three decades: mainly because of this, Bayesian inference is now a workhorse of applied scientists. Under general conditions, MCMC sampling converges asymptotically to the posterior distribution, but this provides no guarantees about its performance in finite time. The predominant method for monitoring convergence is to run multiple chains and monitor individual chains' characteristics and compare these to the population as a whole: if within-chain and between-chain summaries are comparable, then this is taken to indicate that the chains have converged to a common stationary distribution. Here, we introduce a new method for diagnosing convergence based on how well a machine learning classifier model can successfully discriminate the individual chains. We call this convergence measure R{${_\ast}$}. In contrast to the predominant R\textasciicircum, R{${_\ast}$} is a single statistic across all parameters that indicates lack of mixing, although individual variables' importance for this metric can also be determined. Additionally, R{${_\ast}$} is not based on any single characteristic of the sampling distribution; instead it uses all the information in the chain, including that given by the joint sampling distribution, which is currently largely overlooked by existing approaches. We recommend calculating R{${_\ast}$} using two different machine learning classifiers \textemdash{} gradient-boosted regression trees and random forests \textemdash{} which each work well in models of different dimensions. Because each of these methods outputs a classification probability, as a byproduct, we obtain uncertainty in R{${_\ast}$}. The method is straightforward to implement and could be a complementary additional check on MCMC convergence for applied analyses.},
+  file = {/home/bolker/Zotero/storage/RX9L2CNB/Lambert and Vehtari - 2022 - R∗ A Robust MCMC Convergence Diagnostic with Unce.pdf;/home/bolker/Zotero/storage/ITVLSUIL/20-BA1252.html}
+}
+
+@article{vehtariRankNormalization2021o,
+  title = {Rank-{{Normalization}}, {{Folding}}, and {{Localization}}: {{An Improved R-hat}} for {{Assessing Convergence}} of {{MCMC}} (with {{Discussion}})},
+  shorttitle = {Rank-{{Normalization}}, {{Folding}}, and {{Localization}}},
+  author = {Vehtari, Aki and Gelman, Andrew and Simpson, Daniel and Carpenter, Bob and B{\"u}rkner, Paul-Christian},
+  year = {2021},
+  month = jun,
+  journal = {Bayesian Analysis},
+  volume = {16},
+  number = {2},
+  pages = {667--718},
+  publisher = {{International Society for Bayesian Analysis}},
+  issn = {1936-0975, 1931-6690},
+  doi = {10.1214/20-BA1221},
+  urldate = {2022-04-18},
+  abstract = {Markov chain Monte Carlo is a key computational tool in Bayesian statistics, but it can be challenging to monitor the convergence of an iterative stochastic algorithm. In this paper we show that the convergence diagnostic R\textasciicircum{} of Gelman and Rubin (1992) has serious flaws. Traditional R\textasciicircum{} will fail to correctly diagnose convergence failures when the chain has a heavy tail or when the variance varies across the chains. In this paper we propose an alternative rank-based diagnostic that fixes these problems. We also introduce a collection of quantile-based local efficiency measures, along with a practical approach for computing Monte Carlo error estimates for quantiles. We suggest that common trace plots should be replaced with rank plots from multiple chains. Finally, we give recommendations for how these methods should be used in practice.},
+  file = {/home/bolker/Zotero/storage/9LQLBVA6/Vehtari et al. - 2021 - Rank-Normalization, Folding, and Localization An .pdf;/home/bolker/Zotero/storage/KW8BZVYG/20-BA1221.html}
+}
+
+
+@misc{Best2019,
+  title = {N Best Tips \& Tricks (or the Go-to Checklist) for New {{Stan}} Model Builders?},
+  year = {2019},
+  month = may,
+  journal = {The Stan Forums},
+  urldate = {2023-05-29},
+  abstract = {Is there a one-page checklist of the captioned written somewhere?  In my recent exploration as a newbie (see this post), I find the following tricks most useful:    specify any known bounds of a parameter (thereby help Stan to pick the appropriate default prior, eg, uniform vs. normal)    explicitly specify a prior for a parameter that better reflects your knowledge about it than Stan's default prior choice could possibly represent in general    use non-centered parametrization EDIT: (eg, to fix...},
+  chapter = {Modeling},
+  howpublished = {https://discourse.mc-stan.org/t/n-best-tips-tricks-or-the-go-to-checklist-for-new-stan-model-builders/8688},
+  langid = {english},
+  file = {/home/bolker/Zotero/storage/RMKP3ZVN/8688.html}
+}

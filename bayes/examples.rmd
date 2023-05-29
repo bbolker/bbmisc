@@ -2,6 +2,9 @@
 title: Examples
 bibliography: bayes.bib
 author: "Ben Bolker"
+output:
+  html_document:
+    code_folding: hide
 ---
 
 Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
@@ -41,11 +44,7 @@ library(dplyr)
 library(tidybayes)
 library(bayesplot)
 library(ggplot2); theme_set(theme_bw())
-```
-
-```{r test_stan}
-ss <- cmdstanr:::get_cmdstan_flags("STANCFLAGS")
-cat(ss, "\n")
+library(ggrastr)
 ```
 
 ```{r limits, include = FALSE}
@@ -89,7 +88,7 @@ and their default values ...
 get_prior(form1, sleepstudy)
 ```
 
-[Info on brms default priors](https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7): half-Student $t$ with 3 df, mean 0, SD equal to (rescaled) MAD
+[Info on brms default priors](https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7): Intercept is Student $t$ with 3 df, mean equal to observed mean (median??), SD equal to (rescaled) MAD. RE SDs are the same but *half*-$t$ (see `lb = 0` column), mode at 0.
 
 Constraining intercept and slope to 'reasonable' values:
 
@@ -207,13 +206,23 @@ load("examples1.rda")
 summary(b_reg)
 ```
 
-Rhat, ESS look OK
+$\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021 recommend an $\hat R$ threshold of 1.01, ESS > 400
+
+> figure out what is the needed accuracy for the quantity of interest (for reporting usually 2 significant digits is enough
 
 `regex_pars` specifies a **regular expression** for deciding which parameters to show
 
 ```{r traceplot}
 mcmc_trace(b_reg, regex_pars= "b_|sd_")
 ```
+
+@vehtariRankNormalization2021 recommend *rank-histograms* instead: chains should have similar rank distributions
+
+```{r rankhistplot}
+mcmc_rank_overlay(b_reg, regex_pars= "b_|sd_")
+```
+
+Plot results. `broom.mixed::tidy()` will get what you need - complicated code below is to get everything lined up nicely.
 
 ```{r proc_models}
 res_bayes <- (list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
@@ -242,10 +251,17 @@ ggplot(res, aes(estimate, term, colour = model, shape = model)) +
            shape = guide_legend(reverse=TRUE))
 ```
 
+## posterior predictive simulations, compare with data
+```r
+post_df <- sleepstudy |> add_predicted_draws(b_reg)
+ggplot(post_df,aes(Days, .prediction, group=interaction(Subject,.draw))) +
+    rasterise(geom_line(alpha = 0.1)) +
+    geom_point(aes(y=Reaction), col = "red")
+```
 
 ## To do
 
-- what's wrong with `b_prior5`? Looks reasonable, don't understand why the slope would be weird ...
+- what's wrong with `b_prior5` (= `brms_reg` in figure)? Looks reasonable, don't understand why the slope would be weird ...
 - how to cache results to avoid recompilation? (Can we switch priors without recompiling?)
 
 ## References
