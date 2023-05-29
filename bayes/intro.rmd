@@ -354,7 +354,7 @@ par(op)
 * Checking results
     * Are your steps behaving sensibly? ("Divergences": HMC-specific)
 	* Are your parameters bouncing back and forth rather than going somewhere? (xotrace plot)
-	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge? (R-hat statistic) [@vatsRevisiting2018; @vehtariRankNormalization2021]
+	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge? (R-hat statistic) [@vatsRevisiting2018; @vehtariRankNormalization2021a]
 	* Are you sampling enough (effective sample size)?
 * Checking model fit
     * **posterior** predictive simulation

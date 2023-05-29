@@ -15,7 +15,13 @@ check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
 ```
 3. Install other packages
 ```{r other_pkgs, message = FALSE}
-pkgs <- c("lme4", "brms", "broom.mixed", "dplyr", "purrr", "tidybayes", "bayesplot", "ggplot2", "posterior")
+pkgs <- c(
+    ## core
+    "lme4", "brms",
+    ## model evaluation/testing/plotting
+    "broom.mixed",  "tidybayes", "bayesplot", "posterior", "bayestestR",
+    ## general purpose manipulation/plotting
+    "dplyr", "purrr", "cowplot", "ggraster")
 ip <- installed.packages()
 pkgs <- setdiff(pkgs, rownames(ip))
 if (length(pkgs)>0) install.packages(pkgs)

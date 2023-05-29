@@ -43,8 +43,10 @@ library(purrr)
 library(dplyr)
 library(tidybayes)
 library(bayesplot)
+library(bayestestR)
 library(ggplot2); theme_set(theme_bw())
 library(ggrastr)
+library(cowplot)
 ```
 
 ```{r limits, include = FALSE}
@@ -202,11 +204,17 @@ load("examples1.rda")
 
 ## diagnose
 
+```{r diag}
+print(bayestestR::diagnostic_posterior(b_reg),
+      digits = 4)
+```
+
 ```{r summary}
 summary(b_reg)
 ```
 
-$\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021 recommend an $\hat R$ threshold of 1.01, ESS > 400
+
+$\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021a recommend an $\hat R$ threshold of 1.01, ESS > 400, MCSE (Monte Carlo standard error) 'small enough'
 
 > figure out what is the needed accuracy for the quantity of interest (for reporting usually 2 significant digits is enough
 
@@ -216,7 +224,7 @@ $\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021 recommend an $\hat
 mcmc_trace(b_reg, regex_pars= "b_|sd_")
 ```
 
-@vehtariRankNormalization2021 recommend *rank-histograms* instead: chains should have similar rank distributions
+@vehtariRankNormalization2021a recommend *rank-histograms* instead: chains should have similar rank distributions
 
 ```{r rankhistplot}
 mcmc_rank_overlay(b_reg, regex_pars= "b_|sd_")
@@ -252,17 +260,39 @@ ggplot(res, aes(estimate, term, colour = model, shape = model)) +
 ```
 
 ## posterior predictive simulations, compare with data
-```r
-post_df <- sleepstudy |> add_predicted_draws(b_reg)
-ggplot(post_df,aes(Days, .prediction, group=interaction(Subject,.draw))) +
+
+```{r post1, cache = TRUE}
+post_df1 <- sleepstudy |> add_predicted_draws(b_reg)
+gg1 <- ggplot(post_df1,
+              aes(Days, .prediction, group=interaction(Subject,.draw))) +
     rasterise(geom_line(alpha = 0.1)) +
     geom_point(aes(y=Reaction), col = "red")
+print(gg1)
 ```
 
-## To do
+```{r post2, cache = TRUE}
+post_df2 <- sleepstudy |> add_predicted_draws(b_reg2)
+print(gg1 %+% post_df2)
+```
 
-- what's wrong with `b_prior5` (= `brms_reg` in figure)? Looks reasonable, don't understand why the slope would be weird ...
-- how to cache results to avoid recompilation? (Can we switch priors without recompiling?)
+
+```{r cmp_post, cache = TRUE}
+post_df1B <- filter(post_df1, Subject == levels(Subject)[1])
+post_df2B <- filter(post_df2, Subject == levels(Subject)[1])
+plot_grid(gg1 %+% post_df1B, gg1 %+% post_df2B)
+```
+
+```r
+list(bad = b_reg, good = b_reg2) |>
+    purrr::map_dfr(tidy, effects = "fixed", .id = "priors")
+```
+
+¿¿¿¿ I can see that `b_prior5`/`b_reg` give "wrong" answers (priors are too tight), but I would like to be able to diagnose that from the posterior predictive plots. I can't see any difference between these and the `b_prior6`/`b_reg2` PostPD plots! What am I missing ???
+
+```{r}
+check_prior(b_reg)
+try(check_prior(b_reg2)) ## ugh
+```
 
 ## References
 
