@@ -6,6 +6,7 @@ bibliography: "bayes.bib"
 ### Examples
 
 - what's wrong with `b_prior5` (= `brms_reg` in figure)? Looks reasonable, don't understand why the slope would be weird ...
+- plot `coef()` results (predicted intercept, slope per subject)
 - Find good test for 'information gained by data' (i.e. prior/post comparison metric), e.g. https://www.princeton.edu/~umueller/priorderiv_slides.pdf: "prior sensitivity", "prior informativeness" @reimherrPrior2021; @mullerMeasuring2012
 
 From [here](https://statmodeling.stat.columbia.edu/2019/08/10/for-each-parameter-or-other-qoi-compare-the-posterior-sd-to-the-prior-sd-if-the-posterior-sd-for-any-parameter-or-qoi-is-more-than-0-1-times-the-prior-sd-then-print-out-a-note-the-prior-dist/#comments)
