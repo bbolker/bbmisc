@@ -292,6 +292,7 @@ list(bad = b_reg, good = b_reg2) |>
 ```{r}
 check_prior(b_reg)
 try(check_prior(b_reg2)) ## ugh
+try(check_prior(b_reg2, method = "lakeland")) ## ugh
 ```
 
 ## References

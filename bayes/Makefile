@@ -37,3 +37,5 @@ test.Rout:
 
 ## moving examples.html to docs/ not working ...
 
+clean:
+	rm -f *~ \#* *.Rout

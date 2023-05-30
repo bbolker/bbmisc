@@ -697,6 +697,10 @@ plot_grid(gg1 %+% post_df1B, gg1 %+% post_df2B)</code></pre>
 <pre class="r"><code>try(check_prior(b_reg2)) ## ugh</code></pre>
 <pre><code>## Error in if (stats::sd(posterior, na.rm = TRUE) &gt; 0.1 * stats::sd(prior,  : 
 ##   missing value where TRUE/FALSE needed</code></pre>
+<pre class="r"><code>try(check_prior(b_reg2, method = &quot;lakeland&quot;)) ## ugh</code></pre>
+<pre><code>##     Parameter Prior_Quality
+## 1 b_Intercept   informative
+## 2      b_Days   informative</code></pre>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
@@ -706,7 +710,7 @@ plot_grid(gg1 %+% post_df1B, gg1 %+% post_df2B)</code></pre>
 </div>
 </div>
 <hr />
-<p>Last updated: 29 May 2023 16:47</p>
+<p>Last updated: 30 May 2023 15:17</p>
 </div>
 </div>
 

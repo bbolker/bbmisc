@@ -26,12 +26,45 @@ library(tidybayes)
 * scale dependence
 * issues with improper priors (scale dependence, identifiability/computational issues)
 * issues with proper uniform priors
-   * Cromwell's rule
-   * 'stacking' problems (wide on logit scale)
-   * problems when informative (posterior squashing)
-* 'stacking' problems (wide priors on logit or log scale)
+
+- Cromwell's rule [@lindleyBayesian1980]: don't exclude *possible* values
+
+## squashing problems
+
+* 'wide' on one scale $\neq$ noninformative on a transformed scale
+* especially for intervals, e.g. probabilities
+* for positive distributions, uninformative *often* leads to a spike at zero (inverse-Gamma)
+
+```{r stack, fig.width = 8}
+sdval <- 3
+par(mfrow = c(1,2), las = 1, bty = "l", xaxs = "i")
+pc <- function(..., xlab = "", ylab = "") {
+    cc <- curve(..., xlab = xlab, ylab = ylab)
+    polygon(c(cc$x, rev(cc$x)), c(cc$y, rep(0, length(cc$y))),
+            border = NA, col = "gray")
+    curve(..., add = TRUE)
+}
+dlogitnorm <- function(x, mean = 0, sd = 1) {
+    dnorm(qlogis(x), mean, sd)/(x*(1-x))
+}
+pc(dnorm(x, sd = sdval), from = -5*sdval, to = 5*sdval,
+      main = "wide prior (log-odds scale)")
+pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
+      n = 601,
+      main = "wide prior (probability scale)")
+```
+
+## stacking problems
+
+* problems when informative (posterior squashing)
+
+
 * refs: @bannerUse2020; https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations ; @cromeNovel1996; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @ibrahimpower2015; @finkcompendium1997; @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales"); @gelmanPrior2006; @carpenterComputational2017; @inchaustiStatistical2023; @sarmaPrior2020
 * https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
+
+## Bayesian workflow
+
+This figure from @gelmanBayesian2020 is a little overwhelming. It is more targeted toward people who are developing new Bayesian models from scratch rather than using a platform like `brms` but can still be useful.
 
 ![](pix/workflow.png)
 
@@ -42,7 +75,10 @@ See [distribution explorer](https://distribution-explorer.github.io) ([backend](
 - real-valued parameters: regularizing Gaussian
 - variances: half-Student-t on the standard deviation scale *or* log-Normal
 - other positive-valued: Gamma or log-Normal
-- correlation/covariance matrices: [LKJ](https://distribution-explorer.github.io/multivariate_continuous/lkj.html) or "onion" [@lewandowskiGenerating2009a]. $\eta=1$ $\to$ uniform, $\eta>1$ favours a stronger diagonal (smaller correlations)
+   * older: inverse-Gamma for 
+- correlation/covariance matrices
+   * [LKJ](https://distribution-explorer.github.io/multivariate_continuous/lkj.html) or "onion" [@lewandowskiGenerating2009a]. $\eta=1$ $\to$ uniform, $\eta>1$ favours a stronger diagonal (smaller correlations)
+   * Wishart (older): 
 
 ## References
 
