@@ -261,6 +261,7 @@ res <- (bind_rows(res_lmer, res_bayes)
     |> mutate(facet = ifelse(grepl("^cor", term), "cor",
                       ifelse(grepl("Days", term), "Days",
                              "int")))
+    |> mutate(across(model, ~ factor(., levels = c("lmer", names(brms_modlist)))))
 )
 ```
 
