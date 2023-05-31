@@ -233,7 +233,8 @@ mcmc_rank_overlay(b_reg, regex_pars= "b_|sd_")
 Plot results. `broom.mixed::tidy()` will get what you need - complicated code below is to get everything lined up nicely.
 
 ```{r proc_models}
-res_bayes <- (list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
+brms_modlist <- list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
+res_bayes <- (brms_modlist
     |> purrr::map_dfr(~ tidy(., conf.int = TRUE), .id = "model")
 )
 ## need to do separately - different conf.method choices
@@ -275,19 +276,56 @@ post_df2 <- sleepstudy |> add_predicted_draws(b_reg2)
 print(gg1 %+% post_df2)
 ```
 
-
 ```{r cmp_post, cache = TRUE}
 post_df1B <- filter(post_df1, Subject == levels(Subject)[1])
 post_df2B <- filter(post_df2, Subject == levels(Subject)[1])
 plot_grid(gg1 %+% post_df1B, gg1 %+% post_df2B)
 ```
 
-```r
+```{r}
 list(bad = b_reg, good = b_reg2) |>
     purrr::map_dfr(tidy, effects = "fixed", .id = "priors")
 ```
 
 ¿¿¿¿ I can see that `b_prior5`/`b_reg` give "wrong" answers (priors are too tight), but I would like to be able to diagnose that from the posterior predictive plots. I can't see any difference between these and the `b_prior6`/`b_reg2` PostPD plots! What am I missing ???
+
+Plot random effect draws, from [here](https://discourse.mc-stan.org/t/convenience-function-for-plotting-random-group-effects/13461/2):
+
+Random effects (deviations from population-level/fixed-effect predictions):
+
+```{r ranefs}
+brms_modlist <- list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
+ranefs <- (brms_modlist
+    |> purrr::map_dfr(~ tidy(., effects = "ran_vals", conf.int = TRUE), .id = "model")
+)
+gg_r <- ggplot(ranefs, aes(estimate, level, colour = model)) +
+    geom_pointrange(aes(xmin = conf.low, xmax = conf.high), position = position_dodge(width = 0.5)) +
+    facet_wrap(~term, scale = "free", nrow = 1)
+print(gg_r +  geom_vline(lty = 2, xintercept = 0))
+```
+
+Group-level coefficients (predicted intercept/slope for each subject):
+
+```{r coefs}
+## this is way too ugly - needs to be incorporated into broom.mixed as an option
+my_coefs <- function(x) {
+    meltfun <- function(a) {
+        dd <- as.data.frame(ftable(a)) |>  
+            setNames(c("level", "var", "term", "value")) |>
+            tidyr::pivot_wider(names_from = var, values_from = value) |>
+            rename(estimate = "Estimate",
+                   std.error = "Est.Error",
+                   ## FIXME: not robust to changing levels
+                   conf.low = "Q2.5",
+                   conf.high = "Q97.5")
+    }
+    purrr:::map_dfr(coef(x), meltfun, .id = "group")
+}
+coefs <- (brms_modlist
+    |> purrr::map_dfr(my_coefs, .id = "model")
+)
+print(gg_r %+% coefs)
+```
 
 ```{r}
 check_prior(b_reg)
