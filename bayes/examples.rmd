@@ -293,7 +293,7 @@ Plot random effect draws, from [here](https://discourse.mc-stan.org/t/convenienc
 
 Random effects (deviations from population-level/fixed-effect predictions):
 
-```{r ranefs}
+```{r ranefs, fig.width = 10}
 brms_modlist <- list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
 ranefs <- (brms_modlist
     |> purrr::map_dfr(~ tidy(., effects = "ran_vals", conf.int = TRUE), .id = "model")
@@ -306,7 +306,7 @@ print(gg_r +  geom_vline(lty = 2, xintercept = 0))
 
 Group-level coefficients (predicted intercept/slope for each subject):
 
-```{r coefs}
+```{r coefs, fig.width = 10}
 ## this is way too ugly - needs to be incorporated into broom.mixed as an option
 my_coefs <- function(x) {
     meltfun <- function(a) {
