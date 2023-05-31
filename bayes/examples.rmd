@@ -189,12 +189,25 @@ m_lmer <- lmer(form1, sleepstudy)
 
 ```{r brms_fit_reg, eval = FALSE}
 b_reg <- brm(form1, sleepstudy, prior = b_prior5,
-             seed = 101,               ## reproducibility
+             seed = 101,  ## reproducibility
              ## handle divergence
+             control = list(adapt_delta = 0.95)
+        )
+library(brms)
+options(brms.backend = "cmdstanr")
+data("sleepstudy", package = "lme4")
+form1 <- Reaction ~ Days + (Days|Subject)
+b_prior6 <- c(set_prior("normal(0, 20)", "b"),
+              set_prior("student_t(10, 0, 3)", "sd"),
+              set_prior("student_t(10, 0, 3)", "sigma")
+              )
+b_reg2 <- 
+    brm(form1, sleepstudy, prior = b_prior6,
+        seed = 101,   
         control = list(adapt_delta = 0.95)
         )
 b_default <- brm(form1, sleepstudy,
-        seed = 101,              ## reproducibility
+        seed = 101
         )
 ```
 
@@ -327,9 +340,24 @@ coefs <- (brms_modlist
 print(gg_r %+% coefs)
 ```
 
-```{r}
+Compare means of random effects (should be zero!)
+
+```{r cmp_re_means}
+ranefs |>
+    group_by(model, term) |>
+    summarise(mean = mean(estimate),
+              se = sd(estimate)/n(),
+              .groups = "drop")
+## to plot:
+## |>
+##     ggplot(aes(mean, term, colour = model)) +
+##    geom_pointrange(aes(xmin=mean-se, xmax = mean + se), position = position_dodge(width = 0.5))
+```
+
+```{r check_ranefs, eval = FALSE}
 check_prior(b_reg)
 try(check_prior(b_reg2)) ## ugh
+debug(bayestestR:::.check_prior)
 try(check_prior(b_reg2, method = "lakeland")) ## ugh
 ```
 
