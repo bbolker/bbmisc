@@ -103,6 +103,20 @@ pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
 * **lots** here (kind of a grab bag): https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
 * https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
 
+## definitions (from @bannerUse2020)
+
+```{r priortab, echo = FALSE, results = "asis"}
+tab = read.table(sep = ";", header = TRUE, quote = "", text = "type; definition
+default; Commonly used non-informative priors that are often left unjustified by the user. Examples include, normal priors for regression coefficients with variances as large as $10^6$, Uniform(0,1) on probabilities or proportions, and other ‘non-informative’ priors used without justification in software tutorials (e.g. WinBugs manual)
+vague, flat, diffuse;A non-informative prior that is used to reflect the prior knowledge that not much is known about the parameter of interest, but is well justified and hyper-parameter values are set to reflect a reasonable range of values for the parameter in the context of the problem.
+Jeffreys'; A prior for a single-parameter that, when the parameter is transformed to a different scale (via a 1:1 transformation), the resulting prior for the transformed parameter is exactly the same as the prior for the parameter on the original scale. This approach was introduced by Jeffreys (Jeffreys, 1946), and is often used to define a non-informative prior for a single-parameter that is invariant to transformations, or scale-invariant
+weakly informative;Often refers to prior distributions that are used to reflect a diluted (or scaled back) amount of knowledge about the parameters
+regularizing;A type of weakly informative prior that is meant to constrain the parameter space to help with estimation of the posterior distribution. Examples include $N(0, \\sigma^2 = 2)$ priors on logistic regression coefficients, and shrinkage priors when the number of predictors is greater than the sample size (i.e. $p > n$ problems)
+informative;A prior that is carefully designed to reflect the current knowledge (and uncertainty) of the parameter. 
+")
+knitr::kable(tab)
+```
+
 ## Bayesian workflow
 
 This figure from @gelmanBayesian2020 is a little overwhelming. It is more targeted toward people who are developing new Bayesian models from scratch rather than using a platform like `brms` but can still be useful.
