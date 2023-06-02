@@ -21,6 +21,9 @@ library(emdbook)
 - @keryIntroduction2010, @keryBayesian2011: BUGS/ecological data analysis focused
 - @kruschkeDoing2014
 - @hobbsBayesian2015,@clarkModels2020
+- @mccarthyBayesian2007 (BUGS; no mixed/multilevel models)
+- @hoffFirst2010
+- @bolstadIntroduction2016
 
 ## References
 
