@@ -371,21 +371,27 @@ check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
 <ol start="3" style="list-style-type: decimal">
 <li>Install other packages</li>
 </ol>
-<pre class="r"><code>pkgs &lt;- c(
+<pre class="r"><code>orig_pkgs &lt;- c(
     ## core
     &quot;lme4&quot;, &quot;brms&quot;,
     ## model evaluation/testing/plotting
     &quot;broom.mixed&quot;,  &quot;tidybayes&quot;, &quot;bayesplot&quot;, &quot;posterior&quot;, &quot;bayestestR&quot;,
     ## general purpose manipulation/plotting
-    &quot;dplyr&quot;, &quot;purrr&quot;, &quot;cowplot&quot;, &quot;ggraster&quot;)
+    &quot;dplyr&quot;, &quot;purrr&quot;, &quot;cowplot&quot;, &quot;ggrastr&quot;)
 ip &lt;- installed.packages()
-pkgs &lt;- setdiff(pkgs, rownames(ip))
+pkgs &lt;- setdiff(orig_pkgs, rownames(ip))
 if (length(pkgs)&gt;0) install.packages(pkgs)</code></pre>
-<pre><code>## Warning: package &#39;ggraster&#39; is not available for this version of R
-## 
-## A version of this package for your version of R might be available elsewhere,
-## see the ideas at
-## https://cran.r-project.org/doc/manuals/r-devel/R-admin.html#Installing-packages</code></pre>
+<hr />
+<p>These examples were generated using the following package versions:</p>
+<pre class="r"><code>sapply(sort(c(orig_pkgs, &quot;cmdstanr&quot;, &quot;rstan&quot;)), \(x) as.character(packageVersion(x)))</code></pre>
+<pre><code>##   bayesplot  bayestestR        brms broom.mixed    cmdstanr     cowplot 
+##    &quot;1.10.0&quot;    &quot;0.13.1&quot;    &quot;2.19.0&quot;   &quot;0.2.9.5&quot;     &quot;0.5.3&quot;     &quot;1.1.1&quot; 
+##       dplyr     ggrastr        lme4   posterior       purrr       rstan 
+##     &quot;1.1.2&quot;     &quot;1.0.1&quot;    &quot;1.1.33&quot;     &quot;1.4.1&quot;     &quot;1.0.1&quot;    &quot;2.21.8&quot; 
+##   tidybayes 
+##     &quot;3.0.4&quot;</code></pre>
+<pre class="r"><code>cmdstanr::cmdstan_version()</code></pre>
+<pre><code>## [1] &quot;2.32.2&quot;</code></pre>
 
 
 

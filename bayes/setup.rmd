@@ -15,14 +15,26 @@ check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
 ```
 3. Install other packages
 ```{r other_pkgs, message = FALSE}
-pkgs <- c(
+orig_pkgs <- c(
     ## core
     "lme4", "brms",
     ## model evaluation/testing/plotting
     "broom.mixed",  "tidybayes", "bayesplot", "posterior", "bayestestR",
     ## general purpose manipulation/plotting
-    "dplyr", "purrr", "cowplot", "ggraster")
+    "dplyr", "purrr", "cowplot", "ggrastr")
 ip <- installed.packages()
-pkgs <- setdiff(pkgs, rownames(ip))
+pkgs <- setdiff(orig_pkgs, rownames(ip))
 if (length(pkgs)>0) install.packages(pkgs)
+```
+
+---
+
+These examples were generated using the following package versions:
+
+```{r pkg_versions}
+sapply(sort(c(orig_pkgs, "cmdstanr", "rstan")), \(x) as.character(packageVersion(x)))
+```
+
+```{r cmdstan_version}
+cmdstanr::cmdstan_version()
 ```

@@ -56,10 +56,32 @@ pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
 
 ## stacking problems
 
-* problems when informative (posterior squashing)
+* problems when informative (posterior squashing) @carpenterComputational2017
+
+## priors for variances
+
+* @gelmanPrior2006, 
+* people used to use inverse-Gamma a lot (because conjugate)
+* uninformative/wide → big spike at zero
+* half-Normal, half-$t$ are better
+    * *parameter-expanded priors* in `MCMCglmm` @gelmanData2006
+* regularizing priors [@chungNondegenerate2013] prevent 'singularity'
+* singularity doesn't matter as much when fully Bayesian because we're integrating over the whole posterior
 
 
-* refs: @bannerUse2020; https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations ; @cromeNovel1996; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @ibrahimpower2015; @finkcompendium1997; @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales"); @gelmanPrior2006; @carpenterComputational2017; @inchaustiStatistical2023; @sarmaPrior2020
+## choosing priors
+
+* @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales")
+* unitless (log, logit-transformed, standardized) parameters make it easier to choose [@schielzethSimple2010]
+* choose a 'wide range' as e.g. $\pm 2\sigma$ or $\pm 3\sigma$ of a Normal (or $t$) prior: @inchaustiStatistical2023, @wanEstimating2014
+* use prior information but dilute it: @ibrahimpower2015
+
+## prior sensitivity
+
+- compare results with different priors: @cromeNovel1996
+
+* more general refs: @bannerUse2020;  ; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @finkcompendium1997; @sarmaPrior2020
+* **lots** here (kind of a grab bag): https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
 * https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
 
 ## Bayesian workflow
