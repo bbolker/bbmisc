@@ -21,7 +21,10 @@ orig_pkgs <- c(
     ## model evaluation/testing/plotting
     "broom.mixed",  "tidybayes", "bayesplot", "posterior", "bayestestR",
     ## general purpose manipulation/plotting
-    "dplyr", "purrr", "cowplot", "ggrastr")
+    "dplyr", "purrr", "cowplot",
+    "ggrastr",  ## rasterize layers with lots of stuff
+    "see"  ## for okabe-ito scales
+)
 ip <- installed.packages()
 pkgs <- setdiff(orig_pkgs, rownames(ip))
 if (length(pkgs)>0) install.packages(pkgs)

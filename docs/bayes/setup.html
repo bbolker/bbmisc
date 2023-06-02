@@ -377,7 +377,10 @@ check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
     ## model evaluation/testing/plotting
     &quot;broom.mixed&quot;,  &quot;tidybayes&quot;, &quot;bayesplot&quot;, &quot;posterior&quot;, &quot;bayestestR&quot;,
     ## general purpose manipulation/plotting
-    &quot;dplyr&quot;, &quot;purrr&quot;, &quot;cowplot&quot;, &quot;ggrastr&quot;)
+    &quot;dplyr&quot;, &quot;purrr&quot;, &quot;cowplot&quot;,
+    &quot;ggrastr&quot;,  ## rasterize layers with lots of stuff
+    &quot;see&quot;  ## for okabe-ito scales
+)
 ip &lt;- installed.packages()
 pkgs &lt;- setdiff(orig_pkgs, rownames(ip))
 if (length(pkgs)&gt;0) install.packages(pkgs)</code></pre>
@@ -388,8 +391,8 @@ if (length(pkgs)&gt;0) install.packages(pkgs)</code></pre>
 ##    &quot;1.10.0&quot;    &quot;0.13.1&quot;    &quot;2.19.0&quot;   &quot;0.2.9.5&quot;     &quot;0.5.3&quot;     &quot;1.1.1&quot; 
 ##       dplyr     ggrastr        lme4   posterior       purrr       rstan 
 ##     &quot;1.1.2&quot;     &quot;1.0.1&quot;    &quot;1.1.33&quot;     &quot;1.4.1&quot;     &quot;1.0.1&quot;    &quot;2.21.8&quot; 
-##   tidybayes 
-##     &quot;3.0.4&quot;</code></pre>
+##         see   tidybayes 
+##     &quot;0.7.5&quot;     &quot;3.0.4&quot;</code></pre>
 <pre class="r"><code>cmdstanr::cmdstan_version()</code></pre>
 <pre><code>## [1] &quot;2.32.2&quot;</code></pre>
 

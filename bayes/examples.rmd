@@ -7,6 +7,9 @@ output:
     code_folding: hide
 ---
 
+<!-- fold all code blocks but show some initially:
+  https://bookdown.org/yihui/rmarkdown-cookbook/fold-show.html -->
+  
 Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
 
 ![](pix/cc-attrib-nc.png)
@@ -45,8 +48,11 @@ library(tidybayes)
 library(bayesplot)
 library(bayestestR)
 library(ggplot2); theme_set(theme_bw())
+library(see)
+options(ggplot2.discrete.colour= scale_color_okabeito)
 library(ggrastr)
 library(cowplot)
+
 ```
 
 ```{r limits, include = FALSE}
@@ -102,7 +108,7 @@ b_prior <- c(set_prior("normal(200, 50)", "Intercept"),
 
 Helper function for prior predictive simulations: run a short MCMC chain, plot results. (We're going to **ignore/suppress warnings** for this stage ...)
 
-```{r prior1, cache = TRUE}
+```{r test_prior, class.source = "fold-show"}
 test_prior <- function(p) {
     ## https://discourse.mc-stan.org/t/suppress-all-output-from-brms-in-markdown-files/30117/3
     capture.output(
@@ -120,6 +126,9 @@ test_prior <- function(p) {
     print(gg0)
     invisible(b) ## return without printing
 }
+```
+
+```{r prior1, cache = TRUE}
 test_prior(b_prior)
 ```
 
@@ -136,8 +145,6 @@ b_prior2 <- c(set_prior("normal(200, 10)", "Intercept"),
               )
 test_prior(b_prior2)
 ```
-
-(??why is this not noisy due to large `sigma`??)
 
 Make all scales even smaller?
 
@@ -181,35 +188,30 @@ b_prior6 <- c(set_prior("normal(0, 20)", "b"),
 test_prior(b_prior6)
 ```
 
+There ae still a few negative reaction times left, which is obviously unrealistic, but at least they're rare ...
+
 ## fitting
 
-```{r lmer_fit}
+```{r lmer_fit, class.source = "fold-show"}
 m_lmer <- lmer(form1, sleepstudy)
 ```
 
-```{r brms_fit_reg, eval = FALSE}
+```{r brms_fit_reg, eval = FALSE, class.source = "fold-show"}
 b_reg <- brm(form1, sleepstudy, prior = b_prior5,
-             seed = 101,  ## reproducibility
-             ## handle divergence
+             seed = 101,
              control = list(adapt_delta = 0.95)
-        )
-library(brms)
-options(brms.backend = "cmdstanr")
-data("sleepstudy", package = "lme4")
-form1 <- Reaction ~ Days + (Days|Subject)
-b_prior6 <- c(set_prior("normal(0, 20)", "b"),
-              set_prior("student_t(10, 0, 3)", "sd"),
-              set_prior("student_t(10, 0, 3)", "sigma")
+             )
+b_reg2 <- brm(form1, sleepstudy, prior = b_prior6,
+              seed = 101,   
+              control = list(adapt_delta = 0.95)
               )
-b_reg2 <- 
-    brm(form1, sleepstudy, prior = b_prior6,
-        seed = 101,   
-        control = list(adapt_delta = 0.95)
-        )
+## also try with default settings
 b_default <- brm(form1, sleepstudy,
-        seed = 101
-        )
+                 seed = 101
+                 )
 ```
+
+(These are actually run as a batch from `run_examples.R` and loaded here ...)
 
 ```{r load}
 load("examples1.rda")
@@ -217,19 +219,16 @@ load("examples1.rda")
 
 ## diagnose
 
-```{r diag}
+Should really diagnose **before** looking at the parameter values! MCSE is the **Monte Carlo Standard Error**, equal to (std err)/sqrt(ESS).
+
+```{r diag, class.source = "fold-show"}
 print(bayestestR::diagnostic_posterior(b_reg),
       digits = 4)
 ```
 
-```{r summary}
-summary(b_reg)
-```
+$\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021a recommend an $\hat R$ threshold of 1.01, ESS > 400, MCSE (Monte Carlo standard error) 'small enough' for scientific purposes ("figure out what is the needed accuracy for the quantity of interest (for reporting usually 2 significant digits is enough")
 
-
-$\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021a recommend an $\hat R$ threshold of 1.01, ESS > 400, MCSE (Monte Carlo standard error) 'small enough'
-
-> figure out what is the needed accuracy for the quantity of interest (for reporting usually 2 significant digits is enough
+## trace plots
 
 `regex_pars` specifies a **regular expression** for deciding which parameters to show
 
@@ -243,15 +242,21 @@ mcmc_trace(b_reg, regex_pars= "b_|sd_")
 mcmc_rank_overlay(b_reg, regex_pars= "b_|sd_")
 ```
 
+## look at results
+
+```{r summary, class.source = "fold-show"}
+summary(b_reg)
+```
+
 Plot results. `broom.mixed::tidy()` will get what you need - complicated code below is to get everything lined up nicely.
 
-```{r proc_models}
+```{r proc_models, cache = TRUE}
 brms_modlist <- list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
 res_bayes <- (brms_modlist
     |> purrr::map_dfr(~ tidy(., conf.int = TRUE), .id = "model")
 )
 ## need to do separately - different conf.method choices
-res_lmer <- (m_lmer
+res_lmer <- suppressMessages(m_lmer
     |> tidy(conf.int = TRUE, conf.method = "profile")
     |> mutate(model = "lmer", .before = 1)
 )
@@ -281,27 +286,27 @@ post_df1 <- sleepstudy |> add_predicted_draws(b_reg)
 gg1 <- ggplot(post_df1,
               aes(Days, .prediction, group=interaction(Subject,.draw))) +
     rasterise(geom_line(alpha = 0.1)) +
-    geom_point(aes(y=Reaction), col = "red")
-print(gg1)
+    geom_point(aes(y=Reaction), col = "red") +
+    labs(y = "Reaction time")
+print(gg1 + labs(title = "tighter priors (weird)"))
 ```
 
 ```{r post2, cache = TRUE}
 post_df2 <- sleepstudy |> add_predicted_draws(b_reg2)
-print(gg1 %+% post_df2)
+print(gg1 %+% post_df2 + labs(title = "looser priors"))
 ```
+
+Compare just Subject 1 results:
 
 ```{r cmp_post, cache = TRUE}
 post_df1B <- filter(post_df1, Subject == levels(Subject)[1])
 post_df2B <- filter(post_df2, Subject == levels(Subject)[1])
-plot_grid(gg1 %+% post_df1B, gg1 %+% post_df2B)
+plot_grid(gg1 %+% post_df1B + labs(title = "tighter"),
+          gg1 %+% post_df2B + labs(title = "looser"))
 ```
 
-```{r}
-list(bad = b_reg, good = b_reg2) |>
-    purrr::map_dfr(tidy, effects = "fixed", .id = "priors")
-```
-
-¿¿¿¿ I can see that `b_prior5`/`b_reg` give "wrong" answers (priors are too tight), but I would like to be able to diagnose that from the posterior predictive plots. I can't see any difference between these and the `b_prior6`/`b_reg2` PostPD plots! What am I missing ???
+Bottom line: `b_prior5`/`b_reg` give "wrong" answers (priors are too tight), 
+`b_prior6`/`b_reg2` are OK, but **the predictions are nearly identical**. This turns out to be because the random effects are taking up the slack in the
 
 Plot random effect draws, from [here](https://discourse.mc-stan.org/t/convenience-function-for-plotting-random-group-effects/13461/2):
 
