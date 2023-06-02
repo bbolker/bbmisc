@@ -21,13 +21,27 @@ library(broom.mixed)
 library(tidybayes)
 ```
 
-## brain dump
+## baseline prior choices
+
+See [distribution explorer](https://distribution-explorer.github.io) ([backend](https://github.com/distribution-explorer/distribution-explorer.github.io))
+
+- real-valued parameters: Gaussian (or Student-$t$)
+- variances: half-Student-t on the standard deviation scale *or* log-Normal
+- other positive-valued: Gamma or log-Normal
+   * older: inverse-Gamma for variances, for conjugacy
+- bounded: Beta
+- correlation/covariance matrices
+   * [LKJ](https://distribution-explorer.github.io/multivariate_continuous/lkj.html) or "onion" [@lewandowskiGenerating2009a]. $\eta=1$ $\to$ uniform, $\eta>1$ favours a stronger diagonal (smaller correlations)
+   * Wishart [older] ('mean' = typical corr matrix, usually diagonal; shape 'nu' determines variance [1 is equivalent to an exponential dist for 1-dim, so <1 is 'weak']
+
+## prior problems
 
 * scale dependence
-* issues with improper priors (scale dependence, identifiability/computational issues)
-* issues with proper uniform priors
+* improper priors (scale dependence, identifiability/computational issues)
 
-- Cromwell's rule [@lindleyBayesian1980]: don't exclude *possible* values
+## issues with proper uniform priors
+
+* Cromwell's rule [@lindleyBayesian1980]: don't exclude *possible* values
 
 ## squashing problems
 
@@ -60,14 +74,19 @@ pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
 
 ## priors for variances
 
-* @gelmanPrior2006, 
-* people used to use inverse-Gamma a lot (because conjugate)
-* uninformative/wide → big spike at zero
+
+* people used to use inverse-Gamma a lot (because conjugate): uninformative/wide → big spike at zero  [@gelmanPrior2006]
 * half-Normal, half-$t$ are better
     * *parameter-expanded priors* in `MCMCglmm` @gelmanData2006
 * regularizing priors [@chungNondegenerate2013] prevent 'singularity'
 * singularity doesn't matter as much when fully Bayesian because we're integrating over the whole posterior
 
+## priors for covariance/correlation matrices
+
+* a single correlation is easy (e.g. a Beta distribution)
+* multivariate correlation/covariance matrix is ugly
+* separate priors for (log)-SDs, correlations
+   * **LKJ** or "onion" [@lewandowskiGenerating2009a]
 
 ## choosing priors
 
@@ -89,18 +108,6 @@ pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
 This figure from @gelmanBayesian2020 is a little overwhelming. It is more targeted toward people who are developing new Bayesian models from scratch rather than using a platform like `brms` but can still be useful.
 
 ![](pix/workflow.png)
-
-## baseline prior choices
-
-See [distribution explorer](https://distribution-explorer.github.io) ([backend](https://github.com/distribution-explorer/distribution-explorer.github.io))
-
-- real-valued parameters: regularizing Gaussian
-- variances: half-Student-t on the standard deviation scale *or* log-Normal
-- other positive-valued: Gamma or log-Normal
-   * older: inverse-Gamma for 
-- correlation/covariance matrices
-   * [LKJ](https://distribution-explorer.github.io/multivariate_continuous/lkj.html) or "onion" [@lewandowskiGenerating2009a]. $\eta=1$ $\to$ uniform, $\eta>1$ favours a stronger diagonal (smaller correlations)
-   * Wishart (older): 
 
 ## References
 
