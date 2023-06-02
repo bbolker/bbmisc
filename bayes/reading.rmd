@@ -20,6 +20,7 @@ library(emdbook)
 - @mcelreathStatistical2020: Starts from scratch. Some emphasis on causal analysis.
 - @keryIntroduction2010, @keryBayesian2011: BUGS/ecological data analysis focused
 - @kruschkeDoing2014
+- @hobbsBayesian2015,@clarkModels2020
 
 ## References
 
