@@ -49,7 +49,7 @@ See [distribution explorer](https://distribution-explorer.github.io) ([backend](
 * especially for intervals, e.g. probabilities
 * for positive distributions, uninformative *often* leads to a spike at zero (inverse-Gamma)
 
-```{r stack, fig.width = 8}
+```{r stack, fig.width = 8, echo = FALSE}
 sdval <- 3
 par(mfrow = c(1,2), las = 1, bty = "l", xaxs = "i")
 pc <- function(..., xlab = "", ylab = "") {
@@ -78,7 +78,7 @@ pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
 * people used to use inverse-Gamma a lot (because conjugate): uninformative/wide → big spike at zero  [@gelmanPrior2006]
 * half-Normal, half-$t$ are better
     * *parameter-expanded priors* in `MCMCglmm` @gelmanData2006
-* regularizing priors [@chungNondegenerate2013] prevent 'singularity'
+* regularizing priors [@chungNondegenerate2013a] prevent 'singularity'
 * singularity doesn't matter as much when fully Bayesian because we're integrating over the whole posterior
 
 ## priors for covariance/correlation matrices
