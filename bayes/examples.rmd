@@ -192,6 +192,12 @@ There ae still a few negative reaction times left, which is obviously unrealisti
 
 ## fitting
 
+- Always set the seed!
+- Probably OK to use default chain lengths, burn-in, starting values (chosen randomly from the prior), etc., until you see whether things are OK.
+- `adapt_delta` below is one knob to turn to make the MCMC 'work harder' to avoid geometry problems
+- **in general** 'well-behaved' problems (all parameters on similar scales, parameters relatively independent, priors restrict from sampling in extreme/flat regions, etc.) sample better [@bolkerStrategies2013]; `brms` does a lot of fancy stuff under the hood to try to make things work well
+
+
 ```{r lmer_fit, class.source = "fold-show"}
 m_lmer <- lmer(form1, sleepstudy)
 ```

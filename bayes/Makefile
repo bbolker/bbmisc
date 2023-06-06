@@ -1,6 +1,6 @@
 DOCDIR=../docs/bayes
 
-all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html $(DOCDIR)/examples.html $(DOCDIR)/setup.html
+all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html $(DOCDIR)/examples.html $(DOCDIR)/setup.html $(DOCDIR)/reading.html
 
 ## bizarrely, examples.rmd fails when run via 'make'
 ##   but NOT when run via Rscript -e ... from the command line???

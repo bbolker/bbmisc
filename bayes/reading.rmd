@@ -1,0 +1,37 @@
+---
+title: Further reading
+bibliography: bayes.bib
+author: "Ben Bolker"
+---
+
+Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
+
+![](pix/cc-attrib-nc.png)
+
+```{r setup, include=FALSE}
+library(knitr)
+library(pander)
+library(emdbook)
+```
+
+## Further reading
+
+- @gelmanData2006: Mixed model focus. Somewhat technical.
+- @mcelreathStatistical2020: Starts from scratch. Some emphasis on causal analysis.
+- @keryIntroduction2010, @keryBayesian2011: BUGS/ecological data analysis focused
+- @kruschkeDoing2014
+- @hobbsBayesian2015,@clarkModels2020
+- @mccarthyBayesian2007 (BUGS; no mixed/multilevel models)
+- @hoffFirst2010
+- @bolstadIntroduction2016
+
+## References
+
+::: {#refs}
+:::
+
+---
+
+Last updated: `r format(Sys.time(), "%d %B %Y %H:%M")`
+
+

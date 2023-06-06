@@ -3,7 +3,11 @@ title: "To do"
 bibliography: "bayes.bib"
 ---
 
+
 ### Examples
+
+
+- what's wrong with `b_prior5` (= `brms_reg` in figure)? Looks reasonable, don't understand why the slope would be weird ...
 
 - Find good test for 'information gained by data' (i.e. prior/post comparison metric), e.g. https://www.princeton.edu/~umueller/priorderiv_slides.pdf: "prior sensitivity", "prior informativeness" @reimherrPrior2021; @mullerMeasuring2012
 
