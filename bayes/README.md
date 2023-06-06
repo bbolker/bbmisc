@@ -1,4 +1,4 @@
-# materials for biodatalunch Bayes intro, May 2023
+# materials for biodatalunch Bayes intro, May/June 2023
 
 * [To do list](https://github.com/bbolker/bbmisc/blob/master/bayes/TODO.md)
 * [software setup](setup.html)
