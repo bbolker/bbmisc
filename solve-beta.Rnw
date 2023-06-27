@@ -1,0 +1,445 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel} %% for texi2dvi bug
+\usepackage{amsmath}
+\usepackage{amsbsy}
+\usepackage{bm}
+%% \usepackage{sober}
+\usepackage{natbib}
+\bibliographystyle{chicago}
+\newcommand{\bbeta}{{\bm \beta}}
+\newcommand{\bX}{{\bm X}}
+\newcommand{\bT}{{\bm T}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\code}[1]{{\tt #1}}
+\title{Estimating contact matrices from seroprevalence data,
+or susceptible reconstruction, using WAIFW tensors}
+\date{\today}
+\author{Ben Bolker}
+\begin{document}
+\maketitle
+\section{Introduction}
+
+Some thoughts about using susceptible reconstruction (etc.) to estimate
+contact rates in structured population models.  This combines ideas
+of \cite{fineclar82b} ``susceptible reconstruction'' with the
+basic principle of Anderson \& May's WAIFW matrix reconstruction
+of age-structured contact rates.  This extends an idea I had a long
+time ago (dig out Mathematica worksheet?) about using tensor products
+with WAIFW matrices.
+
+\section{Estimating force of infection / susceptibles}
+
+\subsection{From age-structured seroprevalence data}
+
+Anderson and May derived the age-specific force
+of infection, $\lambda(a)$, from age-structured
+serological data (making an equilibrium assumption
+so that $\partial S(a)/\partial a = - \lambda(a) S(a)$),
+and then solved the equations for the components of
+$\bbeta$.  Useful references are
+\cite{grenande85,andemay85,andemaybook}, although the
+only one I have handy is \cite{andemaybook} (Appendix~D), which
+doesn't give an enormous amount of detail.
+
+If we have a cross-sectional (or longitudinal) survey 
+of seroprevalence, and we're willing to assume temporal
+homogeneity \ldots
+
+\subsection{From equilibrium multi-species seroprevalence}
+
+Consider a multi-compartment SIR model
+(with mass-action transmission, vital dynamics
+with balanced births and deaths, exponentially
+distributed infectious periods, etc.: several
+of these assumptions can probably be
+relaxed a bit):
+\begin{eqnarray}
+S_i' & = & +\mu_i N_i + S_i (-\sum \beta_{ij} I_j - \mu_i) \\
+I_i' & = & + S_i \cdot \sum \beta_{ij} I_j - I_i (\mu_i+\gamma_i) \\
+R_i' & = & + \gamma_i I_i - \mu_i R_i
+\end{eqnarray}
+
+If we have seroprevalence data and 
+are willing to assume the epidemic
+is at equilibrium, we know $S^*$,
+the number of non-exposed individuals (assuming
+that antibody response is instantaneous, or at
+least on a short time scale, and permanent).
+(In general I will write
+scalars with subscripts;
+vectors as variables without subscripts;
+and matrices and tensors in bold.
+Element-by-element multiplication is denoted
+by $A\cdot B$, division by $A/B$.)
+
+Suppose we know $N$ (constant population size),
+$\mu$ (birth/death rate) and $\gamma$
+(recovery rate) for each species, from field observations
+or lab experiments.
+At equilibrium we also know
+$$
+R^* = I^* \cdot (\gamma/\mu)
+$$
+and
+$$
+I^* = (N-S^*)/(1+\gamma/\mu)
+$$
+
+Then we know everything in the middle equation except
+$\beta_{ij} = \bbeta$.
+
+\subsection{From case reporting data/susceptible reconstruction}
+
+If we have case reporting data and birth rate data (or are
+willing to assume homogeneous birth rates etc.), and can
+make an assumption that the reporting period is equal to
+the generation time of the epidemic (although we can relax
+this: cite Olga Krylova; also cite Mollison and ud Din?,
+Bobashev?), then we can follow \citep{fineclar82b} in
+assuming that the reported cases are equal to the incidence,
+and also to the removal rate from susceptibles:
+\begin{equation}
+\begin{split}
+S_{t+1} & = S_t - I_t + b_t \\
+I_{t+1} & = \Lambda_t S_t = I_t \bbeta  S_t
+\end{split}
+\end{equation}
+There are lots of things we have to assume/be careful about --- %
+doing the accounting for timing (i.e., how the times are matched
+up between $I$ and $S$), measurement, error, etc..  The
+Bjørnstadt/Finkenstädt/Grenfell TSIR model attempts to handle
+some of these issues.
+
+\section{Estimating $\bbeta$}
+
+\subsection{General principles}
+
+We'd like to solve for $\bbeta$, but we don't
+have enough information, since we only have $n$ data
+to estimate $n^2$ quantities (allowing for asymmetric
+transmission between species, which Anderson and May
+dismiss in the age-structured case but which is
+perhaps more plausible in the more general
+multi-compartmental/multi-species case).  The Anderson and
+May ``WAIFW matrix'' approach, developed for age-structured
+problems, assumes we can structure the matrix to
+reduce the number of free parameters.
+What is new here, as far as I know, is (1) the idea
+of using a tensor to describe the structure of the WAIFW matrix
+and its relationship with the reduced parameter vector
+$b$; (2) applying the technique to 
+(non-age-structured) situations --- multi-species or
+spatial
+
+In particular, there is a ``WAIFW tensor'' $\bT$ that
+constructs an $n \times n$ WAIFW matrix from an $n$-parameter
+vector of contact components (don't know what to call these).
+We say $\bbeta = b \bT$.
+Then
+\begin{equation}
+\bbeta I^* = (b \bT) I^* = b (\bT I^*)
+\end{equation}
+and we should be able to solve for $b$ in the equations above.
+
+\subsection{General (simple) example}
+
+OK, so how does this work? 
+Let's say I want to work with a WAIFW matrix
+that looks like this:
+\begin{equation}
+\left(
+\begin{array}{ccc}
+b_1 & b_1 & b_3 \\
+b_1 & b_1+b_2 & b_3 \\
+b_3 & b_3 & b_3
+\end{array}
+\right);
+\end{equation}
+i.e., group 1 mixes with itself and group 2 at the
+same rate; group 2 mixes within itself at a higher
+rate; and group 3 mixes with itself and everyone
+else at a different (lower?) rate.  (This is a typical
+WAIFW matrix from the age-structured case --- it's
+a simplified version of ``WAIFW 1'' from
+\cite{andemaybook} p. 177; it might
+not make a lot of sense in the cross-species case,
+but I'm using it because it's familiar.  Everything
+should generalize to arbitrary matrices, I think.)
+
+(As R defines matrices and arrays, columns are
+the first dimension, rows the second, and ``tables''
+the third)
+<<tensor1>>=
+library(tensor)
+T <- array(
+  c(1,1,0,   ## b1 elements by column
+    1,1,0,
+    0,0,0,
+#
+    0,0,0,   ## b2 elements by column
+    0,1,0,
+    0,0,0,
+#
+    0,0,1,   ## b3 elements by column
+    0,0,1,
+    1,1,1),
+  dim=c(3,3,3))
+@ 
+
+The first ``table'' corresponds to the $b_1$ component, the
+second to the $b_2$ component, and the
+third to the $b_3$ component: our $\bbeta$
+matrix is just $\sum T_{ijk} b_k$ (i.e., we're right-
+rather than left-multiplying; if we want to left-multiply,
+it would be good to figure out the general rules for
+transposition matching the matrix rule $(AB)^T = B^T A^T$:
+which dimensions do we transpose, and how do we 
+specify that in R?).
+
+Pick some reasonable (and distinguishable) values
+for $b$, and make $b$ into a $3 \times 1 \times 1$
+tensor for compatibility:
+<<defb>>=
+(b <- array(c(0.1,0.8,0.01),dim=c(3,1,1)))
+@ 
+
+Now multiply, summing the third slice of $\mathbf T$
+times the first slice of $b$
+<<tmult1>>=
+beta <- drop(tensor(T,b,3,1)); beta
+@ 
+(\code{drop()} just gets rid of unwanted dimensions --- e.g.
+the tensor product returns a $3 \times 3 \times 1 \times 1$ result,
+{\code{drop()} turns it into a $3 \times 3$ matrix.)
+
+Now all I have to do is figure out how to multiply 
+by $I^*$ instead.  Suppose $I^*=\{100,200,50\}$.
+Then $\bbeta I^*$ is:
+<<betamult>>=
+I <- c(100,200,50)
+drop(beta %*% I)
+@
+
+To combine with $I^*$ first:
+our overall expression is 
+$$
+\sum_j \left( \sum_k T_{ijk} b_k \right) I^*_j = 
+\sum_k \left( \sum_j  T_{ijk} I^*_j \right) b_k = 
+$$
+
+The only (!?) confusing part is that columns are 
+represented by the \emph{first} index of an R matrix or tensor,
+not the second: as the expression above shows, we will
+want to right-multiply by $b$ after we have
+multiplied by $S^*_j$ and dropped the $j$ index.
+<<Imult>>=
+I.arr <- array(I,dim=c(3,1,1))
+drop(drop(tensor(T,I.arr,1,1)) %*% drop(b))
+@ 
+
+\section{Example \#2}
+It's a bit silly, but I can illustrate this with a longer example:
+(Actually it's not silly at all.  I had the previous equations
+badly wrong the first time around!)
+
+Load the ODE-solver package and define a function to
+calculate the gradient; use parameters $\mu=\{0.01,0.01,0.01\}$;
+$\gamma=\{0.01,0.02,0.01\}$; and $\beta$ as defined above
+(Figure \@ref{fig:odeplot}).
+<<ode1,echo=FALSE>>=
+library(deSolve)
+gradfun <- function(t,y,parms) {
+  n <- parms[1]
+  beta <- matrix(parms[2:(n^2+1)],nrow=n)
+  mu <- parms[(n^2+2):(n^2+n+1)]
+  gamma <- parms[(n^2+n+2):(n^2+2*n+1)]
+  S <- y[1:n]
+  I <- y[(n+1):(2*n)]
+  R <- y[(2*n+1):(3*n)]
+  list(c(mu*(S+I+R)-S*(beta%*%I)-mu*S,
+    S*(beta%*%I)-(mu+gamma)*I,
+    gamma*I-mu*R),NULL)
+}
+## parameters and ICs
+mu <- c(0.01,0.01,0.01)
+gamma <- c(0.01,0.02,0.01)
+N <- c(1,1,1)
+ystart <- c(0.99,1,1,0.01,0,0,0,0,0)
+## combine parameters and run
+parms <- c(3,beta,mu,gamma)
+L1 <- ode(y=ystart,
+          times=seq(0,500,length=200),
+          parms=parms,
+          func=gradfun)
+@ 
+
+<<odeplot,echo=FALSE,warning=FALSE,fig.cap="Results of multi-species ODE model">>=
+par(las=1,bty="l")
+cols <- rep(c("black","red","blue"),each=3)
+ltys <- rep(1:3,3)
+matplot(L1[,1],L1[,-1],type="l",log="y",col=cols,lty=ltys,
+        xlab="Time",ylab="Density",ylim=c(1e-3,1))
+legend(50,1e-2,col=cols,lty=ltys,
+      t(outer(c("S","I","R"),1:3,paste,sep="")),ncol=3)
+@ 
+
+Now try to reconstruct.
+Suppose we know $\mu$, $\gamma$,
+$N$, and $S^*$, and are hence able
+to reconstruct (see above) $I^*$
+and $R^*$.  Then
+\begin{equation}
+\begin{split}
+0 & = S^* \cdot (\bbeta I^*) - I^* \cdot (\mu+\gamma)  \\
+(\bbeta I^*) & = I^* \cdot (\mu+\gamma)/S^* \\
+(\bT I^*) b & = I^* \cdot (\mu+\gamma)/S^* \\
+ b & = (\bT I^*)^{-1} (I^* \cdot (\mu+\gamma)/S^*)
+\end{split}
+\label{eq:recon1}
+\end{equation}
+
+Final $S^*$ values:
+<<s.end>>=
+S.end <- L1[200,2:4]; S.end
+@ 
+
+Reconstruct $I^*$, $R^*$:
+<<rec2>>=
+I.end <- (N-S.end)/(1+gamma/mu)
+R.end <- I.end*gamma/mu
+@ 
+
+Multiply the WAIFW tensor by $I^*$,
+invert, and apply it to the other side of the equation:
+<<rec3>>=
+TI <- drop(tensor(T,array(I.end,dim=c(3,1,1)),1,1))
+drop(solve(TI) %*% (I.end*(mu+gamma)/S.end))
+@ 
+
+It works (this is very close to the original
+$b$ vector of $\{0.1,0.8,0.01\}$ --- in this ridiculously simplified case \ldots
+
+\section{Extensions}
+A more reasonable WAIFW matrix for a multi-species model might be
+\begin{equation}
+\left(
+\begin{array}{ccc}
+b_1 & b_3 & b_3 \\
+b_3 & b_2 & b_3 \\
+b_3 & b_3 & b_2
+\end{array}
+\right),
+\end{equation}
+representing a reservoir host (species 1, with strong within-species
+mixing $b_1$); two non-reservoir hosts (with weak within-species mixing
+$b_2$); and spillover at rate $b_3$.
+Then $\mathbf T$ is as follows:
+<<Ttensor,echo=FALSE>>=
+T <- array(
+  c(1,0,0,   ## b1 elements by column
+    0,0,0,
+    0,0,0,
+#
+    0,0,0,   ## b2 elements by column
+    0,1,0,
+    0,0,1,
+#
+    0,1,1,   ## b3 elements by column
+    1,0,1,
+    1,1,0),
+  dim=c(3,3,3)); T
+@ 
+
+(If each parameter is specified separately as here, then
+the sum of slices is exactly 1 for each element; sometimes
+as above it may be more interesting to parameterize the
+matrix in terms of \emph{contrasts}.)
+<<range>>=
+range(apply(T,c(1,2),sum))
+@ 
+
+\subsection{Spatial examples}
+
+Need to work out how this goes for a spatial example:
+it should look more or less identical to the previous case,
+except that (1) we want to work with susceptible-reconstruction
+information rather than equilibria, (2) the WAIFW matrix can
+just be a within-vs-between matrix (to start).
+
+The appropriate WAIFW tensor for a 4-city example is just
+<<waifw4,echo=FALSE>>=
+spT <- function(n) {
+    T <- array(1,dim=c(n,n,2))
+    T[,,1] <- diag(n)
+    diag(T[,,2]) <- 0
+    dimnames(T) <- list(NULL,NULL,c("within","between"))
+    T
+}
+spT(4)
+@
+although we could also consider parameterizing it additively,
+i.e. $\{\beta_w=b_1+b_2,\beta_b=b_2\}$ rather than
+$\{\beta_w=b_1,\beta_b=b_2\}$ as above.
+    
+
+\subsection{Least-squares solutions}
+
+What if we're willing to \emph{underspecify} the problem,
+i.e. specify fewer than $n$ elements of $b$?  Thus 
+$\mathbf T$ would be $n \times n \times m$, with $m<n$;
+for example, if we only wanted to specify different
+within- and between-species contact rates, or in the
+case above we had more than two non-reservoir hosts
+with (assumed) equal within-species contact rates.
+Then I wonder if we could set this up as a least-squares
+problem?  We would then be trying to find $b$ so
+that the sum of squared differences between the observed seroprevalences
+and the predicted seroprevalences was minimized \ldots
+(of course if we were serious about statistics it
+would be nice to have $m$ considerably less than $n$, so that we had more
+than a few degrees of freedom to describe the fit \ldots
+this could probably only happen with a data set with
+a large number of groups --- although if the groups
+were patches \ldots)
+
+I'm now pretty sure that we can indeed do this: if we want the
+least-squares solution, i.e.
+
+\begin{equation}
+\argmin_b (Y - \bX b)^T (Y - \bX b)
+\end{equation}
+with an appropriate choice of $Y$ and $\bX$,
+we can reduce to the previously solved problem of
+linear least-squares fitting; in particular we can use \code{lm.fit}
+in R, which takes a response vector and a model matrix
+(we might even be able to use this model matrix in a GLM fit,
+e.g. a Poisson distribution --- we would need an identity link
+in order to avoid screwing up the theoretical relationships).
+
+For example, in the second reconstruction above, we have
+$Y= I^* \cdot (\mu+\gamma)/S^*$, 
+$\bX = \bT I^*$.
+
+\bibliography{general}
+\end{document}
+
+%% JUNK
+(What if I put $\epsilon$ on the LHS of the first equation
+of (\ref{eq:recon1}) instead of 0, then took dot products
+on both sides?  Would I end up with a quadratic form that 
+I could handle to minimize $\epsilon \epsilon^T$, following
+an analogy to multiple linear regression?)
+
+\begin{equation}
+\epsilon  = S^* \cdot (\bbeta I^*) - I^* \cdot (\mu+\gamma)  \\
+\end{equation}
+where $\epsilon$ is a vector of zero-mean, independent, constant variance (?)
+normal deviates
+
+Since we're going to take derivatives with respect to $b$ in a moment, drop
+the constant term $-I^* \cdot (\mu +\gamma)$ from the LHS.
+
+$$
+\epsilon \epsilon^T  =  (S^* \cdot (\bbeta I^*)) (S^* \cdot (\bbeta I^*))^T
+$$
