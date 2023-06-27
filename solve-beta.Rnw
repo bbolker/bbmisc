@@ -421,7 +421,7 @@ For example, in the second reconstruction above, we have
 $Y= I^* \cdot (\mu+\gamma)/S^*$, 
 $\bX = \bT I^*$.
 
-\bibliography{general}
+\bibliography{solve-beta}
 \end{document}
 
 %% JUNK
