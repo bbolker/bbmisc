@@ -371,13 +371,17 @@ pre code {
 <h2>running scripts in batch mode</h2>
 <p>Given an R script stored in a <code>.R</code> file, there are a few ways to run it in batch mode:</p>
 <ul>
-<li><code>r</code>: an improved batch-R version by Dirk Eddelbuettel. You can install it by installing the <code>littler</code> package from CRAN (see “Installing Packages” below) and running <code>sh     mkdir ~/bin     cd ~/bin     ln -s ~/R/x86_64-pc-linux-gnu-library/4.1/littler/bin/r</code> in the shell. (You may need to adjust the path name for your R version.)</li>
-<li><code>Rscript &lt;filename&gt;</code>: by default, output will be printed to the standard output (which will end up in your <code>.log</code> file)
+<li><p><code>r</code>: an improved batch-R version by Dirk Eddelbuettel. You can install it by installing the <code>littler</code> package from CRAN (see “Installing Packages” below) and running</p>
+<pre class="bash"><code>mkdir ~/bin
+cd ~/bin
+ln -s ~/R/x86_64-pc-linux-gnu-library/4.1/littler/bin/r</code></pre>
+<p>in the shell. (You may need to adjust the path name for your R version.)</p></li>
+<li><p><code>Rscript &lt;filename&gt;</code>: by default, output will be printed to the standard output (which will end up in your <code>.log</code> file)</p>
 <ul>
 <li>one weirdness of <code>Rscript</code> is that it does not load the <code>methods</code> package by default, which may occasionally surprise you - if your script directly or indirectly uses stuff from <code>methods</code> you need to load it explicitly with <code>library(&quot;methods&quot;)</code></li>
 </ul></li>
-<li><code>R CMD BATCH &lt;filename&gt;</code>: this is similar but automatically sends output to <code>&lt;filename&gt;.out</code></li>
-<li><a href="https://stackoverflow.com/questions/21969145/why-or-when-is-rscript-or-littler-better-than-r-cmd-batch">This StackOverflow question</a> says that <code>r</code> &gt; <code>Rscript</code> &gt; <code>R CMD BATCH</code> (according to the author of <code>r</code> …)</li>
+<li><p><code>R CMD BATCH &lt;filename&gt;</code>: this is similar but automatically sends output to <code>&lt;filename&gt;.out</code></p></li>
+<li><p><a href="https://stackoverflow.com/questions/21969145/why-or-when-is-rscript-or-littler-better-than-r-cmd-batch">This StackOverflow question</a> says that <code>r</code> &gt; <code>Rscript</code> &gt; <code>R CMD BATCH</code> (according to the author of <code>r</code> …)</p></li>
 </ul>
 </div>
 <div id="loading-modules" class="section level2">

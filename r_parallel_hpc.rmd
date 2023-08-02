@@ -17,7 +17,7 @@ Below, "batch mode" means running R code from an R script rather than starting R
 Given an R script stored in a `.R` file, there are a few ways to run it in batch mode:
 
 - `r`: an improved batch-R version by Dirk Eddelbuettel. You can install it by installing the `littler` package from CRAN (see "Installing Packages" below) and running
-    ```sh
+    ```{bash littler_setup, eval = FALSE}
     mkdir ~/bin
     cd ~/bin
     ln -s ~/R/x86_64-pc-linux-gnu-library/4.1/littler/bin/r
