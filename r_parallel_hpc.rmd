@@ -1,7 +1,7 @@
 ---
 title: "managing R on HPC systems"
 author: "Ben Bolker and Jennifer Freeman"
-date: '`r format(Sys.time, "%d %b %Y")`'
+date: '`r format(Sys.time(), "%d %b %Y")`'
 ---
 
 In general, R scripts can be run just like any other kind of program on an HPC (high-performance computing) system. However, there are a few peculiarities. This document compiles some helpful practices; it should be useful to people who are familiar with R but unfamiliar to HPC, and the reverse.
