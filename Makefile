@@ -67,6 +67,10 @@ makestuff/Makefile:
 -include makestuff/visual.mk
 -include makestuff/projdir.mk
 
-peeves:
+peeves: peeves.md
 	Rscript -e 'rmarkdown::render("peeves.md")'
 	mv peeves.html docs/
+
+rtips: r_parallel_hpc.rmd
+	Rscript -e 'rmarkdown::render("r_parallel_hpc.rmd")'
+	mv r_parallel_hpc.html docs/
