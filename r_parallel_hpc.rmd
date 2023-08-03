@@ -8,6 +8,8 @@ In general, R scripts can be run just like any other kind of program on an HPC (
 
 Some of these instructions will be specific to Compute Canada ca. 2022, and particularly to the Graham cluster.
 
+There is also useful information at the [Digital Research Alliance of Canada wiki](https://docs.alliancecan.ca/wiki/R) ([en français aussi](https://docs.alliancecan.ca/wiki/R/fr).
+
 I assume that you're slightly familiar with HPC machinery (i.e. you've taken the Compute Canada orientation session, know how to use `sbatch`/`squeue`/etc. to work with the batch scheduler)
 
 Below, "batch mode" means running R code from an R script rather than starting R and typing commands at the prompt (i.e. "interactive mode"); "on a worker" means running a batch-mode script via the SLURM scheduler (i.e. using `sbatch`) rather than in a terminal session on the head node. Commands to be run within R will use an `R>` prompt, those to be run in the shell will use `sh>`.
