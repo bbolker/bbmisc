@@ -1,5 +1,5 @@
 ---
-title: Examples
+title: Priors
 bibliography: bayes.bib
 author: "Ben Bolker"
 ---

@@ -12,13 +12,13 @@ Write plainly and straightforwardly, using concrete words whenever you can. From
 
 I don't have a favorite book on writing. I grew up with Strunk and White's [*Elements of Style*](https://en.wikipedia.org/wiki/The_Elements_of_Style). Although their grammar advice is routinely (and justifiably) ridiculed by the linguists at [Language Log](https://languagelog.ldc.upenn.edu/nll/?p=15509), their stylistic advice is a good starting point &mdash; not *always* to be followed, but worth keeping in mind. I also like Orwell's [Politics and the English Language](https://www.orwellfoundation.com/the-orwell-foundation/orwell/essays-and-other-works/politics-and-the-english-language/) &mdash; also [denigrated by Language Log](https://languagelog.ldc.upenn.edu/nll/?p=992), also not to be taken as gospel, but a useful and enjoyable read.
 
-Prefer the active to the passive voice, and language that attributes agency to vague language. (You might prefer to use the passive voice in a methods section, because you may want to write in a way that downplays *who* followed the procedures; I still prefer the active voice here.) For example, replace "It has been observed that ducks like water (Schmoo et al 2015)" with "Schmoo et al (2015) observed that ducks like water" (but [see below](#ref2))."
+Prefer the active to the passive voice, and language that attributes agency to vague language.[^2] (You might prefer to use the passive voice in a methods section, because you may want to write in a way that downplays *who* followed the procedures; I still prefer the active voice here.) For example, replace "It has been observed that ducks like water (Schmoo et al 2015)" with "Schmoo et al (2015) observed that ducks like water" (but [see below](#ref2))." 
 
 Using the first-person singular in scientific writing is controversial, but you should do it if your audience will let you. If you're writing with co-authors you can use "we"; you may also be able to use "we" in the sense of "I and you, the reader" (this approach is common in mathematics textbooks: "Therefore we can easily conclude that ...").
 
-Scientific readers are generally more interested in the current state of the field than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's generally better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^2]
+Scientific readers are generally more interested in the current state of the field than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's generally better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^3]
 
-When referring to observations or conclusions based on your own work described in the paper, you should say "Ducks like water" rather than "We observed (concluded that, found that, etc.) ducks like water"; it's more succinct, and your readers will be able to infer that such statements are based on your observations and/or logic.[^3].
+When referring to observations or conclusions based on your own work described in the paper, you should say "Ducks like water" rather than "We observed (concluded that, found that, etc.) ducks like water"; it's more succinct, and your readers will be able to infer that such statements are based on your observations and/or logic.[^4].
 
 Don’t introduce your paper by saying that many people have long been interested in the topic: "your paper should introduce the biological topic and explain why it’s interesting and important, not say that other people think the topic is interesting and important" ([Jeremy Fox](https://dynamicecology.wordpress.com/2015/04/20/dont-introduce-your-paper-by-talking-about-how-lots-of-people-are-interested-in-the-topic/)).
 
@@ -57,20 +57,26 @@ Reading your own prose out loud is a good way to proofread and find awkward phra
 
 Always spell-check. Spell-checking won't catch everything, and you may have to skip over a lot of technical vocabulary that's not in the dictionary, but there's no excuse for not doing it.
 
-Everyone overuses their favorite kinds of punctuation or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary.)[^4]
+Everyone overuses their favorite kinds of punctuation, words, or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary. I sometimes get carried away with em-dashes or semicolons.)[^5]
 
 If you are using [BibTeX](http://www.bibtex.org/), check for capitalization! Most journal styles automatically set titles in all lower-case, so you have to protect any words that should be Capitalized or CAPITALIZED with curly brackets {} (some reference managers automatically {protect} {every} {word} {in} {the} {title}, but I prefer that only necessary words are protected).
 
-You should have read, or at least looked at, every reference that you cite. Thanks to the internet it is now plausible that you found a copy of Laplace's "Recherches sur le calcul intégral aux différences infiniment petites, et aux différences finies" (1771) online and read it in the original French[^5], but I will definitely challenge you about it during your committee meeting or thesis defence. If you read something in translation, you should cite the translation/translator; if you feel it's important to cite work that's cited in another work (because it is historically important or foundational), state that explicitly (e.g. "Laplace *Recherches sur le calcul ...* [1771], cited in Schmoo et al [2015]").
+You should have read, or at least looked at, every reference that you cite. Thanks to the internet it is now plausible that you found a copy of Laplace's "Recherches sur le calcul intégral aux différences infiniment petites, et aux différences finies" (1771) online and read it in the original French, but I will definitely challenge you about it during your committee meeting or thesis defence. If you read something in translation, you should cite the translation/translator; if you feel it's important to cite work that's cited in another work (because it is historically important or foundational), state that explicitly (e.g. "Laplace *Recherches sur le calcul ...* [1771], cited in Schmoo et al [2015]").
+
+It's fine to cite an earlier source without reading it if you attribute it (similarly to the example in the previous paragraph, e.g. "Smith (2017), cited in in Jones (2020)"), but: (1) if the information can be considered reasonably general, it may be OK to cite the later source without giving the earlier one, (2) if the earlier source feels important enough to cite, it's probably best to go back and read the earlier source so you can cite it directly. (It is educational and sometimes shocking to follow a trail of references back to see how information from an original source can be distorted in subsequent citations.)
+
 I prefer author-date style citation. It is less compact than using numbered references, but it immediately lets readers who are familiar with the literature in your field know what study you're citing, without having to skip to the reference section.
 
 Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/) because it is free, powerful, and convenient, but you can use anything that works for you and your co-authors. Using a citation manager means you can keep track of everything you've read whether or not you use it in your paper; any modern citation manager + document preparation system will make the process of switching reference formats nearly painless.
 
-When citing scholarly work that is available online (e.g. a peer-reviewed journal article or conference proceedings, or an article in a preprint archive), give the full citation information, not just the URL or [DOI](https://www.doi.org/); it's more formal, and readers who are familiar with the literature in your area will be able to know what you're citing without having to click through a link. Do include the URL or DOI in the citation, for convenience. Use the DOI in place of the URL of the publisher's web site wherever possible. 
+When citing scholarly work that is available online (e.g. a peer-reviewed journal article or conference proceedings, or an article in a preprint archive), give the full citation information, not just the URL or DOI (*digital object identifier*); it's more formal, and readers who are familiar with the literature in your area will be able to know what you're citing without having to click through a link. Do include the URL or DOI in the citation, for convenience. Use the DOI in place of the URL of the publisher's web site wherever possible. 
+
+Information that is only available on a standalone web site should provide information about the date when you accessed it but you don't need to do this with journal articles or other information that has a DOI; such sources are assumed to be stable.
 
 ## Vocabulary/words to avoid
 
 - "utili[sz]e" (use "use" instead)
+- "a multitude of" could be "many"
 - "hypothesize" (Can be useful if you are laying out a formal hypothesis, but why not just "think" or "suggest"?). "It has been hypothesized that" is both passive and (IMO) unnecessarily formal. ("Schmoo et al. (2024) hypothesized that" is OK, but "proposed" or "suggested" could be good, less jargony alternatives)
 - vague qualifiers: "quite", "very", "extremely". Could you omit them without changing the meaning of your sentence?
 - horn-blowing: "importantly", "interestingly". Ideally, your writing will be spare enough that you don't need to emphasize particular results.
@@ -85,10 +91,11 @@ When citing scholarly work that is available online (e.g. a peer-reviewed journa
 
 * I often write the introduction last, and almost always write the abstract last.
 * I hate writing formal outlines, but it works for  some people. I sometimes write a first draft and *then* write an outline by reducing the draft I wrote to a skeleton of bullet points, rearranging the information I put in the first draft into a better order.
-* If you find yourself using vague connectors like "furthermore", "additionally", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
-* If each section in a literature review covers a single reference source you may need to synthesize more, with each section covering several related references that cover the same topic. Otherwise your paper may be repetitive (because multiple references are likely to cover similar topics) and feel list-y.
+* If you find yourself using vague connectors like "furthermore", "additionally", "moroever", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
+* If you find yourself using phrases like "as mentioned earlier" or "as we have already discussed" frequently, it suggests that you might need to restructure your paper so that you don't have to repeat information
+* If each section in a literature review covers a single reference source you probably need to synthesize more, with each section covering several related references that cover the same topic. Otherwise your paper may be repetitive (because multiple references are likely to cover similar topics) and feel list-y.
 * Your introduction should include only the key information necessary to interest the reader in your topic and motivate them to read the rest of the paper. This information can include some brief background and context, but more in-depth discussion of the context and comparison to other work should wait until the discussion.
-* Most or all of what you say in the discussion should be based on new information that the reader has gained by reading the rest of the paper. Don't repeat information from the introduction unnecessarily.
+* Most or all of what you say in the discussion/conclusion should be based on new information that the reader has gained by reading the rest of the paper. A *brief* summary of the main point of the paper is OK, but don't repeat information from the introduction unnecessarily.
 * It's important to be transparent about the limitations of your study. I usually include these caveats as the second-to-last paragraph of the discussion (followed, of course, by a final paragraph that is upbeat about the paper's value). Try to find a happy medium between dismissive of your work's limitations and over-apologizing for them.
 
 ## Caveat
@@ -101,18 +108,17 @@ I'm sure that I have violated some of my own rules while writing this document.
 
 ---
 
-Last updated 2023-05-27
+Last updated 2023-11-25
 
 [^1]: I've titled the document "peeves" in recognition of the fact that opinions about language and writing are necessarily subjective; the linguists at Language Log, who are also referred to elsewhere in this document, call [prescriptivist](https://dictionary.cambridge.org/dictionary/english/prescriptivist) opinions about language ["peeves"](https://languagelog.ldc.upenn.edu/nll/?p=3144)
 
-[^2]: My mother, Joan Bolker, wrote a book on [*Writing Your Dissertation in Fifteen Minutes a Day*](https://www.amazon.ca/Writing-Your-Dissertation-Fifteen-Minutes/dp/080504891X), edited an anthology of essays about writing called [*The Writer's Home Companion*](https://www.amazon.ca/Writers-Home-Companion-Anthology-Writing/dp/0805048936), and gave advice for medical researchers and writers in [*Writing Medicine*](https://www.lulu.com/en/ca/shop/joan-bolker/writing-medicine/paperback/product-1jz9mq6d.html?page=1&pageSize=4). All are highly recommended, but they focus on the *process* of writing rather than on mechanics like word choice and structure.)
+[^2]: the folks at Language Log, a blog by linguists, are [snarky](https://languagelog.ldc.upenn.edu/nll/?cat=54) about people who criticize the use of the passive voice when what they mean is "language that obscures agency"
 
-[^3]: This advice contradicts the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.) Or: "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)" [Whitman, *Song of Myself*](https://poets.org/poem/song-myself-51)
+[^3]: My mother, Joan Bolker, wrote a book on [*Writing Your Dissertation in Fifteen Minutes a Day*](https://www.amazon.ca/Writing-Your-Dissertation-Fifteen-Minutes/dp/080504891X), edited an anthology of essays about writing called [*The Writer's Home Companion*](https://www.amazon.ca/Writers-Home-Companion-Anthology-Writing/dp/0805048936), and gave advice for medical researchers and writers in [*Writing Medicine*](https://www.lulu.com/en/ca/shop/joan-bolker/writing-medicine/paperback/product-1jz9mq6d.html?page=1&pageSize=4). All are highly recommended, but they focus on the *process* of writing rather than on mechanics like word choice and structure.)
 
-[^4]: I also like footnotes, but they're rarely used, and rarely a good idea, in scientific writing. (They're common in the humanties.)
+[^4]: This advice contradicts the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.) Or: "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)" [Whitman, *Song of Myself*](https://poets.org/poem/song-myself-51)
 
-[^5]: published in 1776,
-
+[^5]: I also like footnotes, but they're rarely used, and rarely a good idea, in scientific writing. (They're common in the humanties.)
 
 
 
