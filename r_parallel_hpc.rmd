@@ -1,8 +1,14 @@
-# managing R on HPC systems
+---
+title: "managing R on HPC systems"
+author: "Ben Bolker and Jennifer Freeman"
+date: '`r format(Sys.time(), "%d %b %Y")`'
+---
 
 In general, R scripts can be run just like any other kind of program on an HPC (high-performance computing) system. However, there are a few peculiarities. This document compiles some helpful practices; it should be useful to people who are familiar with R but unfamiliar to HPC, and the reverse.
 
 Some of these instructions will be specific to Compute Canada ca. 2022, and particularly to the Graham cluster.
+
+There is also useful information at the [Digital Research Alliance of Canada wiki](https://docs.alliancecan.ca/wiki/R) ([en français aussi](https://docs.alliancecan.ca/wiki/R/fr).
 
 I assume that you're slightly familiar with HPC machinery (i.e. you've taken the Compute Canada orientation session, know how to use `sbatch`/`squeue`/etc. to work with the batch scheduler)
 
@@ -13,7 +19,7 @@ Below, "batch mode" means running R code from an R script rather than starting R
 Given an R script stored in a `.R` file, there are a few ways to run it in batch mode:
 
 - `r`: an improved batch-R version by Dirk Eddelbuettel. You can install it by installing the `littler` package from CRAN (see "Installing Packages" below) and running
-    ```sh
+    ```{bash littler_setup, eval = FALSE}
     mkdir ~/bin
     cd ~/bin
     ln -s ~/R/x86_64-pc-linux-gnu-library/4.1/littler/bin/r
@@ -72,7 +78,15 @@ int arg = 1234, char arg = hello
 
 - vectorize!
 
-## running RStudio from SHARCnet
+## interactive sessions
+
+While Compute Canada is generally meant to be run in batch mode, it is sometimes convenient to do some development/debugging in *short* (<3 hour) interactive sessions.
+
+### console
+
+See https://docs.alliancecan.ca/wiki/Running_jobs#Interactive_jobs
+
+### in RStudio (or Jupyter notebook)
 
 - log into https://jupyterhub.sharcnet.ca with your Compute Canada username/password
 - click on the 'softwares' icon (left margin), load the `rstudio-server-...` module
@@ -82,8 +96,6 @@ int arg = 1234, char arg = hello
     - https://docs.computecanada.ca/wiki/Jupyter
     - https://docs.alliancecan.ca/wiki/JupyterHub#RStudio
 - it might make sense to 'reserve' your session in advance (so you don't have to wait a few minutes for it to start up), not yet sure how to do that ...
-
-
 
 ## questions for SHARCnet folks
 

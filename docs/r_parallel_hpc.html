@@ -9,9 +9,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
+<meta name="author" content="Ben Bolker and Jennifer Freeman" />
 
+<meta name="date" content="2023-08-03" />
 
-<title>package setup</title>
+<title>managing R on HPC systems</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -354,47 +356,162 @@ pre code {
 
 
 
-<h1 class="title toc-ignore">package setup</h1>
+<h1 class="title toc-ignore">managing R on HPC systems</h1>
+<h4 class="author">Ben Bolker and Jennifer Freeman</h4>
+<h4 class="date">03 Aug 2023</h4>
 
 </div>
 
 
-<ol start="0" style="list-style-type: decimal">
-<li>If you don’t have ‘development tools’ (compilers etc.) installed, do that first. You can try the instructions <a href="https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain">here</a> or <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain">here</a></li>
-<li>Install <code>rstan</code> (<code>install.packages(&quot;rstan&quot;)</code>)</li>
-<li>Install <code>cmdstanr</code> From <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>:</li>
-</ol>
-<pre class="r"><code>while (!require(&quot;cmdstanr&quot;)) {
-    install.packages(&quot;cmdstanr&quot;, repos = c(&quot;https://mc-stan.org/r-packages/&quot;, getOption(&quot;repos&quot;, &quot;https://cloud.r-project.org&quot;)))
-}
-check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
-<ol start="3" style="list-style-type: decimal">
-<li>Install other packages</li>
-</ol>
-<pre class="r"><code>orig_pkgs &lt;- c(
-    ## core
-    &quot;lme4&quot;, &quot;brms&quot;,
-    ## model evaluation/testing/plotting
-    &quot;broom.mixed&quot;,  &quot;tidybayes&quot;, &quot;bayesplot&quot;, &quot;posterior&quot;, &quot;bayestestR&quot;,
-    ## general purpose manipulation/plotting
-    &quot;dplyr&quot;, &quot;purrr&quot;, &quot;cowplot&quot;,
-    &quot;ggrastr&quot;,  ## rasterize layers with lots of stuff
-    &quot;see&quot;  ## for okabe-ito scales
-)
-ip &lt;- installed.packages()
-pkgs &lt;- setdiff(orig_pkgs, rownames(ip))
-if (length(pkgs)&gt;0) install.packages(pkgs)</code></pre>
-<hr />
-<p>These examples were generated using the following package versions:</p>
-<pre class="r"><code>sapply(sort(c(orig_pkgs, &quot;cmdstanr&quot;, &quot;rstan&quot;)), \(x) as.character(packageVersion(x)))</code></pre>
-<pre><code>##   bayesplot  bayestestR        brms broom.mixed    cmdstanr     cowplot 
-##    &quot;1.10.0&quot;    &quot;0.13.1&quot;    &quot;2.19.0&quot;   &quot;0.2.9.5&quot;     &quot;0.5.2&quot;     &quot;1.1.1&quot; 
-##       dplyr     ggrastr        lme4   posterior       purrr       rstan 
-##     &quot;1.1.2&quot;     &quot;1.0.2&quot;    &quot;1.1.34&quot;     &quot;1.4.1&quot;     &quot;1.0.2&quot;    &quot;2.21.8&quot; 
-##         see   tidybayes 
-##     &quot;0.8.0&quot;     &quot;3.0.4&quot;</code></pre>
-<pre class="r"><code>cmdstanr::cmdstan_version()</code></pre>
-<pre><code>## [1] &quot;2.30.1&quot;</code></pre>
+<p>In general, R scripts can be run just like any other kind of program on an HPC (high-performance computing) system. However, there are a few peculiarities. This document compiles some helpful practices; it should be useful to people who are familiar with R but unfamiliar to HPC, and the reverse.</p>
+<p>Some of these instructions will be specific to Compute Canada ca. 2022, and particularly to the Graham cluster.</p>
+<p>There is also useful information at the <a href="https://docs.alliancecan.ca/wiki/R">Digital Research Alliance of Canada wiki</a> (<a href="https://docs.alliancecan.ca/wiki/R/fr">en français aussi</a>.</p>
+<p>I assume that you’re slightly familiar with HPC machinery (i.e. you’ve taken the Compute Canada orientation session, know how to use <code>sbatch</code>/<code>squeue</code>/etc. to work with the batch scheduler)</p>
+<p>Below, “batch mode” means running R code from an R script rather than starting R and typing commands at the prompt (i.e. “interactive mode”); “on a worker” means running a batch-mode script via the SLURM scheduler (i.e. using <code>sbatch</code>) rather than in a terminal session on the head node. Commands to be run within R will use an <code>R&gt;</code> prompt, those to be run in the shell will use <code>sh&gt;</code>.</p>
+<div id="running-scripts-in-batch-mode" class="section level2">
+<h2>running scripts in batch mode</h2>
+<p>Given an R script stored in a <code>.R</code> file, there are a few ways to run it in batch mode:</p>
+<ul>
+<li><p><code>r</code>: an improved batch-R version by Dirk Eddelbuettel. You can install it by installing the <code>littler</code> package from CRAN (see “Installing Packages” below) and running</p>
+<pre class="bash"><code>mkdir ~/bin
+cd ~/bin
+ln -s ~/R/x86_64-pc-linux-gnu-library/4.1/littler/bin/r</code></pre>
+<p>in the shell. (You may need to adjust the path name for your R version.)</p></li>
+<li><p><code>Rscript &lt;filename&gt;</code>: by default, output will be printed to the standard output (which will end up in your <code>.log</code> file)</p>
+<ul>
+<li>one weirdness of <code>Rscript</code> is that it does not load the <code>methods</code> package by default, which may occasionally surprise you - if your script directly or indirectly uses stuff from <code>methods</code> you need to load it explicitly with <code>library(&quot;methods&quot;)</code></li>
+</ul></li>
+<li><p><code>R CMD BATCH &lt;filename&gt;</code>: this is similar but automatically sends output to <code>&lt;filename&gt;.out</code></p></li>
+<li><p><a href="https://stackoverflow.com/questions/21969145/why-or-when-is-rscript-or-littler-better-than-r-cmd-batch">This StackOverflow question</a> says that <code>r</code> &gt; <code>Rscript</code> &gt; <code>R CMD BATCH</code> (according to the author of <code>r</code> …)</p></li>
+</ul>
+</div>
+<div id="loading-modules" class="section level2">
+<h2>loading modules</h2>
+<p>R is often missing from the set of programs that is available by default on HPC systems. Most HPC systems use the <code>module</code> command to make different programs, and different versions of those programs, available for your use.</p>
+<ul>
+<li>If you try to run <code>R</code> in interactive mode on Graham, the system will pop up a long list of possible modules to load and ask you which one you want. The first choice (currently <code>r/4.1.2</code> ) is the default, and generally the best option.</li>
+<li>You can make this happen manually by typing <code>module load r/4.1.2</code> at the shell prompt.</li>
+<li>if you try to run R in batch mode without loading the module first, <em>or</em> if you try to run R on a worker, you’ll get an error. In order to run R on a worker you should add <code>module load r/4.1.2</code> to your batch script.</li>
+<li>From time to time you may find that your scripts require other modules …</li>
+</ul>
+</div>
+<div id="installing-packages" class="section level2">
+<h2>installing packages</h2>
+<ul>
+<li>if done in batch mode, need to specify the repository, i.e. something like <code>options(repos =  c(CRAN = &quot;https://cloud.r-project.org&quot;))</code> (this is a safe default value)</li>
+<li>in order to install your own packages you need to have created and specified a user-writable directory. If you are working interactively the first time you try to install packages <em>for a particular version of R</em>, R will prompt you for whether you want to create such a directory (yes) and where to put it (the default is <code>~/R/x86_64-pc-linux-gnu-library/&lt;R-version&gt;</code>). (If you are in batch mode you’ll get an error.)</li>
+<li>It’s probably easiest to install packages from the head node, either by running <code>install.packages(&quot;&lt;pkg&gt;&quot;</code> in an interactive R session, or by running an R script that defines and installs a long list of packages, e.g. <code>r     pkgs &lt;- c(&quot;broom&quot;, &quot;mvtnorm&quot;, &lt;...&gt;)     install.packages(pkgs)</code> It’s generally OK to run <em>short</em> (&lt;10 minutes) interactive jobs like this in interactive mode, on the head node.</li>
+<li>The main reason to do package installation on the head node is that worker nodes don’t have network access, so you won’t be able to download packages from CRAN. If absolutely necessary you can work around this by downloading tarballs from CRAN (onto the head node, or onto your own machine and then copying them to SHARCnet), but this can be really annoying because you will also have to download tarballs for all of the dependencies of the package you want, and install them in the right order - when you install directly from CRAN this all gets handled automatically. If you have downloaded a package tarball <code>mypkg_0.1.5.tar.gz</code>, use <code>install.packages(&quot;mypkg_0.1.5.tar.gz&quot;, repos=NULL)</code> from within R or <code>R CMD INSTALL mypkg_0.1.5.tar.gz</code> from the shell to install it.</li>
+<li>if you really do want to install packages in batch mode, we can probably put together some machinery using
+<ul>
+<li><a href="https://stackoverflow.com/a/40391302/190277" class="uri">https://stackoverflow.com/a/40391302/190277</a></li>
+</ul></li>
+</ul>
+</div>
+<div id="running-r-jobs-via-job-array" class="section level2">
+<h2>running R jobs via job array</h2>
+<ul>
+<li>A <a href="https://docs.alliancecan.ca/wiki/Job_arrays">job array</a> is the preferred method for submitting multiple batch jobs</li>
+<li>The number of jobs and the indices used in the job array are restricted by the slurm configuration variable <code>MAX_ARRAY_SIZE</code>. This means even if you use steps in your array indices ex. <code>--array=0-20000:10000</code> where the number of jobs is only 3, the job array will not run because the maximum index (20000) is larger than <code>MAX_ARRAY_SIZE</code>-1. Run something like <code>$scontrol show config | grep -E &#39;MaxArraySize|MaxJobCount&#39;</code> to determine SLURM configuration. (<a href="https://slurm.schedmd.com/job_array.html">slurm job array support</a>)</li>
+<li>To use job arrays effectively with R scripts, you need to know how to use <code>commandArgs()</code> to read command-line arguments from within an R script. For example, if <code>batch.R</code> contains:</li>
+</ul>
+<pre class="r="><code>cc &lt;- commandArgs(trailingOnly  = TRUE)
+intarg &lt;- as.integer(cc[1])
+chararg &lt;- cc[2]
+cat(sprintf(&quot;int arg = %d, char arg = %s\n&quot;, intarg, chararg))</code></pre>
+<p>then running <code>Rscript batch.R 1234 hello</code> will produce</p>
+<pre><code>int arg = 1234, char arg = hello</code></pre>
+<p>(note that all command-line arguments are passed as character, must be converted to numeric as necessary). If you want fancier argument processing than base R provides (e.g. default argument values, named rather than positional arguments), see <a href="https://stackoverflow.com/questions/3433603/parsing-command-line-arguments-in-r-scripts">this Stack Overflow question</a> for some options.</p>
+</div>
+<div id="general-performance-tips" class="section level2">
+<h2>general performance tips</h2>
+<ul>
+<li>vectorize!</li>
+</ul>
+</div>
+<div id="interactive-sessions" class="section level2">
+<h2>interactive sessions</h2>
+<p>While Compute Canada is generally meant to be run in batch mode, it is sometimes convenient to do some development/debugging in <em>short</em> (&lt;3 hour) interactive sessions.</p>
+<div id="console" class="section level3">
+<h3>console</h3>
+<p>See <a href="https://docs.alliancecan.ca/wiki/Running_jobs#Interactive_jobs" class="uri">https://docs.alliancecan.ca/wiki/Running_jobs#Interactive_jobs</a></p>
+</div>
+<div id="in-rstudio-or-jupyter-notebook" class="section level3">
+<h3>in RStudio (or Jupyter notebook)</h3>
+<ul>
+<li>log into <a href="https://jupyterhub.sharcnet.ca" class="uri">https://jupyterhub.sharcnet.ca</a> with your Compute Canada username/password</li>
+<li>click on the ‘softwares’ icon (left margin), load the <code>rstudio-server-...</code> module</li>
+<li>an RStudio icon will appear – click it!</li>
+<li>this session does <strong>not</strong> have internet access, but it <strong>does</strong> see all of the files in your user space (including packages that you have installed locally)</li>
+<li>You can run Jupyter notebooks, etc. too (I don’t know if there is a way to run a Jupyter notebook with a Python kernel …)
+<ul>
+<li><a href="https://docs.computecanada.ca/wiki/Jupyter" class="uri">https://docs.computecanada.ca/wiki/Jupyter</a></li>
+<li><a href="https://docs.alliancecan.ca/wiki/JupyterHub#RStudio" class="uri">https://docs.alliancecan.ca/wiki/JupyterHub#RStudio</a></li>
+</ul></li>
+<li>it might make sense to ‘reserve’ your session in advance (so you don’t have to wait a few minutes for it to start up), not yet sure how to do that …</li>
+</ul>
+</div>
+</div>
+<div id="questions-for-sharcnet-folks" class="section level2">
+<h2>questions for SHARCnet folks</h2>
+<ul>
+<li>can you use multithreading and multiprocessing at once?</li>
+<li>confirming SLURM argument <code>--cpus-per-task</code> in single threaded computing</li>
+</ul>
+</div>
+<div id="miscellaneous-useful-links" class="section level2">
+<h2>miscellaneous useful (?) links</h2>
+<ul>
+<li><a href="https://wiki.math.uwaterloo.ca/fluidswiki/index.php?title=Graham_Tips" class="uri">https://wiki.math.uwaterloo.ca/fluidswiki/index.php?title=Graham_Tips</a></li>
+<li><a href="https://helpwiki.sharcnet.ca/wiki/images/3/36/Webinar2016-parallel-hpc-R.pdf" class="uri">https://helpwiki.sharcnet.ca/wiki/images/3/36/Webinar2016-parallel-hpc-R.pdf</a>
+<ul>
+<li>this is useful in being written by SHARCnet folks, but is not super-useful: (1) out of date in some ways (i.e. SHARCnet no longer recommends spawning multiple batch submissions via shell <code>for</code> loop, they prefer <a href="https://docs.alliancecan.ca/wiki/Job_arrays">job arrays</a>), (2) much of the document focuses on <em>general</em> performance tips for high-performance computing in R (using vectorization, packages for out-of-memory computation, etc..) that are not specific to running on HPC clusters</li>
+</ul></li>
+<li><a href="https://cran.r-project.org/web/packages/rslurm/vignettes/rslurm.html" class="uri">https://cran.r-project.org/web/packages/rslurm/vignettes/rslurm.html</a>
+<ul>
+<li>SHARCnet support recommends not using this package. “The slurm settings on the national systems are set to include group accounting and memory request information that determines your group fairshare and priority. Bypassing that may result in unexpected results.”</li>
+</ul></li>
+<li><a href="https://docs.alliancecan.ca/wiki/META:_A_package_for_job_farming" class="uri">https://docs.alliancecan.ca/wiki/META:_A_package_for_job_farming</a>.
+<ul>
+<li>this was recommended by SHARCnet support for embarrassingly parallel jobs in conjunction with job arrays</li>
+</ul></li>
+</ul>
+</div>
+<div id="levels-of-parallelization" class="section level2">
+<h2>levels of parallelization</h2>
+<ul>
+<li><strong>threading</strong>: shared memory, lightweight. Base R doesn’t do any multithreading. Multithreaded computations can be done in R (1) by making use of a multithreaded BLAS (linear algebra) library, (2) using a package that includes multithreaded computation (typically via the <code>OpenMP</code> system) within C++ code (e.g. <code>glmmTMB</code>).
+<ul>
+<li>It may sometimes be necessary to <em>suppress</em> multithreaded computation
+<ul>
+<li><code>OpenMP</code> is usually controlled by setting the shell environment <code>export OMP_NUM_THREADS=1</code>, but there may be controls within an R package as well.</li>
+<li>BLAS threading specifically can be controlled via <code>RhpcBLASctl::blas_set_num_threads()</code> (see <a href="https://github.com/lme4/lme4/issues/492">here</a>)</li>
+</ul></li>
+</ul></li>
+<li><strong>multicore</strong>/<strong>multiprocess</strong>: parallelization at these levels can be implemented within R. There are a bunch of different packages/front ends to handle this, almost all ultimately rest on either the <code>RMPI</code> package (see below) or the <code>parallel</code> package: <code>foreach</code>, <code>doParallel</code>, <code>future</code>, <code>furrr</code>, …
+<ul>
+<li>if using these tools (i.e. parallelization within R) you probably want to figure out the number of chunks <code>N</code> and then define a virtual cluster with <code>N</code> cores within R (e.g. <code>parallel::makeCluster(N)</code>) and set <code>ntasks==N</code> in your submission script (and let the scheduler pick the number of CPUs etc.)</li>
+<li>MPI-based: you probably <em>don’t</em> want to use MPI unless you are doing ‘fancy’ parallel computations that require inter-process communication during the course of the job (you can still use MPI but it’s a waste if you don’t need the communication); requires more specialized cluster resources etc.</li>
+</ul></li>
+<li>via batch scheduler: this is probably the most efficient way to handle distributed/embarrassingly parallel problems
+<ul>
+<li>see comments elsewhere about META/job arrays</li>
+</ul></li>
+<li>deciding on chunk size/number of chunks: META documentation suggests that (1) lower bound on chunking is that each chunk should take &gt;20 minutes computation time (otherwise too much scheduler overhead); max &lt; 1000.
+<ul>
+<li>overall speed/wall-clock time of completion</li>
+<li>resource grabbiness/queue wait time</li>
+</ul></li>
+<li>a <a href="https://medium.com/mineiros/how-to-use-multithreading-and-multiprocessing-a-beginners-guide-to-parallel-and-concurrent-a69b9dd21e9d">useful primer on threading vs multicore</a></li>
+<li>some <a href="https://towardsdatascience.com/parallelization-caveats-in-r-1-the-basics-multiprocessing-and-multithreading-performance-eb584b7e850e">tips/things to avoid when parallelizing</a> (e.g. be aware of memory constraints, overparallelization …)</li>
+</ul>
+</div>
+<div id="parallelization-and-slurm" class="section level2">
+<h2>parallelization and SLURM</h2>
+<p>Determining the number of nodes/cores/processes to request using SLURM will depend on which R package is used for parallelization. The <code>foreach</code> package supports both multi-core (multiple cores on a single node/computer) and multiprocessing (multiple processes within a single node or across multiple nodes in a cluster) parellelization. This is an example on how to run both using <code>foreach</code>, including how to ensure R and SLURM are communicating via the shell script, <a href="https://docs.alliancecan.ca/wiki/R#Exploiting_parallelism_in_R" class="uri">https://docs.alliancecan.ca/wiki/R#Exploiting_parallelism_in_R</a></p>
+<p>You should not let the R package you are using detect and try to use the number of available cores when using HPC, you should instead always specify the number to use.</p>
+<p>When setting SLURM <code>#SBATCH</code> arguments, here are some helpful notes: - A <code>task</code> in SLURM is a process - a process uses one CPU core if it is single threaded. - How tasks are allocated across cores and nodes can be specified using the arguments <code>--nodes</code>, <code>--ntasks</code>, and <code>--ntasks-per-node</code> (<code>--cpus-per-task</code> is specific to multi-threading). Some helpful task allocation examples: <a href="https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q05-how-do-i-create-a-parallel-environment" class="uri">https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q05-how-do-i-create-a-parallel-environment</a> - The task allocation you choose will affect job scheduling. Requesting multiple tasks without specifying the number of nodes (if you don’t require all tasks to be on the same node) puts fewer constraints on the system. Requesting a full node <code>--nodes=1 --ntasks-per-node=32</code> on the Graham cluster has a scheduling advantage but can be seen as abuse if this is not required. <a href="https://docs.alliancecan.ca/wiki/Job_scheduling_policies#Whole_nodes_versus_cores" class="uri">https://docs.alliancecan.ca/wiki/Job_scheduling_policies#Whole_nodes_versus_cores</a></p>
+</div>
 
 
 

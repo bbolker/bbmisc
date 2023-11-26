@@ -3,6 +3,10 @@ title: "To do"
 bibliography: "bayes.bib"
 ---
 
+
+### Examples
+
+
 - what's wrong with `b_prior5` (= `brms_reg` in figure)? Looks reasonable, don't understand why the slope would be weird ...
 - learn more about `brms` default starting values ...
 - Find good test for 'information gained by data' (i.e. prior/post comparison metric), e.g. https://www.princeton.edu/~umueller/priorderiv_slides.pdf: "prior sensitivity", "prior informativeness" @reimherrPrior2021; @mullerMeasuring2012
@@ -15,3 +19,11 @@ From [here](https://statmodeling.stat.columbia.edu/2019/08/10/for-each-parameter
 ### Generic machinery
 
 - how to cache results to avoid recompilation? (Can we switch priors without recompiling?)
+
+understanding the `b_prior5`/`b_prior6` weirdness
+
+choose priors for RE and associated FE together ...
+   narrow together if regularizing
+   try more intermediates, i.e. tinkering with different aspects of the prior
+   
+mention shinystan; Rstanarm priors
