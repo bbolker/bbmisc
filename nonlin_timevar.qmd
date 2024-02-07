@@ -1,0 +1,32 @@
+---
+title: "estimating parameters of nonlinear stochastic dynamical systems"
+---
+
+* stoch vs deterministic process; cont vs discrete state (latent and observed); 
+
+* why worry about discreteness of population?
+   * mean-variance relation (diffusion models) (Turelli, Lande)
+   * fadeout/burnout/absorbing boundaries
+   
+
+* process vs observation/measurement noise
+   * trajectory matching vs one-step-ahead
+   
+identifiability issues
+
+* ODEs
+* stochastic ODEs
+* Gillespie algorithm (Hooke process etc.)
+
+'plug and play'
+
+* Kalman filter
+* ensemble Kalman filter etc.
+
+ABC, synthetic likelihood, etc.
+
+Bayesian/frequentist
+
+state space models
+
+https://github.com/bbolker/stat744/tree/nonlin_dyn
