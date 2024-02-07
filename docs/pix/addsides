@@ -1,0 +1,3 @@
+filename=`rev <<< "$1" | cut -d"." -f2- | rev`
+fileext=`rev <<< "$1" | cut -d"." -f1 | rev`
+convert ${filename}.$fileext -bordercolor white -border $2x0 ${filename}B.$fileext
