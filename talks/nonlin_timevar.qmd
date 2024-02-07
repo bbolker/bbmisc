@@ -160,29 +160,43 @@ $$
 * `dprocess`: compute likelihood of a transition $P(N(t+1)|N(t))$
 * `rprocess`: simulate a trajectory (draw from $N(t+1) \sim D(N(t))$)
 * `dmeasure`, `rmeasure`: ditto, but for measurement/observation step
-* if we have `rprocess` and `dmeasure` we can d
+* if we have `rprocess` and `dmeasure` we can use *sequential methods*
 
-## sequential methods: particle filtering etc.
+## sequential methods
 
-* particle filter
-* iterated filtering
-* sequential Monte Carlo
-* particle MCMC
+estimating state distribution one step at a time (like the Kalman filter)
 
-## particle filter
+* sequential Monte Carlo [@kantasOverview2009]:
+   * particle filtering
+   * iterated filtering
+   * particle MCMC
+
+## particle filtering
+
+* start in a known state distribution
+   * represented by an ensemble of *particles*
+* simulate all particles forward one time step (with known $\theta$)
+* calculate likelihoods of each particle based on $\Nobs(t+1)$
+* resample particles, weighted by their likelihood
+
+## particle filtering
 
 from David Champredon, from @doucetIntroduction2001
 
 ![](pix/particle.png)
 
+## sequential methods
+
+* *iterated filtering* [@ionidesInference2006]: simultaneously estimates parameters and latent states
+* *particle MCMC*: particle filtering to estimate ${\cal L}(\theta)$, then use MCMC to estimate $\theta$
 
 ## likelihood-free methods
 
 * we have neither `dprocess` nor `dmeasure`
-* "feature-based", "probe-matching"
-* define some set of summary statistics that capture aspects of the outcome you care bout
+* "feature-based", "probe-matching" [@kendallWhy1999a]
+* define some set of summary statistics that capture aspects of the outcome you care about; match with observed values
 
-## likelihood-free methods: ABC
+## likelihood-free methods: approximate Bayesian computation (ABC)
 
 * determine a small(ish) number of summary statistics
 * establish priors for all model parameters
