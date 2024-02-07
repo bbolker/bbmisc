@@ -16,7 +16,7 @@ Prefer the active to the passive voice, and language that attributes agency to v
 
 Using the first-person singular in scientific writing is controversial, but you should do it if your audience will let you. If you're writing with co-authors you can use "we"; you may also be able to use "we" in the sense of "I and you, the reader" (this approach is common in mathematics textbooks: "Therefore we can easily conclude that ...").
 
-Scientific readers are generally more interested in the current state of the field than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's generally better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^3]
+Scientific readers are generally more interested in the current state of the field than in its history. While you may sometimes want to illustrate a controversy or the outline the historical development of some research area, it's generally better to write about what's known *now*, i.e. where your study is starting from. <a name="ref2"></a> Similarly, unless you want to refer to a particular study several times, "Ducks like water (Schmoo et al 2015)" is better than "Schmoo et al (2015) observed that ducks like water".[^3] Don't say "Research shows that ..." &mdash; this is both vague and focuses on the research rather than the information that comes from it. Unless you are specifically writing a historical paper, focus on information and ideas rather than the people and studies that gave rise to the information and ideas.
 
 When referring to observations or conclusions based on your own work described in the paper, you should say "Ducks like water" rather than "We observed (concluded that, found that, etc.) ducks like water"; it's more succinct, and your readers will be able to infer that such statements are based on your observations and/or logic.[^4].
 
@@ -76,6 +76,7 @@ Information that is only available on a standalone web site should provide infor
 ## Vocabulary/words to avoid
 
 - "utili[sz]e" (use "use" instead)
+- "comprehend" ("understand")
 - "a multitude of" could be "many"
 - "hypothesize" (Can be useful if you are laying out a formal hypothesis, but why not just "think" or "suggest"?). "It has been hypothesized that" is both passive and (IMO) unnecessarily formal. ("Schmoo et al. (2024) hypothesized that" is OK, but "proposed" or "suggested" could be good, less jargony alternatives)
 - vague qualifiers: "quite", "very", "extremely". Could you omit them without changing the meaning of your sentence?
@@ -85,7 +86,7 @@ Information that is only available on a standalone web site should provide infor
 - "Additionally": this sounds to me like you are making a list and don't know how to motivate the later items more specifically than "and I have another thing to tell you"
 - avoid contractions ("don't", "won't") in formal writing. 
 - "creatures": this word connotes things that were created, which you might want to avoid in scientific writing. Just use "organisms" (or something general enough for your taxon of choice)
-- "unique", "complex", "dynamic", "nonlinear": are you using those words to denote something specific, or are you arm-waving about how cool and interesting your subject is?
+- "unique", "complex", "dynamic", "nonlinear", "intricate": are you using those words to denote something specific, or are you arm-waving about how cool and interesting your subject is?
  
 ## Organization
 
