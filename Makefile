@@ -24,6 +24,12 @@ peak_reduction.Rout: peak_reduction.R
 
 ## Rules from Bolker
 
+%.html: %.qmd
+	quarto render $<
+
+%.pdf: %.pdf
+	quarto render $< --to pdf
+
 %.html: %.[Rr]md
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
 

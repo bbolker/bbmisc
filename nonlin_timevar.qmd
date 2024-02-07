@@ -1,32 +1,235 @@
 ---
 title: "estimating parameters of nonlinear stochastic dynamical systems"
+bibliography: nonlin.bib
+author: Ben Bolker
+date: today
+format: 
+  revealjs:
+     slide-number: true
+     show-slide-number: all
+     template-partials:
+      - title-slide.html
 ---
 
-* stoch vs deterministic process; cont vs discrete state (latent and observed); 
+## overview
 
-* why worry about discreteness of population?
-   * mean-variance relation (diffusion models) (Turelli, Lande)
-   * fadeout/burnout/absorbing boundaries
+* you have a dynamical system you're interested in
+* usually nonlinear, usually stochastic
+* want to estimate its parameters by matching it to data
+* **big** field (e.g. material from a full-semester course [here](https://github.com/bbolker/stat744/tree/nonlin_dyn))
+* highlights only!
+
+## system characteristics
+
+* **stochasticity**: in observation (measurement), process, or both?
+* **state**: continuous or discrete?
+* **time**: discrete or continuous?
+* **state distribution**: Gaussian or non-Gaussian?
+* **dimensionality** (= number of state variables): low or high?
+
+In each case the latter value(s) make fitting computationally & conceptually harder. *You may have to make some compromises* depending on which characteristics matter most.
+
+## observation and process noise
+
+```{r procobs_setup}
+tvec = 1:200
+a.true=5
+b.true=0.05 ## 0.01
+x0 = rnorm(200,mean=a.true+b.true*tvec,sd=2)
+x = x0[-200]
+y = x0[-1]
+lm.ols = lm(x0~tvec)
+lm1 = lm(y~x)
+lm2 = lm(x~y)
+tmpf=function(p) {
+  a=p[1]
+  b=p[2]
+  sum((y-b*x-a)^2/(b^2+1))
+}
+O1 = optim(fn=tmpf,par=c(1,1))
+a1 = arima(x0,c(1,0,0))
+```
+
+```{r procobs_plot}
+op=par(pty="s",mfrow=c(1,2),cex=1.5,mgp=c(2.5,1,0),
+  mar=c(4,4,2,1)+0.1,las=1,lwd=2,bty="l")
+plot(x0,xlab="Time",ylab="N(t)",type="l")
+abline(lm.ols,lwd=2)
+plot(x,y,
+     xlab="N(t)",ylab="N(t+1)",col="gray")
+xvec = seq(floor(min(x)),ceiling(max(x)),length=100)
+matlines(xvec,predict(lm1,interval="prediction",newdata=data.frame(x=xvec)),
+         col=1,lty=c(1,2,2))
+invisible(require(ellipse,quietly=TRUE))
+cov1 = cov(cbind(x,y))
+lines(ellipse(cov1,centre=c(mean(x),mean(y))),lty=2)
+## calculate principal axis
+e1 = eigen(cov1)$values[1]
+rmaslope = sqrt(coef(lm1)[2]*coef(lm2)[2])
+## y = a+e1*x
+##abline(a=mean(y)-e1*mean(x),b=e1)
+##abline(a=mean(y)-rmaslope*mean(x),b=rmaslope,col=2)
+abline(a=O1$par[1],b=O1$par[2],lty=2)
+par(xpd=NA)
+legend(2,25,c("process error","observation error"),
+       lty=1:2,bty="n")
+par(xpd=FALSE)
+par(op)
+```
+
+## deterministic process with observation noise
+
+$$
+\newcommand{\Nobs}{N_{\textrm{obs}}}
+\newcommand{\rzero}{{\cal R}_0}
+$$
+
+* the simplest case (@bolker2008 §11.4.1)
+* **trajectory matching** (or "shooting")
+* given parameters $\mathbf \theta$ (possibly including ICs), solve for $N(t)$ (e.g. by integrating the ODE) and compare with $\Nobs(t)$
+   * least-squares fitting
+   * maximum likelihood (e.g. $\Nobs(t) \sim \textrm{Poisson}(\lambda = N(t))$)
    
-
-* process vs observation/measurement noise
-   * trajectory matching vs one-step-ahead
    
-identifiability issues
+## trajectory-matching pitfalls
 
-* ODEs
-* stochastic ODEs
-* Gillespie algorithm (Hooke process etc.)
+* identifiability, numerical instability, multiple modes/optima
+* fix parameters based on prior knowledge (but!! see @elderdUncertainty2006)
+* reparameterize to get approximately independent components (e.g. $\{\beta, \gamma\} \to \{\rzero, r\}$ for an epidemic model)
+* regularize/add priors
+* try optimization from many starting points
+* see @raue_lessons_2013
 
-'plug and play'
+## sensitivity equations
 
-* Kalman filter
-* ensemble Kalman filter etc.
+* suppose we have derivatives of gradients, e.g. for SIR model
+$$
+\frac{dI}{dt} = \beta SI - \gamma I \to \frac{d\left(\frac{dI}{dt}\right)}{d\beta} = SI
+$$
+* then gradients of trajectory points wrt parameters are e.g.:
+$$
+\frac{d\,I(t)}{d\,\beta} = \int  \frac{d\left(\frac{dI}{dt}\right)}{d\beta}  \, dt
+$$
+* derivs of gradients: analytically/symbolically, or autodiff
+* $\to$ gradient descent, quasi-Newton methods etc.
+* [fitode package](https://github.com/parksw3/fitode)
 
-ABC, synthetic likelihood, etc.
+## more on trajectory matching
 
-Bayesian/frequentist
+* common in pharmacokinetics, infectious-disease epidemiology *for pandemics/large outbreaks*
+* getting good confidence intervals is hard, especially if the system is moderately high-dimensional: *Hamiltonian Monte Carlo* (e.g. in [Stan](https://mc-stan.org/), @grinsztajnBayesian2021)
 
-state space models
+## process error only: gradient matching
 
-https://github.com/bbolker/stat744/tree/nonlin_dyn
+* now suppose observation has *no* error
+* all stochasticity is in the transition from $N(t)$ to $N(t+1)$ (not in $\Nobs(t)$)
+* **one-step-ahead** prediction
+* easier for discrete time (@bolker2008 §11.4.2)
+* can work for ODEs if we smooth the observations first [@Ellner+2002]
+
+## process plus observation error: linear, discrete-time, Gaussian
+
+* immediately gets much harder
+* **state-space** models: track best estimate of underlying state
+* *Kalman filter* (@bolker2008 §11.6.1)
+   * at each time step, updates the current estimate of $N_t$ *and its variance* based on the current observation
+   * fast, powerful, widely used
+   * multivariate versions, e.g. [MARSS package](https://atsa-es.github.io/MARSS/) (multivariate autoregressive state-space)
+   * for nonlinear models, the *extended* Kalman filter uses a local linearization
+
+## MCMC state-space models
+
+* use **Gibbs sampling** to sample each $N(t)$ conditional on everything else in the model
+* automated via e.g. JAGS package
+* @bolker2008 §11.6.2
+
+<!-- convert dynam-DAG.pdf -quality 300 -colorspace RGB dynam-DAG.png -->
+
+![](dynam-DAG.png)
+
+## Gaussian state-space models
+
+* suppose all latent variables are Gaussian (maybe on log scale etc.)
+* estimate all latent variables as part of MLE
+   * use **Laplace approximation** etc. to approximate integrals
+   * use computational tricks (automatic differentiation) to do high-dimensional optimization
+* can also do this with HMC
+
+## 'plug and play' methods (Aaron King)
+
+* [`pomp` package](https://kingaa.github.io/pomp/) (Partially Observed Markov Processes)
+* `dprocess`: compute likelihood of a transition $P(N(t+1)|N(t))$
+* `rprocess`: simulate a trajectory (draw from $N(t+1) \sim D(N(t))$)
+* `dmeasure`, `rmeasure`: ditto, but for measurement/observation step
+* if we have `rprocess` and `dmeasure` we can d
+
+## sequential methods: particle filtering etc.
+
+* particle filter
+* iterated filtering
+* sequential Monte Carlo
+* particle MCMC
+
+## particle filter
+
+from David Champredon, from @doucetIntroduction2001
+
+![](particle.png)
+
+
+## likelihood-free methods
+
+* we have neither `dprocess` nor `dmeasure`
+* "feature-based", "probe-matching"
+* define some set of summary statistics that capture aspects of the outcome you care bout
+
+## likelihood-free methods: ABC
+
+* determine a small(ish) number of summary statistics
+* establish priors for all model parameters
+* pick many sets of parameters from the priors and simulate
+* parameter sets with summary statistics close to observed == posterior
+* @beaumontApproximate2010
+
+## ABC picture
+
+![](beaumont_abc.png)
+
+## likelihood-free methods: synthetic likelihood
+
+* determine a small(ish) number of summary statistics
+* simulate dynamics (including process and observation noise) many times
+* compute summary statistics
+* estimate a multivariate distribution (MVN, multivariate (skew)-$t$, etc.)
+* compute *synthetic* likelihood of observed statistics based on the ensemble
+* maximize this value
+
+@Wood2010, @fasioloComparison2016a
+
+## challenges
+
+* HMC for stochastic ODEs? [@betancourtInfinitesimal2021]
+* discrete stochasticity with absorbing boundaries/extinction
+* approximating discrete states with moment matching (@liFitting2017; Pekos unpub.)
+* high-dimensional (e.g. spatial) problems
+* overdispersion and noise in continuous-time discrete processes (e.g. Hawkes process [@lamprinakouUsing2023], gamma white noise [@bretoCompound2011b])
+
+## references
+
+<!-- TO DO
+
+* pix from book/improve pix
+* more particle filtering pix, details?
+* more on particle MC?
+* discuss conditional independence/joint distribution of trajectories and parameters?
+* ensemble KF?
+
+
+-->
+
+<!-- https://quarto.org/docs/presentations/revealjs/presenting.html -->
+
+<!-- CC badge in title?
+https://quarto.org/docs/journals/templates.html#template-partials
+https://github.com/quarto-dev/quarto-cli/blob/main/src/resources/formats/revealjs/pandoc/title-slide.html -->
+
