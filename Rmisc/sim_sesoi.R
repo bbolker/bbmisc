@@ -45,6 +45,17 @@ catfun <- function(x, s=1) {
     if (lwr<(-s) && upr>s) return(levs[6])
 }
 
+proptest <- function(x, s = 1) {
+    lwr <- x[,2]
+    upr <- x[,3]
+    c(lwr_gt_0 = mean(lwr>0),
+      lwr_gt_s = mean(lwr>s),
+      lwr_gt_negs = mean(lwr>(-s)),
+      upr_gt_0 = mean(upr>0),
+      upr_gt_s = mean(upr>s),
+      upr_gt_negs = mean(upr>(-s)))
+}
+
 
 set.seed(101)
 system.time({
@@ -97,3 +108,53 @@ print(props2 <- table(dd1$cat2) |> prop.table())
 ##  the effect size and the cutoff separately!
 ## making effect size = SESOI = cutoff is (over?)simplifying the problem
 
+## example plot: 80% power
+## prob (lower CI > 0)
+n <- 17; delta <- 1; sd <- 1; s <- 0.5; nu <- 2*n-2; conf.level <- 0.95
+curve(dt(x, df = nu, ncp = sqrt(n/2) * delta/sd), from = -2, 10)
+lims <- qt((1+conf.level)/2, df = nu)
+abline(v = c(-1, 1)*lims, lty = 2)
+pt(lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = FALSE) ## 0.807
+## (the other tail is negligible
+pt(-lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = TRUE) ## ~ 1e-6
+## prob (lower CI > delta [SESOI])
+
+curve(dt(x, df = 5, ncp = 0), from = -5, to = 10)
+abline(v = qt(c(0.025, 0.975), df = 5), lty = 2)
+
+
+
+calc_catpower <- function(n, delta=1, sd=1, s=1, conf.level = 0.95, debug = FALSE) {
+    nu <- 2*n-2
+    ## three comparisons: ncp of (delta, delta-SESOI, delta+SESOI)
+    lims <- qt((1+conf.level)/2, df = nu)
+
+    prob_lwr_gt_0 <- pt(lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = FALSE)
+    prob_lwr_gt_s <- pt(lims, df = nu, ncp = sqrt(n/2) * (delta-s)/sd, lower.tail = FALSE)
+    prob_lwr_gt_negs <- pt(lims, df = nu, ncp = sqrt(n/2) * (delta+s)/sd, lower.tail = FALSE)
+    prob_upr_gt_0 <- pt(-lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = FALSE)
+    prob_upr_gt_s <- pt(-lims, df = nu, ncp = sqrt(n/2) * (delta-s)/sd, lower.tail = FALSE)
+    prob_upr_gt_negs <- pt(-lims, df = nu, ncp = sqrt(n/2) * (delta+s)/sd, lower.tail = FALSE)
+    if (debug) {
+        print(c(lwr_gt_0 = prob_lwr_gt_0, lwr_gt_s = prob_lwr_gt_s, lwr_gt_negs = prob_lwr_gt_negs,
+                upr_gt_0 = prob_upr_gt_0, upr_gt_s = prob_upr_gt_s, upr_gt_negs = prob_upr_gt_negs))
+    }
+    res <- c(prob_lwr_gt_s,
+             prob_upr_gt_s * prob_lwr_gt_0 * (1-prob_lwr_gt_s),
+             prob_lwr_gt_0 * (1-prob_upr_gt_s),
+             prob_lwr_gt_negs * (1-prob_lwr_gt_0) * prob_upr_gt_0 * (1-prob_upr_gt_s),
+             (1-prob_lwr_gt_0) * prob_lwr_gt_negs * prob_upr_gt_s,
+             (1-prob_lwr_gt_negs) * prob_upr_gt_s) |> setNames(levs)
+    return(res)
+}
+
+cc <- calc_catpower(n = 17, debug = TRUE)
+stopifnot(all.equal(sum(cc), 1.0))
+props
+## close but not necessarily correct; needs more testing/inspection
+
+## flip because effect is actually negative in simulations
+proptest(transform(dd1, lwr = -lwr, upr = -upr))
+
+## looks like basic proportions are correct
+## sigh, need to do the full 
