@@ -1,0 +1,85 @@
+---
+title: "Improving statistical computation in R"
+bibliography: rcomp.bib
+author: Ben Bolker
+date: today
+date-format: iso
+format: 
+  revealjs:
+     slide-number: true
+     show-slide-number: all
+     template-partials:
+      - title-slide.html
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(colorspace)
+library(see)
+theme_set(theme_bw(base_size=16))
+```
+
+# introduction
+
+# benchmarking and profiling
+
+## general comments on code performance
+
+* "premature optimization is the root of all evil" (Hoare/Knuth): "software engineers should worry about other issues (such as good algorithm design and good implementations of those algorithms) before they worry about micro-optimizations" [@hydeFallacy2009]
+* you should *measure* speed before you try to fix it
+* [big-O notation](https://en.wikipedia.org/wiki/Big_O_notation) (theoretical scaling properties) useful *if*
+   * you have some idea of the scaling constant
+   * you hope to scale to large problems
+* [Amdahl's Law](https://en.wikipedia.org/wiki/Amdahl%27s_law): speeding up *bottlenecks* is what's important
+
+## benchmarking
+
+* examples should be large enough not to be swamped by overhead
+* ... but small enough to run replicates and average
+* `system.time()` for quick estimates
+* `rbenchmark`, `microbenchmark` packages 
+* estimating scaling: theoretical or empirical (log-log plot)
+
+## scaling example
+
+Modified from @brooksGlmmTMB2017:
+
+```{r echo = FALSE}
+load("contraceptionTimings.rda")
+op <- options(warn = -1)
+gg0 <- ggplot(tmatContraception,
+       aes(n, time, colour=pkg)) + geom_point() +
+    scale_y_log10(breaks=c(1,2,5,10,20,50,100)) +
+    scale_x_log10(breaks=c(1,2,4,10,20,40)) +
+    labs(x="Replication (x 1934 obs.)",y="Elapsed time (s)") +
+    geom_smooth(method="lm", formula = y ~ x) +
+    see::scale_color_okabeito()
+gg0 + geom_function(fun = \(x) 5*x, linetype = 2, colour = "black")
+```
+
+
+
+# parallelization
+
+# automatic differentiation
+
+@griewankIntroduction2003
+
+# memoization
+
+# integration with lower-level languages
+
+https://csgillespie.github.io/efficientR/performance.html
+
+# general tips
+
+## better packages
+
+<!-- https://quarto.org/docs/presentations/revealjs/presenting.html -->
+
+<!-- CC badge in title:
+https://quarto.org/docs/journals/templates.html#template-partials
+https://github.com/quarto-dev/quarto-cli/blob/main/src/resources/formats/revealjs/pandoc/title-slide.html -->
+
+
+## References
