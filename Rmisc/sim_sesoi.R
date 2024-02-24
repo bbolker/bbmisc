@@ -60,7 +60,7 @@ proptest <- function(x, s = 1) {
 set.seed(101)
 system.time({
     ## using auto-simplify of replicate ...
-    dd1 <- as.data.frame(t(replicate(10000, simfun(n=17))))
+    dd1 <- as.data.frame(t(replicate(50000, simfun(n=17))))
     dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
 })
 
@@ -122,39 +122,77 @@ pt(-lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = TRUE) ## ~ 1e-6
 curve(dt(x, df = 5, ncp = 0), from = -5, to = 10)
 abline(v = qt(c(0.025, 0.975), df = 5), lty = 2)
 
-
-
-calc_catpower <- function(n, delta=1, sd=1, s=1, conf.level = 0.95, debug = FALSE) {
+calc_catpower <- function(n, delta=1, sd=1, s=1, conf.level = 0.95, debug = FALSE,
+                          retval = c("catprops", "indprops")) {
+    retval <- match.arg(retval)
     nu <- 2*n-2
     ## three comparisons: ncp of (delta, delta-SESOI, delta+SESOI)
     lims <- qt((1+conf.level)/2, df = nu)
 
     prob_lwr_gt_0 <- pt(lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = FALSE)
+    ## equal to value for -lims, -delta, lower tail (upr < 0 for negative delta):
+    ##  pt(-lims, df = nu, ncp = sqrt(n/2) * -delta/sd, lower.tail = TRUE)
+    prob_upr_lt_0 <- pt(-lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = TRUE)
+    prob_lwr_gt_s <- pt(lims, df = nu, ncp = sqrt(n/2) * (delta-s)/sd, lower.tail = FALSE)
     prob_lwr_gt_s <- pt(lims, df = nu, ncp = sqrt(n/2) * (delta-s)/sd, lower.tail = FALSE)
     prob_lwr_gt_negs <- pt(lims, df = nu, ncp = sqrt(n/2) * (delta+s)/sd, lower.tail = FALSE)
     prob_upr_gt_0 <- pt(-lims, df = nu, ncp = sqrt(n/2) * delta/sd, lower.tail = FALSE)
     prob_upr_gt_s <- pt(-lims, df = nu, ncp = sqrt(n/2) * (delta-s)/sd, lower.tail = FALSE)
+    ## suppress full-precision warning? (1-3.430589e-14)
     prob_upr_gt_negs <- pt(-lims, df = nu, ncp = sqrt(n/2) * (delta+s)/sd, lower.tail = FALSE)
-    if (debug) {
-        print(c(lwr_gt_0 = prob_lwr_gt_0, lwr_gt_s = prob_lwr_gt_s, lwr_gt_negs = prob_lwr_gt_negs,
-                upr_gt_0 = prob_upr_gt_0, upr_gt_s = prob_upr_gt_s, upr_gt_negs = prob_upr_gt_negs))
+    if (retval == "indprops") {
+        return(c(lwr_gt_0 = prob_lwr_gt_0, lwr_gt_s = prob_lwr_gt_s, lwr_gt_negs = prob_lwr_gt_negs,
+                 upr_gt_0 = prob_upr_gt_0, upr_gt_s = prob_upr_gt_s, upr_gt_negs = prob_upr_gt_negs))
     }
     res <- c(prob_lwr_gt_s,
              prob_upr_gt_s * prob_lwr_gt_0 * (1-prob_lwr_gt_s),
-             prob_lwr_gt_0 * (1-prob_upr_gt_s),
+             prob_lwr_gt_0 * (1-prob_upr_gt_s),  ## small/clear sign
              prob_lwr_gt_negs * (1-prob_lwr_gt_0) * prob_upr_gt_0 * (1-prob_upr_gt_s),
              (1-prob_lwr_gt_0) * prob_lwr_gt_negs * prob_upr_gt_s,
              (1-prob_lwr_gt_negs) * prob_upr_gt_s) |> setNames(levs)
     return(res)
 }
 
-cc <- calc_catpower(n = 17, debug = TRUE)
-stopifnot(all.equal(sum(cc), 1.0))
-props
-## close but not necessarily correct; needs more testing/inspection
-
+(ii <- calc_catpower(n = 17, retval = "indprops"))
 ## flip because effect is actually negative in simulations
-proptest(transform(dd1, lwr = -lwr, upr = -upr))
+## is flipping sign always correct? I'm not sure.
+proptest(transform(dd1, lwr = -upr, upr = -lwr))
+## these probabilities look correct, so the discrepancies must (???) be in the way they are combined ...
 
-## looks like basic proportions are correct
-## sigh, need to do the full 
+cc <- calc_catpower(n=17)
+cbind(cc, props)
+diffs <- cc-props
+diffs[abs(diffs)>1e-3]
+sum(cc)  ## too large?? by 1.0054
+## errors are of order 0.02 (opposite tails?)
+## analytical answer is too large for "small/clear sign" (element 3), "NOT (large and opposite)" (element 5)
+##  (can't be a two-tailed problem?)
+
+## small/clear sign:
+## ((lwr>0 && upr<s) || (upr<0 && lwr>(-s)))
+with(dd1, mean(upr<0))
+ii[["lwr_gt_0"]]
+with(dd1, mean(lwr>(-s)))  ## NOT INDEPENDENT!! Ugh.
+chisq.test(with(dd1, table(upr<0, lwr>(-s))))
+1-ii[["upr_gt_s"]]  ## 0.025 vs 0.0028?
+## 0.975 vs 0.99972
+ii[["upr_gt_s"]]
+with(dd1, mean(lwr<(-s)))
+with(dd1, mean((upr<0 & lwr>(-s)) | (lwr>0 & upr<s)))
+
+library(mvtnorm)
+conf.level <- .95; nu <- 32; sd <- 1; s <- 1
+lims <- qt((1+conf.level)/2, df = nu)
+## making corr nearly perfect -- is this the right way? what 'type' do I want?
+pmvt(lower=c(lims,-Inf),
+     upper=c(Inf,lims),
+     df = nu,
+     delta = c(sqrt(n/2)*delta/sd, sqrt(n/2)*(delta-s)/sd), corr = matrix(c(1, 0.999, 0.999, 1), 2))
+
+pmvt(lower=lims, upper = Inf,
+     df = nu,
+     delta = sqrt(n/2)*delta/sd)
+
+## the key point is that we want the same value of X in both cases (I think). This paper seems geared toward what we want:
+## 
+## Owen, D. B. 1965. “A Special Case of a Bivariate Non-Central $t$-Distribution.” Biometrika 52 (3/4): 437–46. https://doi.org/10.2307/2333696.
