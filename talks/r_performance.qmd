@@ -16,6 +16,7 @@ format:
 library(tidyverse)
 library(colorspace)
 library(see)
+library(Rcpp)
 theme_set(theme_bw(base_size=16))
 ```
 
@@ -81,5 +82,35 @@ https://csgillespie.github.io/efficientR/performance.html
 https://quarto.org/docs/journals/templates.html#template-partials
 https://github.com/quarto-dev/quarto-cli/blob/main/src/resources/formats/revealjs/pandoc/title-slide.html -->
 
+## to do
+
+* vectorization, not-growing, Inferno [@burnsInferno2012], Ross
+
+```{r}
+piR_slow <- function(N) {
+    res <- numeric(0)
+    for (i in 1:N) {
+        res <- c(res, as.numeric(runif(1)^2 + runif(1)^2 < 1.0))
+    }
+    4*sum(res)/N
+}
+
+piR <- function(N) {
+    x <- runif(N)
+    y <- runif(N)
+    d <- sqrt(x^2 + y^2)
+    return(4 * sum(d < 1.0) / N)
+}
+
+pi_rcpp <- cppFunction("
+double piSugar(const int N) {
+    NumericVector x = runif(N);
+    NumericVector y = runif(N);
+    NumericVector d = sqrt(x*x + y*y);
+    return 4.0 * sum(d < 1.0) / N;
+}")
+
+pi_rcpp(1e6)
+```
 
 ## References
