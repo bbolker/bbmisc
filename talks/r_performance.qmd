@@ -31,6 +31,7 @@ theme_set(theme_bw(base_size=16))
 * [big-O notation](https://en.wikipedia.org/wiki/Big_O_notation) (theoretical scaling properties) useful *if*
    * you have some idea of the scaling constant
    * you hope to scale to large problems
+* may be interested in scaling with respect to # obs, # parameters, # dimensions ...
 * [Amdahl's Law](https://en.wikipedia.org/wiki/Amdahl%27s_law): speeding up *bottlenecks* is what's important
 
 ## benchmarking
@@ -45,7 +46,7 @@ theme_set(theme_bw(base_size=16))
 
 Modified from @brooksGlmmTMB2017:
 
-```{r echo = FALSE}
+```{r contr_scale, echo = FALSE}
 load("contraceptionTimings.rda")
 op <- options(warn = -1)
 gg0 <- ggplot(tmatContraception,
@@ -64,7 +65,7 @@ gg0 + geom_function(fun = \(x) 5*x, linetype = 2, colour = "black")
 
 * threading vs multicore
 * parallel vs "embarrassingly parallel"/distributed
-* threading: `OpenMP`, parallel BLAS
+* threading: `OpenMP`, parallel BLAS https://csantill.github.io/RPerformanceWBLAS/
 
 # automatic differentiation
 
@@ -147,5 +148,10 @@ double piSugar(const int N) {
 ```{r cache=TRUE}
 rbenchmark::benchmark(piR_slow(1e4), piR(1e5), pi_rcpp(1e5))
 ```
+
+## to do
+
+* reorganize!
+* different glmmTMB-scaling pic?
 
 ## References
