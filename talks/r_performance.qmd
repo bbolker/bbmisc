@@ -58,13 +58,34 @@ gg0 <- ggplot(tmatContraception,
 gg0 + geom_function(fun = \(x) 5*x, linetype = 2, colour = "black")
 ```
 
-
-
 # parallelization
+
+## parallelization types
+
+* threading vs multicore
+* parallel vs "embarrassingly parallel"/distributed
+* threading: `OpenMP`, parallel BLAS
 
 # automatic differentiation
 
-@griewankIntroduction2003
+* @griewankIntroduction2003
+* @chauAutomatic2022
+* RTMB, TMB
+* @keydanaDeep2023; https://skeydan.github.io/Deep-Learning-and-Scientific-Computing-with-R-torch/
+
+## AD example
+
+e.g. `cos(log(1+x^2))`
+
+```{r deriv}
+deriv(~cos(log(1+x^2)), "x")
+```
+
+## better AD in R?
+
+* `Deriv` package
+
+
 
 # memoization
 
@@ -86,6 +107,8 @@ https://github.com/quarto-dev/quarto-cli/blob/main/src/resources/formats/revealj
 
 * vectorization, not-growing, Inferno [@burnsInferno2012], Ross
 
+## bad
+
 ```{r}
 piR_slow <- function(N) {
     res <- numeric(0)
@@ -94,14 +117,24 @@ piR_slow <- function(N) {
     }
     4*sum(res)/N
 }
+```
 
+## better
+
+* vectorize, don't grow objects
+
+```{r}
 piR <- function(N) {
     x <- runif(N)
     y <- runif(N)
     d <- sqrt(x^2 + y^2)
     return(4 * sum(d < 1.0) / N)
 }
+```
 
+## rcpp
+
+```{r}
 pi_rcpp <- cppFunction("
 double piSugar(const int N) {
     NumericVector x = runif(N);
@@ -109,8 +142,10 @@ double piSugar(const int N) {
     NumericVector d = sqrt(x*x + y*y);
     return 4.0 * sum(d < 1.0) / N;
 }")
+```
 
-pi_rcpp(1e6)
+```{r cache=TRUE}
+rbenchmark::benchmark(piR_slow(1e4), piR(1e5), pi_rcpp(1e5))
 ```
 
 ## References
