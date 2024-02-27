@@ -209,6 +209,17 @@ deriv(~cos(log(1+x^2)), "x")
 
 * automatically store previously calculated values
 
+```{r}
+myfac <- function(n) {
+    if (n==0) return(1)
+    return(n*myfac(n-1))
+}
+library(memoise)
+myfac <- memoise(myfac)
+```
+
+```{r}
+microbenchmark::microbenchmark(myfac(20), myfac2(20))
 # integration with lower-level languages
 
 https://csgillespie.github.io/efficientR/performance.html
