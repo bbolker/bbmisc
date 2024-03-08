@@ -196,3 +196,12 @@ pmvt(lower=lims, upper = Inf,
 ## the key point is that we want the same value of X in both cases (I think). This paper seems geared toward what we want:
 ## 
 ## Owen, D. B. 1965. “A Special Case of a Bivariate Non-Central $t$-Distribution.” Biometrika 52 (3/4): 437–46. https://doi.org/10.2307/2333696.
+
+## I think it's easier to look at
+## Julious, Steven A. 2004. “Sample Sizes for Clinical Trials with Normal Data.” Statistics in Medicine 23 (12): 1921–86. https://doi.org/10.1002/sim.1783.
+## which includes power calculations for equivalence tests, especially eq 23:
+## 1-beta = Probt(-t_{1-\alpha},n_A(r+1)-2, n_A(r+1)-2, \tau_2)
+##        - Probt(-t_{1-\alpha},n_A(r+1)-2, n_A(r+1)-2, \tau_1)
+## where tau_1,2 = ((mu_A-mu_B) ± d)\sqrt{r n_A}/(sqrt(r+1) sigma^2)
+## n_A is the sample size of one group and n_B = r*n_A
+## (r=1 is the balanced case)
