@@ -12,6 +12,10 @@ current: target
 
 ######################################################################
 
+Sources += $(wildcard *.rmd) $(wildcard docs/*.html)
+
+######################################################################
+
 DOCDIR=../docs/bayes
 
 all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html $(DOCDIR)/examples.html $(DOCDIR)/setup.html $(DOCDIR)/reading.html
