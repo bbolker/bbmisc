@@ -1,3 +1,17 @@
+
+## This is bbmisc/bayes
+
+current: target
+-include target.mk
+
+######################################################################
+
+## Hooks
+
+../docs/bayes/intro.html: intro.rmd
+
+######################################################################
+
 DOCDIR=../docs/bayes
 
 all: $(DOCDIR)/README.md $(DOCDIR)/intro.html $(DOCDIR)/bayes.bib $(DOCDIR)/priors.html $(DOCDIR)/examples.html $(DOCDIR)/setup.html $(DOCDIR)/reading.html
@@ -39,3 +53,23 @@ test.Rout:
 
 clean:
 	rm -f *~ \#* *.Rout
+
+######################################################################
+
+Sources += Makefile
+
+Ignore += makestuff
+msrepo = https://github.com/dushoff
+
+Makefile: makestuff/00.stamp
+makestuff/%.stamp:
+	- $(RM) makestuff/*.stamp
+	(cd makestuff && $(MAKE) pull) || git clone --depth 1 $(msrepo)/makestuff
+	touch $@
+
+-include makestuff/os.mk
+
+## -include makestuff/pipeR.mk
+
+-include makestuff/git.mk
+-include makestuff/visual.mk
