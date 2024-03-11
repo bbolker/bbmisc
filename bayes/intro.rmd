@@ -18,26 +18,27 @@ library(emdbook)
 
 ## Why Bayes?
 
+* alternative philosophy of statistics/approach to inference
 * magic black boxes for estimation ([BEAST](https://www.beast2.org/), [MrBayes](https://nbisweden.github.io/MrBayes/), [BayesTraits](http://www.evolution.reading.ac.uk/BayesTraitsV4.0.1/BayesTraitsV4.0.1.html), ...)
-* build-your-own model [@mcelreathStatistical2020; @mccarthyBayesian2007; @clarkModels2020; @hobbsBayesian2015]
+* build-your-own model [@mcelreathStatistical2020; @mccarthyBayesian2007; @clarkModels2020; @hobbsBayesian2015] (JAGS, Stan)
 * better handling of uncertainty/error propagation [@elderdUncertainty2006a; @ludwigUncertainty1996]
 * informative priors for data-poor decisions [@mccarthyProfiting2005]
 * priors for regularization [@lemoineMoving2019]
-* alternative inferential approach
+
 
 ## What do you need to know?
 
 * basic meanings of output (point estimates, CIs)
 * nuts and bolts of particular tools
 * usually, more about probability distributions than you already knew
-* for build-your-own, lots more about your model
+* for build-your-own methods, lots more about your model
 * basics of Markov Chain Monte Carlo diagnostics
 
 ## Tools
 
 - mixed models: `rstanarm`, `MCMCglmm`, `brms`, `INLA`
-- build-your-own: toolboxes `BUGS` et al. (`JAGS`), `Stan`, `TMB`, `greta`, ...
-- MCMC diagnostic tools
+- build-your-own: toolboxes `BUGS` et al. (`JAGS`), `Stan`/`rethinking`, `TMB`, `greta`, ...
+- MCMC diagnostic tools (`coda`, `bayestestR`)
 
 ## Inference
 
@@ -45,7 +46,7 @@ library(emdbook)
 tab <- data.frame(Frequentist = c(
                       "null-hypothesis significance testing; AIC etc (every stats textbook; @burnhamModel2002)",
                       "MLE etc. + confidence intervals [@bolkerEcological2008a]"),
-                  Bayesian = c("Bayes factors; Bayesian indices of significance [@makowskiIndices2019]",
+                  Bayesian = c("Bayes factors; Bayesian indices of significance [@makowskiIndices2019; @shiReconnecting2021b]",
                             "posterior means/medians and credible intervals"))
 rownames(tab) <- c("Discrete hypothesis testing",
                    "Continuous/quantitative (estimation with uncertainty)")
