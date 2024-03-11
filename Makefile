@@ -4,7 +4,6 @@
 current: target
 -include target.mk
 
-
 ######################################################################
 
 ## Content
@@ -54,7 +53,17 @@ peak_reduction.Rout: peak_reduction.R
 clean:
 	rm -f *.log *.aux *.md *.out *.nav *.snm *.toc *.vrb texput.log *~
 
+peeves: peeves.md
+	Rscript -e 'rmarkdown::render("peeves.md")'
+	mv peeves.html docs/
+
+rtips: r_parallel_hpc.rmd
+	Rscript -e 'rmarkdown::render("r_parallel_hpc.rmd")'
+	mv r_parallel_hpc.html docs/
+
 ######################################################################
+
+alldirs += bayes
 
 Sources += Makefile
 
@@ -72,11 +81,3 @@ makestuff/Makefile:
 -include makestuff/git.mk
 -include makestuff/visual.mk
 -include makestuff/projdir.mk
-
-peeves: peeves.md
-	Rscript -e 'rmarkdown::render("peeves.md")'
-	mv peeves.html docs/
-
-rtips: r_parallel_hpc.rmd
-	Rscript -e 'rmarkdown::render("r_parallel_hpc.rmd")'
-	mv r_parallel_hpc.html docs/
