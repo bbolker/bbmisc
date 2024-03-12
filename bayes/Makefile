@@ -60,6 +60,16 @@ clean:
 
 ######################################################################
 
+Sources += $(wildcard *.R)
+
+## Quantile example
+
+autopipeR = defined
+
+quantiles.Rout: quantiles.R
+
+######################################################################
+
 Sources += Makefile
 
 Ignore += makestuff
@@ -73,7 +83,7 @@ makestuff/%.stamp:
 
 -include makestuff/os.mk
 
-## -include makestuff/pipeR.mk
+-include makestuff/pipeR.mk
 
 -include makestuff/git.mk
 -include makestuff/visual.mk

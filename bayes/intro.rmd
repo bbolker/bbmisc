@@ -239,9 +239,9 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 ## Examples
 
 * "Complete ignorance" can be harder to specify than you think
-* Linear vs. log scale: do we expect the probability of being between 10 and 11 grams to be equ
-  * = Prob(between 100 and 101 grams) **or**
-  * between 100 and 110 grams??
+* Linear vs. log scale: do we expect the probability of being between 10 and 11 grams to be:
+  * ≈ Prob(between 100 and 101 grams) **or**
+  * ≈ Prob(between 100 and 110 grams) 
 * Linear vs. inverse scale: if we are waiting for things to happen, do we pick our prior on the time scale (number of minutes per bus) or the rate scale (number of buses per minute)?
 
 ```{r contprior, echo = FALSE, fig.cap = "@bolkerEcological2008a Fig 4.4: The difficulty of defining an uninformative prior on continuous scales.  If we assume that the probabilities are uniform on one scale (linear or logarithmic), they must be non-uniform on the other."}
