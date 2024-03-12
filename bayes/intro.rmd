@@ -53,6 +53,13 @@ rownames(tab) <- c("Discrete hypothesis testing",
 knitr::kable(tab)
 ```
 
+## Principles
+
+* Use confidence intervals instead of P values, when possible
+	* Broad-sense confidence intervals include Bayesian credible intervals
+	* Consider scientific “significance” (importance) separately from statistical “significance” (clarity
+
+* If you need P values, use values that are consistent with your confidence intervals, when possible
 
 ## Bayes Theorem 
 
@@ -234,7 +241,8 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 * This often means a normal (or lognormal, or Gamma) with a very large variance
 	* We can test for sensitivity to this choice
 * Can also use a very broad uniform distribution (on log, or linear scale)
-    * Common but sub-optimal?
+    * Common, but avoid if possible
+	 * Do you really believe that a value of 2.00 is as likely as any other likely value, but a value of 1.999 is _absolutely_ impossible?
 
 ## Examples
 
