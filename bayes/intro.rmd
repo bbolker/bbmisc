@@ -174,7 +174,7 @@ mtext(names(mm), outer = FALSE, at = mm, col = cvec, line = 1)
 ## Confidence intervals
 
 * We do hypothesis tests using "credible intervals" --- these are like confidence intervals, except that we really believe (relying on our assumptions) that there is a 95% chance that the value is in the 95% credible interval
-	* There are a lot of ways to do this. You need to decide in advance.
+	* There are a lot of ways to do this [@hespanholUnderstanding2019]. You need to decide in advance.
 	* _Quantiles_ are principled, but not easy in >1 dimension
 	* Highest posterior density is straightforward, but scale-dependent
 	* They're the same if the posterior distribution is symmetric
@@ -243,6 +243,7 @@ Bolker 2008 Figure 6.11: ``Bayesian 95% credible interval (gray), and 5% tail ar
 * Can also use a very broad uniform distribution (on log, or linear scale)
     * Common, but avoid if possible
 	 * Do you really believe that a value of 2.00 is as likely as any other likely value, but a value of 1.999 is _absolutely_ impossible?
+* Prior choices don't matter much **if your data are very informative**
 
 ## Examples
 

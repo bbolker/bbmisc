@@ -63,7 +63,7 @@ if (require("unix")) {
 }
 ```
 
-We'll fit the model `Reaction ~ Days + (Days|Subject)` (a linear regression + random-slopes model)
+We'll fit the model `Reaction ~ 1 + Days + (1 + Days|Subject)` (a linear regression + random-slopes model)
 
 \[
 \newcommand{\XX}{\mathbf X}
@@ -84,7 +84,7 @@ We'll fit the model `Reaction ~ Days + (Days|Subject)` (a linear regression + ra
 \]
 
 ```{r form1}
-form1 <- Reaction ~ Days + (Days|Subject)
+form1 <- Reaction ~ 1 + Days + (1 + Days|Subject)
 ```
 
 ### prior predictive simulation
