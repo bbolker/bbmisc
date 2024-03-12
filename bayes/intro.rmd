@@ -57,7 +57,7 @@ knitr::kable(tab)
 
 * Use confidence intervals instead of P values, when possible
 	* Broad-sense confidence intervals include Bayesian credible intervals
-	* Consider scientific “significance” (importance) separately from statistical “significance” (clarity
+	* Consider scientific “significance” (importance) separately from statistical “significance” (clarity)
 
 * If you need P values, use values that are consistent with your confidence intervals, when possible
 
