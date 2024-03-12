@@ -153,15 +153,15 @@ fraction of the ellipse taken by $H_j$, i.e. the area of the pizza slice divided
 	* Only median is scale-independent
 	
 ```{r pointests, fig.width = 8, fig.height = 4, echo = FALSE}
-par(las = 1, bty = "l")
-cc <- curve(dlnorm(x, meanlog = 0, sdlog = 1), from = 0.001, to = 8,
+par(las = 1, bty = "l", mar = c(2, 2, 5, 2))
+cc <- curve(dlnorm(x, meanlog = 0, sdlog = 1), from = 0.001, to = 5,
             ann = FALSE, axes = FALSE)
 with(cc, polygon(c(x, rev(x)), c(y, rep(0, length(y))), border = "black", col = "gray"))
 cvec <- c("purple", "blue", "red")
-abline(v=c(exp(-1), exp(0), exp(1/2)), col = cvec, lwd = 2) ## mode
-legend(3, 0.5, c("mode", "median", "mean"),
-       col = cvec,
-       lty = 1, lwd = 2, bty = "l")
+mm <- c(mode = exp(-1), median = exp(0), mean = exp(1/2))
+abline(v=mm, col = cvec, lwd = 2) ## mode
+par(xpd=FALSE)
+mtext(names(mm), outer = FALSE, at = mm, col = cvec, line = 1)
 ```
 
 ## Confidence intervals
@@ -314,24 +314,24 @@ par(op)
 
 * A statistical model allows us to calculate the *likelihood* of the data based on parameters
 	* Relationships between quantities, e.g.:
-	* X is linearly related to Y
-	* The variance of X is linearly related to Z
+	* Y is linearly related to X
+	* The variance of Y is linearly related to Z
 	* Distributions
-	* X has a Poisson (or normal, or lognormal) distribution
+    	* e.g. Y has a Poisson (or normal, or lognormal) distribution
 
 # Making a probability model
 
 ## Assumptions
 
-* We need enough assumptions to actually calculate the "likelihood" of our data given parameters
+* We need enough assumptions to calculate the likelihood of our data (probability, given the parameters)
 * To make a probability model we need prior distributions for all of the parameters we wish to estimate
 * We then need to make explicit assumptions about how our data are generated, and calculate a likelihood for the data corresponding to any set of parameters
 
 ## A simple example
 
 * for a single observation of counts
-* assume the likelihood is Poisson
-* assume the prior on the rate parameters is Gamma distributed
+* assume the data are Poisson distributed with some mean $\lambda$
+* assume the prior on the mean is Gamma distributed
 * we can write down the answer immediately (with Calc II)
 
 # MCMC methods
@@ -341,7 +341,7 @@ par(op)
 * Bayesian methods are very flexible
 * We can write down reasonable priors, and likelihoods, to cover a
 	wide variety of assumptions and situations
-* Unfortunately, we usually can't *integrate* -- calculate the 	denominator of Bayes' formula
+* Unfortunately, we usually can't *integrate* (calculate the denominator of Bayes' formula)
 * Instead we use *Markov chain Monte Carlo* methods to sample randomly from the posterior distribution
    * Simple to do, but takes a long time and hard to know for sure that it's working
 
@@ -354,18 +354,18 @@ par(op)
 * Efficient sampling moves 'the right amount' per step to cover the likely space
 * Checking results
     * Are your steps behaving sensibly? ("Divergences": HMC-specific)
-	* Are your parameters bouncing back and forth rather than going somewhere? (xotrace plot)
+	* Are your parameters bouncing back and forth rather than going somewhere? (*trace plot*)
 	* Repeat the whole process with a different starting point (in parameter space): do these "chains" converge? (R-hat statistic) [@vatsRevisiting2018; @vehtariRankNormalization2021a]
 	* Are you sampling enough (effective sample size)?
 * Checking model fit
-    * **posterior** predictive simulation
-	* sample from posterior, simulate, summarize; are important patterns in the data captured by the results?
+    * posterior predictive simulation
+	   * sample from posterior, simulate, summarize; are important patterns in the data captured by the results?
 
 ![](pix/parlett.png)
 
 ## Packages
 
-* There is a lot of software, including R packages, that will do MCMC sampling for you
+* Lots of software, including R packages, will do MCMC sampling for you
 * GLMM-like: `brms`, `rstanarm`, `MCMCglmm`, `INLA`
 * various statistical models: `MCMCpack`
 * build-your-own: JAGS (wrapped by `rjags`/`r2jags`), [Stan](https://mc-stan.org/) (wrapped by [rethinking](https://github.com/rmcelreath/rethinking)), [greta](https://greta-stats.org/), [TMB](https://kaskr.github.io/adcomp/_book/Introduction.html) (`TMB`/`tmbstan`), [NIMBLE](https://r-nimble.org/)
