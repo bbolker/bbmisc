@@ -454,6 +454,20 @@ uncertainty)</td>
 </tbody>
 </table>
 </div>
+<div id="principles" class="section level2">
+<h2>Principles</h2>
+<ul>
+<li>Use confidence intervals instead of P values, when possible
+<ul>
+<li>Broad-sense confidence intervals include Bayesian credible
+intervals</li>
+<li>Consider scientific “significance” (importance) separately from
+statistical “significance” (clarity</li>
+</ul></li>
+<li>If you need P values, use values that are consistent with your
+confidence intervals, when possible</li>
+</ul>
+</div>
 <div id="bayes-theorem" class="section level2">
 <h2>Bayes Theorem</h2>
 <ul>
@@ -602,7 +616,10 @@ variance
 <li>Can also use a very broad uniform distribution (on log, or linear
 scale)
 <ul>
-<li>Common but sub-optimal?</li>
+<li>Common, but avoid if possible</li>
+<li>Do you really believe that a value of 2.00 is as likely as any other
+likely value, but a value of 1.999 is <em>absolutely</em>
+impossible?</li>
 </ul></li>
 </ul>
 </div>
@@ -611,10 +628,10 @@ scale)
 <ul>
 <li>“Complete ignorance” can be harder to specify than you think</li>
 <li>Linear vs. log scale: do we expect the probability of being between
-10 and 11 grams to be equ
+10 and 11 grams to be:
 <ul>
-<li>= Prob(between 100 and 101 grams) <strong>or</strong></li>
-<li>between 100 and 110 grams??</li>
+<li>≈ Prob(between 100 and 101 grams) <strong>or</strong></li>
+<li>≈ Prob(between 100 and 110 grams)</li>
 </ul></li>
 <li>Linear vs. inverse scale: if we are waiting for things to happen, do
 we pick our prior on the time scale (number of minutes per bus) or the
@@ -877,7 +894,7 @@ Convergence</span> of <span>MCMC</span> (with
 </div>
 </div>
 <hr />
-<p>Last updated: 11 March 2024 20:21</p>
+<p>Last updated: 12 March 2024 12:26</p>
 </div>
 </div>
 

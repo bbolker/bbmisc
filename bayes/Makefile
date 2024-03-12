@@ -12,7 +12,11 @@ current: target
 
 ######################################################################
 
-Sources += $(wildcard *.rmd) $(wildcard docs/*.html)
+Sources += $(wildcard *.rmd)
+Sources += $(wildcard ../docs/bayes/intro.html)
+
+## Sources += $(wildcard ../docs/bayes/*.html)
+## Some sort of chaining problem
 
 ######################################################################
 
