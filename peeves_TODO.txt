@@ -1,3 +1,13 @@
 agency: Language Log
 "as mentioned earlier"
 "we have already discussed"
+
+* apostrophe ("the ability of hosts -> "hosts' ability")
+* check recent refs!
+
+lampreys, etc.
+
+'delve'
+'comprehend' -> 'understand'
+
+"When delving into the complex life cycles of the lamprey, female adult lampreys will lay thousands of eggs,"
