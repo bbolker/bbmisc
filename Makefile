@@ -1,4 +1,3 @@
-
 ## This is bbmisc
 
 current: target
@@ -30,6 +29,12 @@ Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 
 ## Rules from Bolker
 
+%.html: %.qmd
+	quarto render $<
+
+%.pdf: %.pdf
+	quarto render $< --to pdf
+
 %.html: %.[Rr]md
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
 
@@ -54,9 +59,18 @@ Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 clean:
 	rm -f *.log *.aux *.md *.out *.nav *.snm *.toc *.vrb texput.log *~
 
+peeves: peeves.md
+	Rscript -e 'rmarkdown::render("peeves.md")'
+	mv peeves.html docs/
+
+rtips: r_parallel_hpc.rmd
+	Rscript -e 'rmarkdown::render("r_parallel_hpc.rmd")'
+	mv r_parallel_hpc.html docs/
+
 ######################################################################
 
 ## makestuff needs to be made manually, since we want to allow Bolker-style making without makestuff
+alldirs += bayes
 
 Sources += Makefile
 
@@ -74,4 +88,3 @@ makestuff/Makefile:
 -include makestuff/git.mk
 -include makestuff/visual.mk
 -include makestuff/projdir.mk
-

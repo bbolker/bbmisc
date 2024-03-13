@@ -1,0 +1,12 @@
+## Notes on priors
+
+* philosophical and practical issues with flat/uninformative priors
+   * https://statmodeling.stat.columbia.edu/2013/11/21/hidden-dangers-noninformative-priors/
+   * Carpenter blog post
+   * Cromwell's Rule
+* neutral priors
+   * lower/upper bound rule (where did I see this already?)
+   * accessory glands paper
+   * powexp stuff
+   * https://vasishth.github.io/bayescogsci/book/ch-priors.html
+   * choosing *scales*

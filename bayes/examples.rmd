@@ -1,0 +1,386 @@
+---
+title: Examples
+bibliography: bayes.bib
+author: "Ben Bolker"
+output:
+  html_document:
+    code_folding: hide
+---
+
+<!-- fold all code blocks but show some initially:
+  https://bookdown.org/yihui/rmarkdown-cookbook/fold-show.html -->
+  
+Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
+
+![](pix/cc-attrib-nc.png)
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set()
+library(pander)
+library(emdbook)
+```
+
+# Simplified Bayes workflow
+
+1. Decide on model specification; journal it, along with justifications
+2. Decide on priors, including prior predictive simulations
+4. Data exploration (graphical)
+5. Fit model
+6. MCMC diagnostics
+7. Model diagnostics, including comparing posterior predictive sims to data
+8. Interpret/predict/etc.
+
+# Examples
+
+## 'sleepstudy' data
+
+From `?lme4::sleepstudy`, "The average reaction time per day (in milliseconds) for subjects in a sleep deprivation study." A standard example for mixed models.
+
+```{r pkgs, message = FALSE}
+library(lme4)
+library(brms)
+options(brms.backend = "cmdstanr")
+library(broom.mixed)
+library(purrr)
+library(dplyr)
+library(tidybayes)
+library(bayesplot)
+library(bayestestR)
+library(ggplot2); theme_set(theme_bw())
+library(see)
+options(ggplot2.discrete.colour= scale_color_okabeito)
+library(ggrastr)
+library(cowplot)
+
+```
+
+```{r limits, include = FALSE}
+## hacks to avoid crashes etc. on BMB's machine
+options(mc.cores = min(4, parallel::detectCores()-1))
+if (require("unix")) {
+    rlimit_as(10e9)  ## approx 10 GB?
+}
+```
+
+We'll fit the model `Reaction ~ 1 + Days + (1 + Days|Subject)` (a linear regression + random-slopes model)
+
+\[
+\newcommand{\XX}{\mathbf X}
+\newcommand{\ZZ}{\mathbf Z}
+\newcommand{\bbeta}{\boldsymbol \beta}
+\newcommand{\bb}{\mathbf b}
+\newcommand{\zero}{\boldsymbol 0}
+\begin{split}
+\textrm{Reaction} & \sim \textrm{Normal}(\XX \bbeta + \ZZ \bb, \sigma^2) \\
+\bb & \sim \textrm{MVNorm}(\zero, \Sigma) \\
+\Sigma & = \textrm{block-diag}, \left( 
+\begin{array}{cc}
+\sigma^2_i & \sigma_{is} \\
+\sigma_{is} & \sigma^2_{s}
+\end{array}
+\right)
+\end{split}
+\]
+
+```{r form1}
+form1 <- Reaction ~ 1 + Days + (1 + Days|Subject)
+```
+
+### prior predictive simulation
+
+`brms` has a convenience function `get_prior()` that lays out the parameters/priors that need to be set,
+and their default values ...
+
+```{r get_prior, R.options = list(width = 10000)}
+get_prior(form1, sleepstudy)
+```
+
+[Info on brms default priors](https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7): Intercept is Student $t$ with 3 df, mean equal to observed mean (median??), SD equal to (rescaled) MAD. RE SDs are the same but *half*-$t$ (see `lb = 0` column), mode at 0.
+
+Constraining intercept and slope to 'reasonable' values:
+
+```{r prior0}
+b_prior <- c(set_prior("normal(200, 50)", "Intercept"),
+             set_prior("normal(0, 10)", "b")
+             )
+```
+
+Helper function for prior predictive simulations: run a short MCMC chain, plot results. (We're going to **ignore/suppress warnings** for this stage ...)
+
+```{r test_prior, class.source = "fold-show"}
+test_prior <- function(p) {
+    ## https://discourse.mc-stan.org/t/suppress-all-output-from-brms-in-markdown-files/30117/3
+    capture.output(
+        b <- brm(form1, sleepstudy, prior = p,
+                 seed = 101,              ## reproducibility
+                 sample_prior = 'only',   ## for prior predictive sim
+                 chains = 1, iter = 500,  ## very short sample for convenience
+                 silent = 2, refresh = 0  ## be vewy vewy quiet ...
+                 )
+    )
+    p_df <- sleepstudy |> add_predicted_draws(b)
+    ## 'spaghetti plot' of prior preds
+    gg0 <- ggplot(p_df,aes(Days, .prediction, group=interaction(Subject,.draw))) +
+        geom_line(alpha = 0.1)
+    print(gg0)
+    invisible(b) ## return without printing
+}
+```
+
+```{r prior1, cache = TRUE}
+test_prior(b_prior)
+```
+
+<!-- ## attempt at caching version, but needs to be updated/hacked to work
+ devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
+ -->
+
+Decrease random-effects SDs:
+
+```{r prior2, cache = TRUE, warning = FALSE, dependson = "prior1"}
+b_prior2 <- c(set_prior("normal(200, 10)", "Intercept"),
+              set_prior("normal(0, 5)", "b"),
+              set_prior("student_t(3, 0, 0.1)", "sd")
+              )
+test_prior(b_prior2)
+```
+
+Make all scales even smaller?
+
+```{r prior3, cache = TRUE, dependson = "prior1"}
+b_prior3 <- c(set_prior("normal(200, 5)", "Intercept"),
+              set_prior("normal(0, 2)", "b"),
+              set_prior("student_t(3, 0, 0.01)", "sd")
+             )
+test_prior(b_prior3)
+```
+
+We forgot to constrain the prior for the residual standard deviation!
+
+```{r prior4, cache = TRUE, dependson = "prior1"}
+b_prior4 <- c(set_prior("normal(200, 5)", "Intercept"),
+              set_prior("normal(0, 2)", "b"),
+              set_prior("normal(0, 1)", "sd"),
+              set_prior("normal(0, 1)", "sigma")
+             )
+test_prior(b_prior4)
+```
+
+Now relax a bit ...
+
+```{r prior5, cache = TRUE, warning = FALSE, dependson = "prior1"}
+b_prior5 <- c(set_prior("normal(200, 10)", "Intercept"),
+              set_prior("normal(0, 8)", "b"),
+              set_prior("student_t(10, 0, 3)", "sd"),
+              set_prior("student_t(10, 0, 3)", "sigma")
+             )
+test_prior(b_prior5)
+```
+
+In hindsight, should relax more.  Set intercept back to default value, widen fixed-effect (slope) prior
+
+```{r prior6, cache = TRUE, warning = FALSE, dependson = "prior1"}
+b_prior6 <- c(set_prior("normal(0, 20)", "b"),
+              set_prior("student_t(10, 0, 3)", "sd"),
+              set_prior("student_t(10, 0, 3)", "sigma")
+             )
+test_prior(b_prior6)
+```
+
+There ae still a few negative reaction times left, which is obviously unrealistic, but at least they're rare ...
+
+## fitting
+
+- Always set the seed!
+- Probably OK to use default chain lengths, burn-in, starting values (chosen randomly from the prior), etc., until you see whether things are OK.
+- `adapt_delta` below is one knob to turn to make the MCMC 'work harder' to avoid geometry problems
+- **in general** 'well-behaved' problems (all parameters on similar scales, parameters relatively independent, priors restrict from sampling in extreme/flat regions, etc.) sample better [@bolkerStrategies2013]; `brms` does a lot of fancy stuff under the hood to try to make things work well
+
+
+```{r lmer_fit, class.source = "fold-show"}
+m_lmer <- lmer(form1, sleepstudy)
+```
+
+```{r brms_fit_reg, eval = FALSE, class.source = "fold-show"}
+b_reg <- brm(form1, sleepstudy, prior = b_prior5,
+             seed = 101,
+             control = list(adapt_delta = 0.95)
+             )
+b_reg2 <- brm(form1, sleepstudy, prior = b_prior6,
+              seed = 101,   
+              control = list(adapt_delta = 0.95)
+              )
+## also try with default settings
+b_default <- brm(form1, sleepstudy,
+                 seed = 101
+                 )
+```
+
+(These are actually run as a batch from `run_examples.R` and loaded here ...)
+
+```{r load}
+load("examples1.rda")
+```
+
+## diagnose
+
+Should really diagnose **before** looking at the parameter values! MCSE is the **Monte Carlo Standard Error**, equal to (std err)/sqrt(ESS).
+
+```{r diag, class.source = "fold-show"}
+print(bayestestR::diagnostic_posterior(b_reg),
+      digits = 4)
+```
+
+$\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021a recommend an $\hat R$ threshold of 1.01, ESS > 400, MCSE (Monte Carlo standard error) 'small enough' for scientific purposes ("figure out what is the needed accuracy for the quantity of interest (for reporting usually 2 significant digits is enough")
+
+## trace plots
+
+`regex_pars` specifies a **regular expression** for deciding which parameters to show
+
+```{r traceplot}
+mcmc_trace(b_reg, regex_pars= "b_|sd_")
+```
+
+@vehtariRankNormalization2021a recommend *rank-histograms* instead: chains should have similar rank distributions
+
+```{r rankhistplot}
+mcmc_rank_overlay(b_reg, regex_pars= "b_|sd_")
+```
+
+## look at results
+
+```{r summary, class.source = "fold-show"}
+summary(b_reg)
+```
+
+Plot results. `broom.mixed::tidy()` will get what you need - complicated code below is to get everything lined up nicely.
+
+```{r proc_models, cache = TRUE}
+brms_modlist <- list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
+res_bayes <- (brms_modlist
+    |> purrr::map_dfr(~ tidy(., conf.int = TRUE), .id = "model")
+)
+## need to do separately - different conf.method choices
+res_lmer <- suppressMessages(m_lmer
+    |> tidy(conf.int = TRUE, conf.method = "profile")
+    |> mutate(model = "lmer", .before = 1)
+)
+res <- (bind_rows(res_lmer, res_bayes)
+    |> select(-c(std.error, statistic, component, group))
+    |> filter(term != "(Intercept)")
+    |> mutate(facet = ifelse(grepl("^cor", term), "cor",
+                      ifelse(grepl("Days", term), "Days",
+                             "int")))
+    |> mutate(across(model, ~ factor(., levels = c("lmer", names(brms_modlist)))))
+)
+```
+
+```{r plot_models}
+ggplot(res, aes(estimate, term, colour = model, shape = model)) +
+    geom_pointrange(aes(xmin = conf.low, xmax = conf.high),
+                    position = position_dodge(width = 0.5)) +
+    facet_wrap(~ facet, scale = "free",ncol = 1) +
+    guides(colour = guide_legend(reverse=TRUE),
+           shape = guide_legend(reverse=TRUE))
+```
+
+## posterior predictive simulations, compare with data
+
+```{r post1, cache = TRUE}
+post_df1 <- sleepstudy |> add_predicted_draws(b_reg)
+gg1 <- ggplot(post_df1,
+              aes(Days, .prediction, group=interaction(Subject,.draw))) +
+    rasterise(geom_line(alpha = 0.1)) +
+    geom_point(aes(y=Reaction), col = "red") +
+    labs(y = "Reaction time")
+print(gg1 + labs(title = "tighter priors (weird)"))
+```
+
+```{r post2, cache = TRUE}
+post_df2 <- sleepstudy |> add_predicted_draws(b_reg2)
+print(gg1 %+% post_df2 + labs(title = "looser priors"))
+```
+
+Compare just Subject 1 results:
+
+```{r cmp_post, cache = TRUE}
+post_df1B <- filter(post_df1, Subject == levels(Subject)[1])
+post_df2B <- filter(post_df2, Subject == levels(Subject)[1])
+plot_grid(gg1 %+% post_df1B + labs(title = "tighter"),
+          gg1 %+% post_df2B + labs(title = "looser"))
+```
+
+Bottom line: `b_prior5`/`b_reg` give "wrong" answers (priors are too tight), 
+`b_prior6`/`b_reg2` are OK, but **the predictions are nearly identical**. This turns out to be because the random effects are taking up the slack in the
+
+Plot random effect draws, from [here](https://discourse.mc-stan.org/t/convenience-function-for-plotting-random-group-effects/13461/2):
+
+Random effects (deviations from population-level/fixed-effect predictions):
+
+```{r ranefs, fig.width = 10}
+brms_modlist <- list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
+ranefs <- (brms_modlist
+    |> purrr::map_dfr(~ tidy(., effects = "ran_vals", conf.int = TRUE), .id = "model")
+)
+gg_r <- ggplot(ranefs, aes(estimate, level, colour = model)) +
+    geom_pointrange(aes(xmin = conf.low, xmax = conf.high), position = position_dodge(width = 0.5)) +
+    facet_wrap(~term, scale = "free", nrow = 1)
+print(gg_r +  geom_vline(lty = 2, xintercept = 0))
+```
+
+Group-level coefficients (predicted intercept/slope for each subject):
+
+```{r coefs, fig.width = 10}
+## this is way too ugly - needs to be incorporated into broom.mixed as an option
+my_coefs <- function(x) {
+    meltfun <- function(a) {
+        dd <- as.data.frame(ftable(a)) |>  
+            setNames(c("level", "var", "term", "value")) |>
+            tidyr::pivot_wider(names_from = var, values_from = value) |>
+            rename(estimate = "Estimate",
+                   std.error = "Est.Error",
+                   ## FIXME: not robust to changing levels
+                   conf.low = "Q2.5",
+                   conf.high = "Q97.5")
+    }
+    purrr:::map_dfr(coef(x), meltfun, .id = "group")
+}
+coefs <- (brms_modlist
+    |> purrr::map_dfr(my_coefs, .id = "model")
+)
+print(gg_r %+% coefs)
+```
+
+Compare means of random effects (should be zero!)
+
+```{r cmp_re_means}
+ranefs |>
+    group_by(model, term) |>
+    summarise(mean = mean(estimate),
+              se = sd(estimate)/n(),
+              .groups = "drop")
+## to plot:
+## |>
+##     ggplot(aes(mean, term, colour = model)) +
+##    geom_pointrange(aes(xmin=mean-se, xmax = mean + se), position = position_dodge(width = 0.5))
+```
+
+```{r check_ranefs, eval = FALSE}
+check_prior(b_reg)
+try(check_prior(b_reg2)) ## ugh
+debug(bayestestR:::.check_prior)
+try(check_prior(b_reg2, method = "lakeland")) ## ugh
+```
+
+## References
+
+::: {#refs}
+:::
+
+
+---
+
+Last updated: `r format(Sys.time(), "%d %B %Y %H:%M")`
+
+

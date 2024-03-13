@@ -1,0 +1,135 @@
+---
+title: Priors
+bibliography: bayes.bib
+author: "Ben Bolker"
+---
+
+Includes material from Ian Dworkin and Jonathan Dushoff, but they bear no responsibility for the contents.
+
+![](pix/cc-attrib-nc.png)
+
+```{r setup, include=FALSE}
+library(knitr)
+library(pander)
+library(emdbook)
+```
+
+```{r pkgs, message = FALSE}
+library(brms)
+library(lme4)
+library(broom.mixed)
+library(tidybayes)
+```
+
+## baseline prior choices
+
+See [distribution explorer](https://distribution-explorer.github.io) ([backend](https://github.com/distribution-explorer/distribution-explorer.github.io))
+
+- real-valued parameters: Gaussian (or Student-$t$)
+- variances: half-Student-t on the standard deviation scale *or* log-Normal
+- other positive-valued: Gamma or log-Normal
+   * older: inverse-Gamma for variances, for conjugacy
+- bounded: Beta
+- correlation/covariance matrices
+   * [LKJ](https://distribution-explorer.github.io/multivariate_continuous/lkj.html) or "onion" [@lewandowskiGenerating2009a]. $\eta=1$ $\to$ uniform, $\eta>1$ favours a stronger diagonal (smaller correlations)
+   * Wishart [older] ('mean' = typical corr matrix, usually diagonal; shape 'nu' determines variance [1 is equivalent to an exponential dist for 1-dim, so <1 is 'weak']
+
+## prior problems
+
+* scale dependence
+* improper priors (scale dependence, identifiability/computational issues)
+
+## issues with proper uniform priors
+
+* Cromwell's rule [@lindleyBayesian1980]: don't exclude *possible* values
+
+## squashing problems
+
+* 'wide' on one scale $\neq$ noninformative on a transformed scale
+* especially for intervals, e.g. probabilities
+* for positive distributions, uninformative *often* leads to a spike at zero (inverse-Gamma)
+
+```{r stack, fig.width = 8, echo = FALSE}
+sdval <- 3
+par(mfrow = c(1,2), las = 1, bty = "l", xaxs = "i")
+pc <- function(..., xlab = "", ylab = "") {
+    cc <- curve(..., xlab = xlab, ylab = ylab)
+    polygon(c(cc$x, rev(cc$x)), c(cc$y, rep(0, length(cc$y))),
+            border = NA, col = "gray")
+    curve(..., add = TRUE)
+}
+dlogitnorm <- function(x, mean = 0, sd = 1) {
+    dnorm(qlogis(x), mean, sd)/(x*(1-x))
+}
+pc(dnorm(x, sd = sdval), from = -5*sdval, to = 5*sdval,
+      main = "wide prior (log-odds scale)")
+pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
+      n = 601,
+      main = "wide prior (probability scale)")
+```
+
+## stacking problems
+
+* problems when informative (posterior squashing) @carpenterComputational2017
+
+## priors for variances
+
+
+* people used to use inverse-Gamma a lot (because conjugate): uninformative/wide → big spike at zero  [@gelmanPrior2006]
+* half-Normal, half-$t$ are better
+    * *parameter-expanded priors* in `MCMCglmm` @gelmanData2006
+* regularizing priors [@chungNondegenerate2013a] prevent 'singularity'
+* singularity doesn't matter as much when fully Bayesian because we're integrating over the whole posterior
+
+## priors for covariance/correlation matrices
+
+* a single correlation is easy (e.g. a Beta distribution)
+* multivariate correlation/covariance matrix is ugly
+* separate priors for (log)-SDs, correlations
+   * **LKJ** or "onion" [@lewandowskiGenerating2009a]
+
+## choosing priors
+
+* @singmannStatistics2023 ("using priors over inherently meaningful units instead of default priors on standardized scales")
+* unitless (log, logit-transformed, standardized) parameters make it easier to choose [@schielzethSimple2010]
+* choose a 'wide range' as e.g. $\pm 2\sigma$ or $\pm 3\sigma$ of a Normal (or $t$) prior: @inchaustiStatistical2023, @wanEstimating2014
+* use prior information but dilute it: @ibrahimpower2015
+
+## prior sensitivity
+
+- compare results with different priors: @cromeNovel1996
+
+* more general refs: @bannerUse2020;  ; @edwardsComment1996; @nicenboimIntroduction2023 (chap 3); @gelmanBayesian2020; @xieMeasures2006; @kallioinenDetecting2022; @finkcompendium1997; @sarmaPrior2020
+* **lots** here (kind of a grab bag): https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
+* https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
+
+## definitions (from @bannerUse2020)
+
+```{r priortab, echo = FALSE, results = "asis"}
+tab = read.table(sep = ";", header = TRUE, quote = "", text = "type; definition
+default; Commonly used non-informative priors that are often left unjustified by the user. Examples include, normal priors for regression coefficients with variances as large as $10^6$, Uniform(0,1) on probabilities or proportions, and other ‘non-informative’ priors used without justification in software tutorials (e.g. WinBugs manual)
+vague, flat, diffuse;A non-informative prior that is used to reflect the prior knowledge that not much is known about the parameter of interest, but is well justified and hyper-parameter values are set to reflect a reasonable range of values for the parameter in the context of the problem.
+Jeffreys'; A prior for a single-parameter that, when the parameter is transformed to a different scale (via a 1:1 transformation), the resulting prior for the transformed parameter is exactly the same as the prior for the parameter on the original scale. This approach was introduced by Jeffreys (Jeffreys, 1946), and is often used to define a non-informative prior for a single-parameter that is invariant to transformations, or scale-invariant
+weakly informative;Often refers to prior distributions that are used to reflect a diluted (or scaled back) amount of knowledge about the parameters
+regularizing;A type of weakly informative prior that is meant to constrain the parameter space to help with estimation of the posterior distribution. Examples include $N(0, \\sigma^2 = 2)$ priors on logistic regression coefficients, and shrinkage priors when the number of predictors is greater than the sample size (i.e. $p > n$ problems)
+informative;A prior that is carefully designed to reflect the current knowledge (and uncertainty) of the parameter. 
+")
+knitr::kable(tab)
+```
+
+## Bayesian workflow
+
+This figure from @gelmanBayesian2020 is a little overwhelming. It is more targeted toward people who are developing new Bayesian models from scratch rather than using a platform like `brms` but can still be useful.
+
+![](pix/workflow.png)
+
+## References
+
+::: {#refs}
+:::
+
+---
+
+Last updated: `r format(Sys.time(), "%d %B %Y %H:%M")`
+
+

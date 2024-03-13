@@ -103,20 +103,32 @@ substitute_strings <- function(text, replacements) {
 }
 
 ## vectorized search for a single file matching each pattern in a string
-get_files <- Vectorize(
-    vectorize.args = "pat",
-    FUN =
-      function(pat, exclude = NULL, allow_mult = FALSE) {
-      f <- list.files(path=hwdir, pattern = pat, ignore.case = TRUE)
-      if (length(exclude) > 0) {
-        f <- f[!grepl(paste(exclude, collapse="|"), f)]
-      }
-      if (!allow_mult && length(f)>1) stop("multiple files: ",paste(f,collapse=", "))
-      f <- paste(f, collapse = "; ")
-      if (length(f)==0) return(NA)
-      names(f) <- pat
-      return(f)
-    })
+##' @param pat pattern
+##' @param exclude pattern to exclude
+##' @param allow_mult allow multiple files per individual?
+##' @param dir directory to search
+get_files <- function(pat, exclude = NULL,
+                      allow_mult = c("error", "latest", "OK"), dir = ".") {
+    allow_mult <- match.arg(allow_mult)
+    res <- vector("list", length(pat))
+    names(res) <- pat
+    for (p in pat) {
+        f <- list.files(path=dir, pattern = p, ignore.case = TRUE)
+        if (length(exclude) > 0) {
+            f <- f[!grepl(paste(exclude, collapse="|"), f)]
+        }
+        if (length(f) > 1) {
+            if (allow_mult == "error") stop("multiple files: ",paste(f,collapse=", "))
+            if (allow_mult == "latest") {
+                f <- f[which.max(sapply(f, function(x) file.info(x)[["mtime"]]))]
+            }
+        }
+        f <- paste(f, collapse = "; ")
+        res[[p]] <- if (length(f)==0) NA else f
+    }
+    return(res)
+}
+
 
 
 #' @param docdir directory to search for documents
@@ -143,7 +155,7 @@ do_mail <- function(data,
     if (is.null(doc_dir)) return(data[[doc_name]])
     ## ugh!
     tmp <- sapply(strsplit(data[[doc_name]],";")[[1]],
-                 \(x) file.path(doc_dir, x))
+                 function(x) file.path(doc_dir, x))
     paste(tmp, collapse = ";")
   }
 

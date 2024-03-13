@@ -1,7 +1,7 @@
 ---
 title: statistics stuff to think about
 author: Ben Bolker
-date:  11 November 2021
+date:  9 November 2022
 bibliography: stats.bib
 csl: reflist2.csl
 output:
@@ -26,6 +26,8 @@ h3 {
 .title-slide {
    background-color: #55bbff;
 }
+<!-- https://stackoverflow.com/questions/50378349/force-column-break-in-rmarkdown-ioslides-columns-2-layout -->
+.forceBreak { -webkit-column-break-after: always; break-after: column; }
 </style>
 <!--    content: url(https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
 >
@@ -69,7 +71,7 @@ th_clean <-
 ## the most important thing {.build}
 
 > - Design your experiment well and execute it well:  
-you needn't worry too much in advance about statistics
+don't have to worry much about statistics
 > - Don't: you're doomed - statistics can't save you ![](skullcross_tiny.png)
 > - **randomization**, **replication**, **control**
 
@@ -82,11 +84,14 @@ you needn't worry too much in advance about statistics
 (i.e., randomize within groups)
 - related: experimental *blinding*
 
-## Yellowstone aspen regeneration [@brice_sampling_2021]
+## Yellowstone aspen regeneration {.smaller}
 
-```{r yellowstone, out.width="80%"}
+>  @brice_sampling_2021: Understanding trophic cascades in terrestrial wildlife communities is a major challenge because these systems are difficult to sample properly. We show how a tradition of non-random sampling has confounded this understanding in a textbook system (Yellowstone National Park) ...
+
+```{r yellowstone, out.width="60%"}
 knitr::include_graphics("pix/yellowstone_browse2.png")
 ```
+
 
 ## replication {.build}
 
@@ -99,8 +104,9 @@ if one exists
 >      * cheating is likely
 >      * *significance filter* $\to$ biased estimates
 - *overpowered* studies waste time, lives, $$$
-> - **pseudoreplication** [@hurlbert_pseudoreplication_1984;@davies_dont_2015]
+<!-- > - **pseudoreplication** [@hurlbert_pseudoreplication_1984;@davies_dont_2015]
 confounding sampling units with treatment units
+-->
 
 ## power analysis
 
@@ -122,11 +128,16 @@ library("sos"); findFn("{power analysis}")
 
 With $n=15$ per group, are we likely to see a clear difference between 10% (control) and 20% (treatment) mortality (a **doubling** of mortality)?
 
+- `PollEv.com/bbolker2234`
+- Text `BBOLKER2234` to `22333` once to join
+
+[link](https://www.polleverywhere.com/multiple_choice_polls/ezjaxEkbvqJIiOnFFckQs)
+
 ## power analysis example (continued)
 
 <!-- would like to highlight power: line, but too hard -->
 ```{r pow,echo=TRUE}
-power.prop.test(n=15,p1=0.1,p2=0.2)
+power.prop.test(n=15, p1=0.1, p2=0.2)
 ```
 
 **Uh-oh!**
@@ -135,10 +146,12 @@ power.prop.test(n=15,p1=0.1,p2=0.2)
 
 How many samples per group would we need to get power=0.8?
 
+[link](https://www.polleverywhere.com/multiple_choice_polls/V1xRAqc4sf9UHBCGWYTz3)
+
 ---
 
 ```{r pow2,echo=TRUE}
-power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
+power.prop.test(power=0.8, p1=0.1, p2=0.2, sig.level=0.05)
 ```
 
 **Uh-oh!**
@@ -146,20 +159,20 @@ power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
 ---
 
 <div style="font-size:40px; margin:auto; width:50%">
-**what should we do?**
+[**what should we do?**](https://www.polleverywhere.com/discourses/cyA0PTPQA1nI3Qb198idK)
 </div>
 
 ## increasing power (control)
 
-- increase sample size (ugh)
-- increase rejection threshold (e.g. $\alpha=0.1$)  
-(probably can't get away with this)
-- maximize *desired* variation (e.g. large doses)
-- measure a clearer outcome (gene expression, hormone levels, etc.)
+> - increasing sample size ... **is not the only option**
+> - increase rejection threshold (e.g. $\alpha=0.1$)
+> - maximize **treatment** variation (e.g. large doses)
+> - measure a clearer outcome (gene expression, hormone levels, etc.)
+> - **ask a different (simpler) question**
 
 ---
 
-- minimize *undesired* variation
+- minimize **non-treatment** variation
     - *within-subjects* designs  
 	(paired, randomized-block, crossover)
 - minimize environmental variation  
@@ -176,117 +189,23 @@ power.prop.test(power=0.8,p1=0.1,p2=0.2,sig.level=0.05)
 ## the other most important thing  {.build}
 
 > - **don't snoop!**  
-(= don't look at your results *before deciding how to analyze them*)
+(i.e don't look at your results  
+**before deciding how to analyze them**)
 > - (but **do** explore your data graphically after deciding on a tentative analysis plan!)
-> - reproducibility crisis: @ioannidis_why_2005, @simmons_false-positive_2011
+> - reproducibility crisis: @ioannidis_why_2005; @simmons_false-positive_2011 ("researcher degrees of freedom"); @gelman_statistical_2014 ("the garden of forking paths")
 > - pre-register; think about what your questions are and how you will test them **before you look at your data**
 
-## fishing expeditions
-
-https://xkcd.com/882/
-
-## "The Garden of Forking Paths" [@gelman_statistical_2014]
-
-(or "researcher degrees of freedom" [@simmons_false-positive_2011])
-
+<!--
 ```{r forking_paths, echo=FALSE, out.width = "60%"}
 knitr::include_graphics("pix/forking_paths.jpg")
 ```
 
 - https://artsharela.org/event/carillon-quartet-the-garden-of-forking-paths/
 
-## don't lean on p-values too much
+-->
 
-<div class="columns-2">
-<!-- spacing? -->
+## do plot your data ...
 
-- focus on effect sizes/CIs
-- eschew vacuous hypotheses
-- don't accept the null hypothesis
-- "the difference between significant and non-significant is not significant"
-[@gelman_difference_2006]
-- statistical *clarity* [@dushoff_i_2018]
-
-```{r CIplot}
-dd <- data.frame(x=1:4,
-                 y=c(0.1,0.15,1.2,1.1),
-            err=c(0.09,0.17,1.3,0.6),
-            special=c("yes","no","no","yes"))
-dd <- transform(dd,
-                lwr = y-err,
-                upr = y+err,
-                pval=signif(2*pnorm(-y/(err/1.96),
-                                    lower.tail=TRUE),1))
-oldOpt <- options(scipen=1000)
-gg0 <- ggplot(dd,aes(x,y,ymin=lwr,ymax=upr,
-              colour=special))+
-  geom_pointrange()+
-  geom_hline(yintercept=0,lty=2)+
-  th_clean+labs(x="some treatments",y="some response")+
-  scale_y_continuous(limits=c(-0.15,2.6)) +
-  expand_limits(x=c(0.5,4.3))
-print(gg0  +   scale_colour_manual(values=c("black","black"),
-                              guide="none"
-                              ))
-```
-
-</div>
-
-<!-- fake animation (double slide) -->
-
-## don't lean on p-values too much
-
-<div class="columns-2">
-<!-- spacing? -->
-
-- focus on effect sizes/CIs
-- eschew vacuous hypotheses
-- don't accept the null hypothesis
-- "the difference between significant and non-significant is not significant"
-[@gelman_difference_2006]
-- statistical *clarity* [@dushoff_i_2018]
-
-```{r CIplot2}
-(gg0 +  geom_text(aes(x=x,y=y+err+0.1,colour=special,
-                      label=paste0("p=",pval)))
-  +   scale_colour_manual(values=c("black","red"),
-                      guide="none"))
-
-```
-
-</div>
-
-
-## regression table (OK)
-
-1978 automobile data [@chambers_graphical_1983]
-
-<div style="font-size:18px">
-```{r lm1,message=FALSE}
-if (!file.exists("auto.dta")) {
-    download.file("http://www.stata-press.com/data/r9/auto.dta",
-                  dest="auto.dta")
-}
-auto <- haven::read_dta("auto.dta") %>%
-  mutate(price=price/1000)
-lm1 <- lm(price~mpg+trunk+length+turn, data=auto)
-huxtable::huxreg(lm1,error_pos="right")
-```
-</div>
-## coefficient plot (better!)
-
-```{r dw,out.width=500,message=FALSE}
-tt <- broom::tidy(lm1) 
-(dotwhisker::dwplot(lm1)
-  + geom_vline(xintercept=0,lty=2)
-  + labs(x="standardized effect on price (US$1000)")
-  + scale_colour_manual(values="black")
-  + scale_y_discrete(
-      breaks=c("mpg","trunk","length","turn"),
-      labels=c("mileage","trunk\nspace",
-               "length","turning\nradius"))
-)
-```
 <!-- 
 # data exploration 
 
@@ -313,6 +232,9 @@ tt <- broom::tidy(lm1)
     - scatterplot matrices
    
 -----
+
+-->
+
 <div class="columns-2">
 ```{r graphex,echo=FALSE,fig.width=6,fig.height=6,message=FALSE}
 set.seed(101)
@@ -322,7 +244,9 @@ dd <- setNames(rbind(dd,c(-2,2)),c("x","y"))
 dd$special <- c(rep("no",100),"yes")
 p <- ggplot(dd, aes(x, y,
                     colour=special)) + geom_point(size=5)+
-  scale_colour_manual(values=c("black","red"),guide=FALSE)+th_clean+labs(x="",y="")
+    scale_colour_manual(values=c("black","red"),guide="none")+
+    th_clean+
+    labs(x="",y="")
 ggMarginal(p, type = "histogram")
 ```
 
@@ -342,14 +266,105 @@ library("reshape2")
 ggplot(f12,aes(x,y))+geom_point()+
   facet_wrap(~s)+labs(x="",y="")+
   th_clean
-
 ```
 
 "Anscombe's quartet"; see also "Datasaurus" [@matejka_datasaurus_2017]
 
 </div>
 
--->
+## don't lean on p-values too much
+
+<div class="columns-2">
+<!-- spacing? -->
+
+- eschew vacuous hypotheses
+- don't accept the null hypothesis
+- "the difference between significant and non-significant is not significant"
+[@gelman_difference_2006]
+- statistical *clarity* [@dushoff_i_2019]
+- [link](https://www.polleverywhere.com/multiple_choice_polls/Xnq70HYpOp6LZObg7KBG3)
+
+```{r CIplot, message = FALSE}
+dd <- data.frame(x=1:4,
+                 y=c(0.05,0.15,1.2,1.1),
+               err=c(0.03,0.17,1.3,0.8),
+            special=c("yes","no","no","yes"))
+dd <- transform(dd,
+                lwr = y-err,
+                upr = y+err,
+                pval=signif(2*pnorm(-y/(err/1.96),
+                                    lower.tail=TRUE),1))
+oldOpt <- options(scipen=1000)
+gg0 <- ggplot(dd,aes(x,y,ymin=lwr,ymax=upr,
+              colour=special))+
+  geom_pointrange()+
+  geom_hline(yintercept=0,lty=2)+
+  th_clean+labs(x="some treatments",y="some response")+
+  scale_y_continuous(limits=c(-0.15,2.6)) +
+  expand_limits(x=c(0.5,4.3))
+print(gg0  +   scale_colour_manual(values=c("black","black"),
+                              guide="none"
+                              ))
+ggsave("blank_pvals.png")
+```
+
+</div>
+
+<!-- fake animation (double slide) -->
+
+## don't lean on p-values too much
+
+<div class="columns-2">
+<!-- spacing? -->
+
+- focus on effect sizes/CIs
+- eschew vacuous hypotheses
+- don't accept the null hypothesis
+- "the difference between significant and non-significant is not significant"
+[@gelman_difference_2006]
+- statistical *clarity* [@dushoff_i_2019]
+
+```{r CIplot2}
+(gg0 +  geom_text(aes(x=x,y=y+err+0.1,colour=special,
+                      label=paste0("p=",pval)))
+  +   scale_colour_manual(values=c("black","red"),
+                      guide="none"))
+
+```
+
+</div>
+
+
+## focus on effect sizes: regression table
+
+1978 automobile data [@chambers_graphical_1983]
+
+<div style="font-size:18px">
+```{r lm1,message=FALSE}
+if (!file.exists("auto.dta")) {
+    download.file("http://www.stata-press.com/data/r9/auto.dta",
+                  dest="auto.dta")
+}
+auto <- haven::read_dta("auto.dta") %>%
+  mutate(price=price/1000)
+lm1 <- lm(price~mpg+trunk+length+turn, data=auto)
+huxtable::huxreg(lm1,error_pos="right")
+```
+</div>
+## focus on effect sizes: coefficient plot
+
+```{r dw,out.width=500,message=FALSE}
+tt <- broom::tidy(lm1) 
+(dotwhisker::dwplot(lm1)
+  + geom_vline(xintercept=0,lty=2)
+  + labs(x="standardized effect on price (US$1000)")
+  + scale_colour_manual(values="black")
+  + scale_y_discrete(
+      breaks=c("mpg","trunk","length","turn"),
+      labels=c("mileage","trunk\nspace",
+               "length","turning\nradius"))
+)
+```
 
 # statistical tests
 
@@ -368,13 +383,12 @@ ggplot(f12,aes(x,y))+geom_point()+
 
 ## diagnostics
 
-- hypothesis tests are **not** generally appropriate:  
+- hypothesis tests are generally **not** appropriate:  
 they answer the wrong question
-- graphical diagnostics
+- graphical diagnostics, e.g.
     - residuals plots (linearity, heteroscedasticity)
     - influence plots (outliers)
     - Q-Q plots (Normality)
-    - Box-Cox plots (transformations)
 
 ## (the data set)  {.centered}
 
@@ -384,12 +398,15 @@ n <- 50
 dd_bad <- data.frame(x=1:n)
 dd_bad <- transform(dd_bad,y=0.2*x^2+x*rt(n,4))
 m1 <- lm(y~x,dd_bad)
+m2 <- lm(y~poly(x,2),dd_bad)
+## m3 <- robustbase::lmrob(y~poly(x,2),dd_bad)
 ```
 
 ```{r data_bad}
 ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm", formula= y~x)
 ```
 
+<!--
 ## diagnostics  {.centered}
 
 
@@ -398,13 +415,25 @@ par(mfrow=c(2,2),las=1,mgp=c(2,1,0),mar=c(4,3,0.5,0.5),oma=c(0,0,2,0))
 plot(m1)
 ```
 
-(more [here](http://www.sthda.com/english/articles/39-regression-model-diagnostics/161-linear-regression-assumptions-and-diagnostics-in-r-essentials/))
-
+-->
 
 ## diagnostics (`performance` pkg)
 
 ```{r performance, fig.width = 8, fig.height = 8, out.width = "90%"}
 performance::check_model(m1)
+```
+
+## fix the model
+
+```{r data_quad}
+ggplot(dd_bad,aes(x,y))+geom_point()+geom_smooth(method="lm",
+                                                 formula= y~poly(x,2))
+```
+
+## new check
+
+```{r performance2, fig.width = 8, fig.height = 8, out.width = "90%"}
+performance::check_model(m2)
 ```
 
 ## dealing with violations
@@ -414,20 +443,20 @@ performance::check_model(m1)
 - non-parametric (rank-based) tests  
 (e.g. Mann-Whitney-Wilcoxon, Kruskal-Wallis)
 - relax assumptions/do fancier stats, e.g.
-    - logistic regression (0/1 outcomes)
+    - logistic regression (binary outcomes)
     - quadratic regression (nonlinearity)
 
 ## what should you use?
 
- - try to connect scientific & statistical questions
- - data type
-    - see [decision tree](http://www.tnstate.edu/eduadmin/StatisticsDecisionTree%20Use.pdf)  or [table](http://www.ats.ucla.edu/stat/mult_pkg/whatstat/default.htm)
-    - if your question *doesn't* fit in this tree,  
+- connect scientific & statistical questions
+- data type
+   - see [decision tree](http://www.tnstate.edu/eduadmin/StatisticsDecisionTree%20Use.pdf)  or [table](http://www.ats.ucla.edu/stat/mult_pkg/whatstat/default.htm)
+   - if your question *doesn't* fit in this tree,  
 think about how much you like statistics ...
- - nonparametric stats
-     - slight loss of power
-     - stronger assumptions than you think
-     - $p$-values only - no effect size
+- nonparametric stats
+    - slight loss of power
+    - stronger assumptions than you think
+    - $p$-values only - no effect size
  
 # computational platforms
 
@@ -443,7 +472,7 @@ think about how much you like statistics ...
 - open alternatives (Open Office)
 - data in plain sight
 - good enough for simple stuff
-- occasional traps (@mccullough_accuracy_2008; date handling; etc.)
+- occasional traps (@mccullough_accuracy_2008; date handling; etc. @ziemannGene2016)
 - **archive your data as CSV, not XLSX**
     
 ## stats packages

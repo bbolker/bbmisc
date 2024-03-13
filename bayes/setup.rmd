@@ -1,0 +1,43 @@
+---
+title: "package setup"
+---
+
+0. If you don't have 'development tools' (compilers etc.) installed, do that first.  You can try the instructions [here](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain) or [here](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain)
+1. Install `rstan` (`install.packages("rstan")`)
+2. Install `cmdstanr`
+From  https://mc-stan.org/cmdstanr/articles/cmdstanr.html:
+
+```{r cmdstanr, message = FALSE}
+while (!require("cmdstanr")) {
+    install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos", "https://cloud.r-project.org")))
+}
+check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
+```
+3. Install other packages
+```{r other_pkgs, message = FALSE}
+orig_pkgs <- c(
+    ## core
+    "lme4", "brms",
+    ## model evaluation/testing/plotting
+    "broom.mixed",  "tidybayes", "bayesplot", "posterior", "bayestestR",
+    ## general purpose manipulation/plotting
+    "dplyr", "purrr", "cowplot",
+    "ggrastr",  ## rasterize layers with lots of stuff
+    "see"  ## for okabe-ito scales
+)
+ip <- installed.packages()
+pkgs <- setdiff(orig_pkgs, rownames(ip))
+if (length(pkgs)>0) install.packages(pkgs)
+```
+
+---
+
+These examples were generated using the following package versions:
+
+```{r pkg_versions}
+sapply(sort(c(orig_pkgs, "cmdstanr", "rstan")), \(x) as.character(packageVersion(x)))
+```
+
+```{r cmdstan_version}
+cmdstanr::cmdstan_version()
+```

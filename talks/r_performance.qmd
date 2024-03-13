@@ -1,0 +1,368 @@
+---
+title: "Improving statistical computation in R"
+bibliography: rcomp.bib
+author: Ben Bolker
+date: today
+date-format: iso
+format: 
+  revealjs:
+     slide-number: true
+     show-slide-number: all
+     template-partials:
+      - title-slide.html
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(colorspace)
+library(see)
+library(Rcpp)
+theme_set(theme_bw(base_size=16))
+```
+
+# introduction
+
+## should you optimize?
+
+> software engineers should worry about other issues (such as good algorithm design and good implementations of those algorithms) before they worry about micro-optimizations" [@hydeFallacy2009]
+
+> Do you have other sh*t to do? No? Please contact me and I’ll help you with that. Yes? You are among the 90% of R users whose first priority is not computer programming. The time spent optimizing code is often longer than the computing time actually saved. Use the simple solutions and you can get on with your research/life.  [@rossFasteR2013]
+
+* **but** faster code enables interactivity, exploration, resampling-based methods ...
+
+## categories of optimization
+
+* low-hanging fruit
+* parallelization
+* (memoization)
+* automatic differentiation
+* faster languages
+
+# benchmarking and profiling
+
+## measuring code performance
+
+* *measure* speed before you try to fix it
+* complexity theory/[big-O notation](https://en.wikipedia.org/wiki/Big_O_notation) (e.g., $f(x) = {\cal O}(x^{3/2})$ is useful *if*
+   * you have some idea of the scaling constant
+   * you plan to scale to large problems (or someone does)
+* scaling dimensions: number of observations, parameters, clusters, dimensions ...
+* [Amdahl's Law](https://en.wikipedia.org/wiki/Amdahl%27s_law): speeding up *bottlenecks* is what matters
+
+## benchmarking
+
+* examples should be large enough not to be swamped by overhead
+* ... but small enough to run replicates and average
+* `system.time()` for quick estimates
+* `rbenchmark`, `microbenchmark` packages 
+* estimating scaling: theoretical or empirical (log-log plot)
+
+## scaling example
+
+Modified from @brooksGlmmTMB2017:
+
+```{r contr_scale, echo = FALSE}
+load("contraceptionTimings.rda")
+op <- options(warn = -1)
+gg0 <- ggplot(tmatContraception,
+       aes(n, time, colour=pkg)) + geom_point() +
+    scale_y_log10(breaks=c(1,2,5,10,20,50,100)) +
+    scale_x_log10(breaks=c(1,2,4,10,20,40)) +
+    labs(x="Replication (x 1934 obs.)",y="Elapsed time (s)") +
+    geom_smooth(method="lm", formula = y ~ x) +
+    see::scale_color_okabeito()
+gg0 + geom_function(fun = \(x) 5*x, linetype = 2, colour = "black")
+```
+
+## profiling
+
+Example random-walk code [@ihakaWriting2009]:
+
+```{r rw2d2, echo=TRUE}
+rw2d2 <- function(n) {
+    steps <- sample(c(-1, 1), n - 1, replace = TRUE)
+    xdir <- sample(c(TRUE, FALSE), n - 1, replace = TRUE)
+    xpos <- c(0, cumsum(ifelse(xdir, steps, 0)))
+    ypos <- c(0, cumsum(ifelse(xdir, 0, steps)))
+    return(list(x = xpos, y = ypos))
+}
+```
+
+```{r profrun, echo = FALSE}
+if (!file.exists("Rprof.out")) {
+    ## better to do this *outside*, call stack looks better
+    Rprof()
+    for (i in 1:100) {
+        pos <- rw2d2(1e5)
+    }
+    Rprof(NULL)
+}
+```
+
+## profiling run
+
+* run multiple times to collect enough data/average over variation
+
+```{r profrun_fake, eval = FALSE, echo = TRUE}
+Rprof("Rprof.out") ## start profiling
+for (i in 1:100) {
+    pos <- rw2d2(1e5)
+}
+Rprof(NULL) ## stop profiling
+```
+
+## profiling results
+
+```{r show_prof, echo = TRUE}
+source("https://raw.githubusercontent.com/noamross/noamtools/master/R/proftable.R")
+proftable("Rprof.out", lines = 5)
+```
+
+## profiling
+
+* see also `summaryRprof()` (base-R), `profvis` package (RStudio fanciness)
+* easiest to interpret if code is organized into functions
+* profiling C++ code called from R [is harder but not impossible](https://magic-lantern.github.io/2018/10/05/2018-10-05-how-to-profile-your-r-code-that-calls-c-c-plus-plus/)
+
+# low-hanging fruit
+
+## don't write bad code
+
+:::: {.columns}
+
+::: {.column width="60%"}
+* don't grow objects (chapter 2)
+   * pre-allocate (`numeric()` etc.)
+   * create lists and `rbind()` them together
+* failing to vectorize (chapter 3)
+* over-vectorizing (chapter 4)
+:::
+
+::: {.column width="40%"}
+
+<img src="pix/inferno.jpg" height="400">
+
+::: {style="font-size: 50%;"}
+@burnsInferno2012: "If you are using R and you think you're in hell, this is a map for you."
+:::
+
+:::
+
+::::
+
+## calculating $\pi$ by Monte Carlo
+
+```{r mcplot, echo = FALSE}
+par(xaxs="i", yaxs = "i")
+MASS::eqscplot(0:1, 0:1, type = "n", ann = FALSE, axes = FALSE)
+rect(0,0, 1, 1)
+curve(sqrt(1-x^2), from=0, to = 1, add = TRUE, n = 501)
+x <- runif(1e4)
+y <- runif(1e4)
+cc <- 1 + (x^2+y^2<1)
+points(x,y, col = c("black", "red")[cc], pch = ".", cex = 2)
+```
+
+## bad code
+
+non-vectorized, growing objects
+
+```{r piR_slow, echo=TRUE}
+piR_slow <- function(N) {
+    res <- numeric(0)
+    for (i in 1:N) {
+        res <- c(res, as.numeric(runif(1)^2 + runif(1)^2 < 1.0))
+    }
+    4*sum(res)/N
+}
+```
+
+## better code
+
+```{r piR, echo = TRUE}
+piR <- function(N) {
+    x <- runif(N)
+    y <- runif(N)
+    d <- sqrt(x^2 + y^2)
+    return(4 * sum(d < 1.0) / N)
+}
+```
+
+## benchmarking
+
+```{r benchmark, cache=TRUE, echo = TRUE}
+rbenchmark::benchmark(
+                bad = piR_slow(1e4),
+                better = piR(1e4),
+                columns = c("test", "replications", "elapsed", "relative"))
+```
+
+## use good packages
+
+* especially for data handling, I/O
+   * `data.table` > `tidyverse` > base R
+   * data formats: `arrow`, `vroom`, direct database access (`dbplyr`)
+* `collapse`, `xts`, `Rfast`
+
+## sum-by-groups benchmark
+
+* From [https://h2oai.github.io/db-benchmark/](https://h2oai.github.io/db-benchmark/)
+* 100M rows x 9 cols = 5 GB
+
+![](pix/data_table_bench.png)
+
+## get a bigger computer
+
+:::: {.columns}
+
+::: {.column width="60%"}
+
+* "it took too long to run on my laptop" is not an excuse
+* supervisor's workstation
+* departmental server
+* SHARCnet/Compute Canada    
+   * [notes on R and distributed computing on SHARCnet](https://hackmd.io/K3IF612hT8e5r4vtervkIA?view)
+* commercial cloud (AWS etc.)
+
+:::
+
+::: {.column width="40%"}
+
+![](pix/better_computer.png)
+
+:::
+
+::::
+
+
+# parallelization
+
+## parallelization types
+
+* distributed: "embarrassingly parallel"
+* multicore: multiple R processes
+   * each one copies all objects
+* threading: lightweight, shared-memory 
+* see also: [parallel and HPC task view](https://cran.r-project.org/web/views/HighPerformanceComputing.html)
+
+## distributed computing
+
+* start individual runs, or chunks (e.g. simulations, bootstraps) as completely separate R jobs
+* Compute Canada (*or* AWS *or* a big local workstation)
+* jobs assigned by batch scheduler: High Performance Computing
+* some tools within R: `slurm`, `batchtools`, `futures.batchtools` package
+
+## multicore
+
+* spawn multiple jobs on a single machine (multiple cores)
+* `parallel` package, `foreach`/`doParallel`
+
+## threading
+
+* not available directly through R
+* `OpenMP`
+* parallel BLAS
+  * base R comes with a robust but slow linear algebra library
+  * can replace with optimized/parallel versions (*command-line bullshittery* required [@browneCommandline2021])
+
+## BLAS benchmarks
+
+* from [https://csantill.github.io/RPerformanceWBLAS/](https://csantill.github.io/RPerformanceWBLAS/):
+```{r blas_bench, fig.height=8}
+## https://csantill.github.io/RPerformanceWBLAS/
+dd <- read.table(header = TRUE, text = "
+task	BLAS 	OpenBLAS 	MKL 	ATLASBLAS
+FFT/2.4M  	0.575 	0.535 	0.570 	0.534
+Eigenvalues/640x640 	1.470 	1.028 	0.480 	0.921
+Determinant/2500x2500 	6.727 	0.456 	0.322 	1.873
+Cholesky/3000x3000 	8.314 	0.444 	0.321 	1.617
+Inverse/1600x1600 	6.069 	0.493 	0.296 	1.603
+")
+## https://stackoverflow.com/questions/14255533/pretty-ticks-for-log-normal-scale-using-ggplot2-dynamic-not-manual
+base_breaks <- function(n = 10){
+    function(x) {
+        axisTicks(log10(range(x, na.rm = TRUE)), log = TRUE, n = n)
+    }
+}
+ddL <- dd |> tidyr::pivot_longer(-task, names_to="platform", values_to = "time") |>
+    mutate(across(c(task, platform), forcats::fct_inorder))
+ggplot(ddL, aes(x = time, y = platform, colour = platform)) +
+    geom_point(size=5) +
+    facet_wrap(~task, scale = "free", ncol = 1, strip.position = "right") +
+    scale_x_continuous(trans = scales::log_trans(), breaks = base_breaks()) +
+    see::scale_color_okabeito(guide="none") +
+    labs(y = "") +
+    theme_bw(base_size=24) +
+    theme(strip.text.y.right = ggplot2::element_text(angle = 0))
+```
+
+# automatic differentiation
+
+## AD basics
+
+* automated chain rule [@griewankAutomatic1989; @griewankIntroduction2003]
+* much faster and more robust than finite differences; faster than symbolic derivatives
+* computing gradient takes $\le 5 \times$ the effort of computing the objective function, **regardless of dimension**
+* *reverse-mode* autodiff for $f: {\mathbf R}^n \to {\mathbf R}$
+* widely used in modern ML (neural net back-propagation)
+* toolboxes: TensorFlow (PyTorch, RTorch [@keydanaDeep2023]), Stan [@chauAutomatic2022], (R)TMB, [Julia tools](https://juliadiff.org/) ...
+
+## a side note on `optim()`
+
+* if you use a gradient-based optimizer (BFGS, L-BFGS-B) in `optim()` R will implement finite-difference gradients by default
+* this is terrible (slow and fragile), although fine for simple problems
+* ... might as well use gradient-free methods (e.g. Nelder-Mead) for robustness
+* providing gradients (somehow) can make a huge difference for tough optimization problems
+
+## AD example
+
+```{r deriv, echo = TRUE}
+deriv(~cos(log(1+x^2)), "x")
+```
+
+## better AD in R?
+
+* basic `deriv()` can only handle basic functions
+* `Deriv` package
+* `TMB`/`RTMB` (C++), @chauAutomatic2022 (Stan), [autodiffr package](https://non-contradiction.github.io/autodiffr/articles/autodiffr_intro.html) (Julia)
+
+
+# integration with lower-level languages
+
+## Rcpp
+
+https://csgillespie.github.io/efficientR/performance.html
+
+```{r cppfunction, echo=TRUE}
+pi_rcpp <- cppFunction("
+double piSugar(const int N) {
+    NumericVector x = runif(N);
+    NumericVector y = runif(N);
+    NumericVector d = sqrt(x*x + y*y);
+    return 4.0 * sum(d < 1.0) / N;
+}")
+```
+
+## benchmarking against previous example
+
+```{r pibench2, cache=TRUE, echo = TRUE}
+rbenchmark::benchmark(piR(1e6), pi_rcpp(1e6),
+                      columns = c("test", "replications", "elapsed", "relative"))
+```
+
+## more on Rcpp
+
+* lots of examples ([gallery](https://gallery.rcpp.org/))
+* **not** much faster than already-vectorized code
+* loops don't hurt!
+* easy to incorporate into packages
+* advanced linear algebra via `RcppArmadillo`, `RcppEigen`
+
+
+<!-- https://quarto.org/docs/presentations/revealjs/presenting.html -->
+
+<!-- CC badge in title:
+https://quarto.org/docs/journals/templates.html#template-partials
+https://github.com/quarto-dev/quarto-cli/blob/main/src/resources/formats/revealjs/pandoc/title-slide.html -->
+
+## References
