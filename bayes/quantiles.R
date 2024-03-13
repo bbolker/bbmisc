@@ -2,7 +2,8 @@ library(invgamma)
 library(dplyr)
 library(ggplot2); theme_set(theme_bw(base_size=15))
 
-shape <- 2
+## Parameters
+shape <- 10
 mean <- 2
 ratemax <- 10
 timemax <- 5
@@ -10,15 +11,19 @@ timemax <- 5
 ran <- 100
 steps <- 500
 
+scale=mean/shape
+
+## Make a combined rate/time-based density profile
+
 ## drat checks the transformation logic, should be 1
 comb <- tibble(lrate = log(ran)*seq(-steps, steps)/steps
 	, rate = exp(lrate)
 	, time = 1/rate
-	, rden = dgamma(rate, shape=shape, scale=mean/shape)
-	, tden = dinvgamma(time, shape=shape, scale=mean/shape)
+	, rden = dgamma(rate, shape=shape, scale=scale)
+	, tden = dinvgamma(time, shape=shape, scale=scale)
 	, drat = rate^2*rden/tden
-	, pp = pgamma(rate, shape=shape, scale=mean/shape)
-	, tp = pinvgamma(time, shape=shape, scale=mean/shape)
+	, pp = pgamma(rate, shape=shape, scale=scale)
+	, tp = pinvgamma(time, shape=shape, scale=scale)
 )
 print(comb, n=Inf)
 
@@ -26,26 +31,49 @@ print(comb, n=Inf)
 qcomb <- comb |> filter(pp>0.025 & pp < 0.975)
 tqcomb <- comb |> filter(tp>0.025 & tp < 0.975)
 
-## HPD wrong logic! Need to find a density cutoff and then calculate area.
+######################################################################
 
-svec <- seq(1/2, steps-1/2)/steps
-rdensity=dgamma(ratemax*svec, shape=shape, scale=mean/shape)
-tdensity=dinvgamma(timemax*svec, shape=shape, scale=mean/shape)
+## HPD functions
 
-rpdcut <- quantile(rdensity, probs=0.05)
-tpdcut <- quantile(tdensity, probs=0.05)
+## Density at a quantile
+dq <- function(x, qfun=qfun, dfun=dfun, ...){
+	return(dfun(qfun(x, ...), ...))
+}
 
-print(quantile(svec, probs=c(0.05, 0.95)))
-## print((comb$tden<tpdcut))
+## Density difference between tails
+deltaDensity <- function(prop, qfun, dfun, alpha, ...){
+	left <- dq(alpha*prop, qfun, dfun, ...)
+	right <- dq(1-alpha*(1-prop), qfun, dfun, ...)
+	return(right-left)
+}
 
-print(c(rpdcut=rpdcut, tpdcut=tpdcut))
+## Balance tails and find an HPD cutoff
+dcut <- function(qfun, dfun, alpha=0.05, eps=1e-3, ...){
+	u <- uniroot(deltaDensity
+		, lower=eps, upper=1-eps, qfun=qfun, dfun=dfun, alpha=alpha, ...
+	)
+	prop <- u$root
+	stopifnot(is.numeric(prop))
+	return(dq(alpha*prop, qfun, dfun, ...))
+	
+	## Not reached
+	return(c(
+		prop
+		, dq(alpha*prop, qfun, dfun, ...)
+		, dq(1-alpha*(1-prop), qfun, dfun, ...)
+	))
+}
 
-hist(rdensity)
+## Works OK, but less accurate than expected
+## print(dcut(qnorm, dnorm))
+## print(dcut(qgamma, dgamma, shape=2, scale=1))
 
-rpdcomb <- comb |> filter(rden <= rpdcut)
-tpdcomb <- comb |> filter(tden <= tpdcut)
+## HPD calc
+rpdcut <- dcut(qgamma, dgamma, shape=shape, scale=scale)
+tpdcut <- dcut(qinvgamma, dinvgamma, shape=shape, scale=scale)
 
-print(tpdcomb, n=Inf)
+rpdcomb <- comb |> filter(rden >= rpdcut)
+tpdcomb <- comb |> filter(tden >= tpdcut)
 
 rdplot <- (ggplot(comb)
 	+ aes(rate, rden)
