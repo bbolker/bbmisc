@@ -4,7 +4,6 @@
 current: target
 -include target.mk
 
-
 ######################################################################
 
 ## Content
@@ -19,6 +18,13 @@ peak_I.html: peak_I.rmd
 peak_I_simple.html: peak_I_simple.rmd
 
 peak_reduction.Rout: peak_reduction.R
+
+######################################################################
+
+## Spline stuff 2022 Nov 07 (Mon)
+
+Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
+	$(pipeR)
 
 ######################################################################
 
@@ -50,6 +56,8 @@ clean:
 
 ######################################################################
 
+## makestuff needs to be made manually, since we want to allow Bolker-style making without makestuff
+
 Sources += Makefile
 
 Ignore += makestuff
@@ -61,7 +69,7 @@ makestuff/Makefile:
 
 -include makestuff/os.mk
 
-## -include makestuff/wrapR.mk
+-include makestuff/pipeR.mk
 
 -include makestuff/git.mk
 -include makestuff/visual.mk
