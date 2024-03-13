@@ -79,22 +79,21 @@ rdplot <- (ggplot(comb)
 	+ aes(rate, rden)
 	+ geom_line()
 	+ xlim(c(0, ratemax))
+	+ xlab("rate (per day)")
+	+ ylab("density (day)")
 )
 
 tdplot <- (ggplot(comb)
 	+ aes(time, tden)
 	+ geom_line()
 	+ xlim(c(0, timemax))
+	+ xlab("time (day)")
+	+ ylab("density (per day)")
 )
 
-
-print(rdplot)
-
-## rates <- data.frame(rate=svec*ratemax, rden=rdensity)
-## print(rdplot + geom_point(data=rates))
-
-print(rdplot
+qrdplot <- (rdplot
 	+ geom_segment(data=qcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+	+ ggtitle("Quantile-based credible interval")
 )
 print(rdplot
 	+ geom_segment(data=tqcomb, aes(x=rate, y=rden, xend=rate, yend=0))
@@ -107,12 +106,19 @@ print(rdplot
 )
 
 print(tdplot)
-print(tdplot
+
+qtdplot <- (tdplot
 	+ geom_segment(data=qcomb, aes(x=time, y=tden, xend=time, yend=0))
+	+ ggtitle("Quantile-based credible interval")
 )
-print(tdplot
+cqtdplot <- (tdplot
 	+ geom_segment(data=tqcomb, aes(x=time, y=tden, xend=time, yend=0))
+	+ ggtitle("Quantile-based credible interval from the rate scale")
 )
+
+print(cqtdplot)
+
+quit()
 print(tdplot
 	+ geom_segment(data=rpdcomb, aes(x=time, y=tden, xend=time, yend=0))
 )
