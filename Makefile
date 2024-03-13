@@ -22,6 +22,7 @@ peak_reduction.Rout: peak_reduction.R
 
 ## Spline stuff 2022 Nov 07 (Mon)
 
+Sources += Rmisc/spline_quantiles.R
 Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 	$(pipeR)
 
