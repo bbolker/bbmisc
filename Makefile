@@ -20,6 +20,15 @@ peak_reduction.Rout: peak_reduction.R
 
 ######################################################################
 
+## Spline stuff 2022 Nov 07 (Mon)
+
+## git diff dca3b2c0 -- Rmisc/spline_quantiles.R
+Sources += Rmisc/spline_quantiles.R
+Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
+	$(pipeR)
+
+######################################################################
+
 ## Rules from Bolker
 
 %.html: %.qmd
@@ -62,6 +71,7 @@ rtips: r_parallel_hpc.rmd
 
 ######################################################################
 
+## makestuff needs to be made manually, since we want to allow Bolker-style making without makestuff
 alldirs += bayes
 
 Sources += Makefile
@@ -75,7 +85,7 @@ makestuff/Makefile:
 
 -include makestuff/os.mk
 
-## -include makestuff/wrapR.mk
+-include makestuff/pipeR.mk
 
 -include makestuff/git.mk
 -include makestuff/visual.mk

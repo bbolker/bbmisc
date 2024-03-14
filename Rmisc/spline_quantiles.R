@@ -43,7 +43,7 @@ s2f <- splinefun(qq, qvec, method = "monoH.FC")
 
 ## spline() doesn't work, not sure why we have to jump through this hoop
 ## if we want values (not used any more though)
-s2 <- list(x = s1$x, y = s2f(s1$x))
+## s2 <- list(x = s1$x, y = s2f(s1$x))
 
 ## what we have now is a smooth representation of the cumulative
 ## distribution function.
