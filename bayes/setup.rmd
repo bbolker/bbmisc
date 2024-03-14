@@ -2,9 +2,10 @@
 title: "package setup"
 ---
 
-0. If you don't have 'development tools' (compilers etc.) installed, do that first.  You can try the instructions [here](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain) or [here](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain)
-1. Install `rstan` (`install.packages("rstan")`)
-2. Install `cmdstanr`
+0. If you don't have 'development tools' (compilers etc.) installed, do that first.  You can try the instructions [here](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain) or [here](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain).
+1. Install `rstan` (`install.packages("rstan")`).
+2. Install `cmdstanr`.
+
 From  https://mc-stan.org/cmdstanr/articles/cmdstanr.html:
 
 ```{r cmdstanr, message = FALSE}
