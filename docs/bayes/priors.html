@@ -410,6 +410,16 @@ for 1-dim, so &lt;1 is ‘weak’]</li>
 </ul></li>
 </ul>
 </div>
+<div id="independent-vs-multivariate-priors" class="section level2">
+<h2>independent vs multivariate priors</h2>
+<ul>
+<li>we usually set priors on parameters one at a time</li>
+<li>this assumes they’re independent (!)</li>
+<li>hard to do very much about this, but keep it in mind</li>
+<li>means that <em>reparameterizing</em> a model (e.g. by centering a
+variable) can change the priors, if we’re not careful</li>
+</ul>
+</div>
 <div id="prior-problems" class="section level2">
 <h2>prior problems</h2>
 <ul>
@@ -439,7 +449,10 @@ spike at zero (inverse-Gamma)</li>
 <div id="stacking-problems" class="section level2">
 <h2>stacking problems</h2>
 <ul>
-<li>problems when informative (posterior squashing) <span class="citation">Carpenter (2017)</span></li>
+<li>when uniform priors that are supposed to be uninformative are
+actually informative … <span class="citation">(Carpenter
+2017)</span></li>
+<li>posterior piles up at the edge</li>
 </ul>
 </div>
 <div id="priors-for-variances" class="section level2">
@@ -453,16 +466,18 @@ uninformative/wide → big spike at zero <span class="citation">(Gelman
 <li><em>parameter-expanded priors</em> in <code>MCMCglmm</code> <span class="citation">Gelman and Hill (2006)</span></li>
 </ul></li>
 <li>regularizing priors <span class="citation">(Chung et al.
-2013)</span> prevent ‘singularity’</li>
-<li>singularity doesn’t matter as much when fully Bayesian because we’re
-integrating over the whole posterior</li>
+2013)</span> prevent ‘singularity’
+<ul>
+<li>singularity doesn’t really matter when fully Bayesian (not MAP!)
+because we integrate over the whole posterior</li>
+</ul></li>
 </ul>
 </div>
 <div id="priors-for-covariancecorrelation-matrices" class="section level2">
 <h2>priors for covariance/correlation matrices</h2>
 <ul>
 <li>a single correlation is easy (e.g. a Beta distribution)</li>
-<li>multivariate correlation/covariance matrix is ugly</li>
+<li>multivariate correlation/covariance matrix is hard (Wishart)</li>
 <li>separate priors for (log)-SDs, correlations
 <ul>
 <li><strong>LKJ</strong> or “onion” <span class="citation">(Lewandowski,
@@ -696,7 +711,7 @@ Models.”</span> <em>Journal of Statistical Planning and Inference</em>
 </div>
 </div>
 <hr />
-<p>Last updated: 11 March 2024 13:12</p>
+<p>Last updated: 13 March 2024 20:41</p>
 </div>
 
 
