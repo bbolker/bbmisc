@@ -2,6 +2,8 @@ library(invgamma)
 library(dplyr)
 library(ggplot2); theme_set(theme_bw(base_size=15))
 
+## library(shellpipes); startGraphics()
+
 ## Parameters
 shape <- 4
 mean <- 2
@@ -9,6 +11,9 @@ mean <- 2
 ratemax <- 6
 timemax <- 3
 yspace <- 0.0
+
+logmin <- 1e-1
+logmax <- 1e1
 
 ran <- 100
 steps <- 500
@@ -23,10 +28,15 @@ comb <- tibble(lrate = log(ran)*seq(-steps, steps)/steps
 	, time = 1/rate
 	, rden = dgamma(rate, shape=shape, scale=scale)
 	, tden = dinvgamma(time, shape=shape, scale=scale)
+	, lrden = rden*rate
+	, ltden = tden*time
 	, drat = rate^2*rden/tden
+	, lrat= ltden/lrden
 	, pp = pgamma(rate, shape=shape, scale=scale)
 	, tp = pinvgamma(time, shape=shape, scale=scale)
 )
+
+summary(comb)
 print(comb, n=Inf)
 
 ## Quantile intervals (these are the same)
@@ -95,6 +105,24 @@ TimePlot <- (ggplot(comb)
 	+ ggtitle("The same posterior (after non-linear transformation)")
 )
 
+lRatePlot <- (ggplot(comb)
+	+ aes(rate, lrden)
+	+ geom_line()
+	+ xlab("rate (per day)")
+	+ ylab("density (per log)")
+	+ scale_x_log10(limits=c(logmin, logmax))
+	+ ggtitle("Log-scale posterior")
+)
+
+lTimePlot <- (ggplot(comb)
+	+ aes(time, ltden)
+	+ geom_line()
+	+ xlab("time (day)")
+	+ ylab("density (per log)")
+	+ scale_x_log10(limits=c(logmin, logmax))
+	+ ggtitle("Log-scale posterior (after non-linear transformation)")
+)
+
 qRatePlot <- (RatePlot
 	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=rden), ymin=-yspace
 		, alpha=0.3
@@ -146,8 +174,19 @@ chdTimePlot <- (TimePlot
 	+ ggtitle("Highest density credible interval from the rate scale")
 )
 
-rpdcomb |> pull(time) |> max() |> print()
-rpdcomb |> pull(rate) |> min() |> print()
+qlRatePlot <- (lRatePlot
+	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=lrden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Quantile-based credible interval")
+)
+
+qlTimePlot <- (lTimePlot
+	+ geom_ribbon(data=qcomb, aes(x=time, ymax=ltden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Quantile-based credible interval")
+)
 
 print(RatePlot)
 print(TimePlot)
@@ -159,3 +198,6 @@ print(cqTimePlot)
 print(hdRatePlot)
 print(hdTimePlot)
 print(chdTimePlot)
+
+print(qlRatePlot)
+print(qlTimePlot)
