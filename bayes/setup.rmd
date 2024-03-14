@@ -10,7 +10,9 @@ From  https://mc-stan.org/cmdstanr/articles/cmdstanr.html:
 
 ```{r cmdstanr, message = FALSE}
 while (!require("cmdstanr")) {
-    install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos", "https://cloud.r-project.org")))
+    install.packages("cmdstanr", 
+		    repos = c("https://mc-stan.org/r-packages/", 
+			      getOption("repos", "https://cloud.r-project.org")))
 }
 check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
 ```

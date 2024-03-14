@@ -363,7 +363,9 @@ or <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp
 </ol>
 <p>From <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>:</p>
 <pre class="r"><code>while (!require(&quot;cmdstanr&quot;)) {
-    install.packages(&quot;cmdstanr&quot;, repos = c(&quot;https://mc-stan.org/r-packages/&quot;, getOption(&quot;repos&quot;, &quot;https://cloud.r-project.org&quot;)))
+    install.packages(&quot;cmdstanr&quot;, 
+            repos = c(&quot;https://mc-stan.org/r-packages/&quot;, 
+                  getOption(&quot;repos&quot;, &quot;https://cloud.r-project.org&quot;)))
 }
 check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
 <ol start="3" style="list-style-type: decimal">
