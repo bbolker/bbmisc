@@ -2,11 +2,18 @@ library(invgamma)
 library(dplyr)
 library(ggplot2); theme_set(theme_bw(base_size=15))
 
+## library(shellpipes); startGraphics()
+
 ## Parameters
-shape <- 10
+shape <- 4
 mean <- 2
-ratemax <- 10
-timemax <- 5
+
+ratemax <- 6
+timemax <- 3
+yspace <- 0.0
+
+logmin <- 1e-1
+logmax <- 1e1
 
 ran <- 100
 steps <- 500
@@ -21,10 +28,15 @@ comb <- tibble(lrate = log(ran)*seq(-steps, steps)/steps
 	, time = 1/rate
 	, rden = dgamma(rate, shape=shape, scale=scale)
 	, tden = dinvgamma(time, shape=shape, scale=scale)
+	, lrden = rden*rate
+	, ltden = tden*time
 	, drat = rate^2*rden/tden
+	, lrat= ltden/lrden
 	, pp = pgamma(rate, shape=shape, scale=scale)
 	, tp = pinvgamma(time, shape=shape, scale=scale)
 )
+
+summary(comb)
 print(comb, n=Inf)
 
 ## Quantile intervals (these are the same)
@@ -75,53 +87,117 @@ tpdcut <- dcut(qinvgamma, dinvgamma, shape=shape, scale=scale)
 rpdcomb <- comb |> filter(rden >= rpdcut)
 tpdcomb <- comb |> filter(tden >= tpdcut)
 
-rdplot <- (ggplot(comb)
+RatePlot <- (ggplot(comb)
 	+ aes(rate, rden)
 	+ geom_line()
 	+ xlim(c(0, ratemax))
 	+ xlab("rate (per day)")
 	+ ylab("density (day)")
+	+ ggtitle("Our posterior")
 )
 
-tdplot <- (ggplot(comb)
+TimePlot <- (ggplot(comb)
 	+ aes(time, tden)
 	+ geom_line()
 	+ xlim(c(0, timemax))
 	+ xlab("time (day)")
 	+ ylab("density (per day)")
+	+ ggtitle("The same posterior (after non-linear transformation)")
 )
 
-qrdplot <- (rdplot
-	+ geom_segment(data=qcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+lRatePlot <- (ggplot(comb)
+	+ aes(rate, lrden)
+	+ geom_line()
+	+ xlab("rate (per day)")
+	+ ylab("density (per log)")
+	+ scale_x_log10(limits=c(logmin, logmax))
+	+ ggtitle("Log-scale posterior")
+)
+
+lTimePlot <- (ggplot(comb)
+	+ aes(time, ltden)
+	+ geom_line()
+	+ xlab("time (day)")
+	+ ylab("density (per log)")
+	+ scale_x_log10(limits=c(logmin, logmax))
+	+ ggtitle("Log-scale posterior (after non-linear transformation)")
+)
+
+qRatePlot <- (RatePlot
+	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Quantile-based credible interval")
 )
-print(rdplot
-	+ geom_segment(data=tqcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+cqRatePlot <- (RatePlot
+	+ geom_ribbon(data=tqcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Quantile-based credible interval from the time scale")
 )
-print(rdplot
-	+ geom_segment(data=rpdcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+hdRatePlot <- (RatePlot
+	+ geom_ribbon(data=rpdcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Highest density credible interval")
 )
-print(rdplot
-	+ geom_segment(data=tpdcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+chdRatePlot <- (RatePlot
+	+ geom_ribbon(data=tpdcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Highest density credible interval from the time scale")
 )
 
-print(tdplot)
-
-qtdplot <- (tdplot
-	+ geom_segment(data=qcomb, aes(x=time, y=tden, xend=time, yend=0))
+qTimePlot <- (TimePlot
+	+ geom_ribbon(data=qcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Quantile-based credible interval")
 )
-cqtdplot <- (tdplot
-	+ geom_segment(data=tqcomb, aes(x=time, y=tden, xend=time, yend=0))
+cqTimePlot <- (TimePlot
+	+ geom_ribbon(data=tqcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Quantile-based credible interval from the rate scale")
 )
 
-print(cqtdplot)
+hdTimePlot <- (TimePlot
+	+ geom_ribbon(data=tpdcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Highest density credible interval")
+)
+chdTimePlot <- (TimePlot
+	+ geom_ribbon(data=rpdcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Highest density credible interval from the rate scale")
+)
 
-quit()
-print(tdplot
-	+ geom_segment(data=rpdcomb, aes(x=time, y=tden, xend=time, yend=0))
+qlRatePlot <- (lRatePlot
+	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=lrden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Quantile-based credible interval")
 )
-print(tdplot
-	+ geom_segment(data=tpdcomb, aes(x=time, y=tden, xend=time, yend=0))
+
+qlTimePlot <- (lTimePlot
+	+ geom_ribbon(data=qcomb, aes(x=time, ymax=ltden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Quantile-based credible interval")
 )
+
+print(RatePlot)
+print(TimePlot)
+
+print(qRatePlot)
+print(qTimePlot)
+print(cqTimePlot)
+
+print(hdRatePlot)
+print(hdTimePlot)
+print(chdTimePlot)
+
+print(qlRatePlot)
+print(qlTimePlot)
