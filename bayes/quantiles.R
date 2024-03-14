@@ -93,6 +93,12 @@ TimePlot <- (ggplot(comb)
 	+ ggtitle("The same posterior (after non-linear transformation)")
 )
 
+print(RatePlot
+	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=rden), ymin=0)
+)
+
+quit()
+
 qRatePlot <- (RatePlot
 	+ geom_segment(data=qcomb, aes(x=rate, y=rden, xend=rate, yend=0))
 	+ ggtitle("Quantile-based credible interval")
