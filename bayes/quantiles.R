@@ -3,10 +3,12 @@ library(dplyr)
 library(ggplot2); theme_set(theme_bw(base_size=15))
 
 ## Parameters
-shape <- 2
+shape <- 4
 mean <- 2
-ratemax <- 10
-timemax <- 5
+
+ratemax <- 6
+timemax <- 3
+yspace <- 0.0
 
 ran <- 100
 steps <- 500
@@ -93,46 +95,59 @@ TimePlot <- (ggplot(comb)
 	+ ggtitle("The same posterior (after non-linear transformation)")
 )
 
-print(RatePlot
-	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=rden), ymin=0)
-)
-
-quit()
-
 qRatePlot <- (RatePlot
-	+ geom_segment(data=qcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Quantile-based credible interval")
 )
 cqRatePlot <- (RatePlot
-	+ geom_segment(data=tqcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+	+ geom_ribbon(data=tqcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Quantile-based credible interval from the time scale")
 )
 hdRatePlot <- (RatePlot
-	+ geom_segment(data=rpdcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+	+ geom_ribbon(data=rpdcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Highest density credible interval")
 )
 chdRatePlot <- (RatePlot
-	+ geom_segment(data=tpdcomb, aes(x=rate, y=rden, xend=rate, yend=0))
+	+ geom_ribbon(data=tpdcomb, aes(x=rate, ymax=rden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Highest density credible interval from the time scale")
 )
 
 qTimePlot <- (TimePlot
-	+ geom_segment(data=qcomb, aes(x=time, y=tden, xend=time, yend=0))
+	+ geom_ribbon(data=qcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Quantile-based credible interval")
 )
 cqTimePlot <- (TimePlot
-	+ geom_segment(data=tqcomb, aes(x=time, y=tden, xend=time, yend=0))
+	+ geom_ribbon(data=tqcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Quantile-based credible interval from the rate scale")
 )
 
 hdTimePlot <- (TimePlot
-	+ geom_segment(data=tpdcomb, aes(x=time, y=tden, xend=time, yend=0))
+	+ geom_ribbon(data=tpdcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
 	+ ggtitle("Highest density credible interval")
 )
 chdTimePlot <- (TimePlot
-	+ geom_segment(data=rpdcomb, aes(x=time, y=tden, xend=time, yend=0))
-	+ ggtitle("Highest density credible interval from the time scale")
+	+ geom_ribbon(data=rpdcomb, aes(x=time, ymax=tden), ymin=-yspace
+		, alpha=0.3
+	)
+	+ ggtitle("Highest density credible interval from the rate scale")
 )
+
+rpdcomb |> pull(time) |> max() |> print()
+rpdcomb |> pull(rate) |> min() |> print()
 
 print(RatePlot)
 print(TimePlot)
