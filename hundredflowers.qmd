@@ -1,45 +1,59 @@
 ---
 title: "brain dump on convergence of model-fitting toolboxes"
 date: today
+bibliography: ./hundredflowers.bib
+format:
+  html:
+    embed-resources: true
 ---
+
+<style>
+.textwrap {
+float: right;
+margin: 10px;
+}
+</style>
 
 This is a brain dump, perhaps/hopefully to be turned into a review paper eventually.
 
+<img src = "hundredflowers.png" class = "textwrap" width="200px">
+<!-- https://www.pinterest.com/pin/356980707936914391/ -->
+
 Attending ISEC 2024 in Swansea recently, I was very excited about what appears to be a significant convergence of mid-level toolboxes for constructing complex models for ecological data. A medium-sized handful of platforms are now available for building and efficiently estimating models including various kinds of correlation structure (spatial, temporal, phylogenetic), complex random effects, smooth nonlinear terms, and a wide range of conditional distributions. Equally exciting, these platforms are becoming more interoperable, allowing the use of structures that have been built and tested on one platform within another. 
 
-I like the idea of ["let a hundred flowers bloom"](https://en.wikipedia.org/wiki/Hundred_Flowers_Campaign) to represent this explosion of diversity, although the historical Maoist original is a bad model (ended in an ideological crackdown). I will let go of this idea eventually.
+I like the idea of ["let a hundred flowers bloom"](https://en.wikipedia.org/wiki/Hundred_Flowers_Campaign) to represent this explosion of diversity, although the historical original is a terrible model (Mao's campaign to "Let a hundred flowers bloom; let a hundred schools of thought contend" ended in an ideological crackdown). I will let go of this idea eventually.
 
-I would like to think we are gradually approaching the nirvana where modeling is nearly frictionless; I can decide what model makes sense for my problem and easily implement it in any one of a number of platforms. (Tools for 
+I would like to think we are gradually approaching the nirvana where modeling is so close to frictionless that researchers can decide what model makes sense for their problem and easily implement it in any one of a number of platforms. Limitations of data and computation will always be with us [as we build ever more complex models, tools for assessing *identifiability* become progressively more important ... e.g. see @coleParameter2020;@hodgesAre2010b;@leleEstimability2010a;@maclarenWhat2020], but hopefully these platforms will make it easier to use our data to its fullest extent.
 
-Some ideas in no particular order:
+Some ideas in no particular order.
 
-* **scope**: the platforms I'm thinking of are
+## scope
 
-- `TMB`, `RTMB`: autodiff + Laplace approximation. Connectors: `tmbstan`. Procedural. Base language C++ (`TMB`), R (`RTMB`)
-- `nimble`: Gibbs sampling, HMC, SMC ... autodiff. Base language R. Graphical.
-- `INLA`: nested Laplace approximation. Formula. Connectors: `fmesher`.
-- `greta`: autodiff via PyTorch. Base language R (via Python?). Procedural.
+The main platforms I have in mind are
+
+- `TMB`, `RTMB`: autodiff + Laplace approximation. Connectors: `tmbstan`. Procedural. Base language C++ (`TMB`), R (`RTMB`) [@kristensenTMB2016]
+- `nimble`: Gibbs sampling, HMC, SMC ... autodiff. Base language BUGS. Graphical. [@devalpineProgramming2017;@berahaJAGS2021]
+- `INLA`: nested Laplace approximation. Formula. Connectors: `fmesher`. [@krainskiAdvanced2018;@bakkaSpatial2018;@soyerDynamic2022]
+- `greta`: autodiff via PyTorch. Base language R (via Python?). Procedural. [@goldinggreta2019]
 - `Stan`: (`rethinking`, `brms`): autodiff, HMC (improved NUTS) sampling. Base language C++. Procedural (`rethinking::ulam()` is graphical; `brms` and `rstanarm` are formula).
-- `mgcv`: (`gamm4`, `scam`): exportable smooth bases/penalty matrix. Formula.
-- `JAGS`: Gibbs sampling. Graphical.
+- `mgcv`: (`gamm4`, `scam`): exportable smooth bases/penalty matrix. Formula. [@woodGeneralized2017]
+- `JAGS`: Gibbs sampling. Base language BUGS. Graphical.
 
-## Bayesian vs frequentist
-
-These boundaries are progressively blurring. Traditional frequentist mixed models use *empirical Bayesian* estimation. That is, they use shrinkage estimators (joint priors to a Bayesian) at intermediate levels of the model, but without imposing any priors at the top level of the model. When frequentist models further include some kind of regularization (e.g. a ridge penalty on fixed effect coefficients), they look even more Bayesian. The important remaining distinction is how inference, and especially assessment of uncertainty, is done; frequentists find the maximum likelihood (what would be maximum *a posteriori* estimation to a Bayesian), and often use plug-in estimates when computing uncertainty (e.g., conditioning on the estimated value of covariance parameters rather than allowing for their uncertainty).
-
-More to the point, for a given model a hurried Bayesian might choose to use optimization to find the mode quickly, using a full posterior sample only once initial modeling challenges are addressed. (Bayesian concerns about the non-representativeness of the mode in high-dimensional spaces are less concerning if the top-level parameters of a hierarchical model are relatively low-dimensional, and we are using something like Laplace approximation to integrate over the high-dimensional latent variables at lower levels in the model.) Conversely, an otherwise MLE-loving researcher might choose to plug their empirical-Bayes+regularization model into a Hamiltonian Monte Carlo engine to get better uncertainty estimates of derived quantities than are available via (say) the generalized delta method.
+(see below for definitions of "procedural", "graphical", "formula"). Fairly describe focus, pros and cons of each platform? Case study?
 
 ## Interface
 
-* **Procedural**: user writes an objective or loss function, typically a negative log-likelihood or (negative or positive) log-prior function. This is the 'lowest-level' and most flexible approach, but contains the least semantic/higher-level information about problem structure (e.g. `TMB`, `Stan`)
+* **Procedural**: user writes an objective or loss function, typically a negative log-likelihood or (negative or positive) log-prior function. This is the lowest-level and most flexible approach, but contains the least semantic/higher-level information about problem structure (e.g. `TMB`, `Stan`)
 * **Graphical**: user writes the model definition in terms of distributional assumptions (`X ~ distrib(...)`) as well as deterministic computations ("logical nodes", `X <- ...`). The platform typically uses this to construct a directed acyclic graph and determine appropriate samplers (e.g. `JAGS`, `nimble`, `greta`)
 * **Formula**: user writes a higher-level form of the model as a formula in extended Bates-Wilkinson-Rogers notation, typically with a separate `family` argument to determine the conditional distribution (e.g. `brms`, `INLA`)
 
 - there may be some degree of hybridization between the procedural and graphical level (e.g. `Stan` uses `~` and RTMB has a `%~%` operator for distributional/stochastic nodes)
 - both autodiff and Gibbs samplers construct a DAG, although at different levels (call graph/tape vs. sampling sequence)
-- Many low-/mid-level platforms have formula-based front ends that handle a narrower problem scope (`TMB`/`glmmTMB`, `Stan`/`brms`, `JAGS`/`runjags::template.jags()`, etc.)
+- Many low-/mid-level platforms have formula-based front ends that handle more narrowly scoped problems (`TMB`/`glmmTMB`, `Stan`/`brms`, `JAGS`/`runjags::template.jags()`, etc.)
 
 ```{r pkgs, echo = FALSE}
+## search for downstream packages by text matching; could do it instead/in addition
+## by looking at the reverse dependency graph ...
 a1 <- available.packages()
 re_setdiff <- function(x, y, ...) {
    for (yy in y) {
@@ -58,31 +72,75 @@ find_pkgs <- function(pkg, ignore = character(0),
     if (edge) {
         pkg <- sprintf("(^%s|%s$)", pkg, pkg)
     }
-    grep(pkg, rownames(a1), ignore.case = TRUE, value = TRUE) |> re_setdiff(ignore)
+    ret <- grep(pkg, rownames(a1), ignore.case = TRUE, value = TRUE) |> re_setdiff(ignore)
+    ret <- c(ret, add)
+    return(ret)
 }
-find_pkgs("TMB", ignore = c("RTMB", "tmbstan"), add = "gllvm")
+find_pkgs("TMB", ignore = c("RTMB", "tmbstan"), add = c("gllvm", "tramME"))
 find_pkgs("INLA")
 find_pkgs("nimble")
 ## are 
-find_pkgs("jags", IGNORE = c("rjags", "R2jags"))
-find_pkgs("stan", ignore = c("standard", "StanHeaders", "rstan"))
+find_pkgs("jags", ignore = c("rjags", "R2jags"))
+find_pkgs("stan", ignore = c("stand", "StanHeaders", "rstan"))
 ```
 
-## Connections
+## Connectors
+
+The ability to import/export functionality from one platform to another is an encouraging development, e.g.
 
 - `reformulas` for random effect formula processing
 - `fmesher` for SPDE meshes
-- `mgcv::smoothCon`, `mgcv::smooth2random` for exporting bases
-- `tmbstan` for Stan-based HMC with `TMB` models
+- `mgcv::smoothCon`, `mgcv::smooth2random` for bases and penalties
+- `tmbstan` for Stan-based HMC with `TMB` models [@monnahanNoUturn2018]
 - `mgcv::jagam` for JAGS models with `mgcv` smooths
 
 ## Methods
 
-- autodiff (Kristensen et al, Griewank) (`TMB`, `Stan`)
-- sparse methods (`lme4`, `TMB`, `INLA`)
+Many of these platforms have converged to using a similar set of computational techniques. Whole books can and have been written about each of these tools, but it may be useful to write a little bit about each one so that users can get a broader sense of what these platforms are doing, and tradeoffs between approaches (e.g. `mgcv` typically uses low-rank approximations while `TMB`/`INLA` rely more on sparse matrices).
+
+- automatic differentiation (AD) [@griewankautomatic1989a, @griewankIntroduction2003, @kristensenTMB2016] (`TMB`, `Stan`)
+- sparse matrix methods (`lme4`, `TMB`, `INLA`), especially the use of sparse precision matrices/Gauss-Markov random fields
 - low-rank approximation (`mgcv`)
-- basis expansion (Wood, Hefley et al, Hodges) (`mgcv`)
+- Basis expansion [@woodGeneralized2017, @hefleybasis2017] (`mgcv`); equivalence between precision matrices of multivariate Normal variables/Gaussian processes and smoothing penalties [@hodgesRichly2013, @woodStable2004]
 - Gibbs sampling (`JAGS`, `nimble`)
-- Laplace approximation, quadrature (importance sampling, ...) (`TMB`, `nimble`, ... ?)
+- Laplace approximation (enabled by AD), quadrature (importance sampling, ...) (`TMB`, `nimble`, ... ?)
 - INLA
 
+## Bayesian vs frequentist
+
+These boundaries are progressively blurring. Traditional frequentist mixed models use *empirical Bayesian* estimation. That is, they use shrinkage estimators (joint priors to a Bayesian) at intermediate levels of the model, but without imposing any priors at the top level of the model. When frequentist models further include some kind of regularization (e.g. a ridge penalty on fixed effect coefficients), they look even more Bayesian. The important remaining distinction is how inference, and especially assessment of uncertainty, is done; frequentists find the maximum likelihood (what would be maximum *a posteriori* estimation to a Bayesian), and often use plug-in estimates when computing uncertainty (e.g., conditioning on the estimated value of covariance parameters rather than allowing for their uncertainty).
+
+More to the point, for a given model a hurried Bayesian might choose to use optimization to find the mode quickly, moving to a full sample from the posterior only once initial modeling challenges are addressed. (Bayesian concerns about the non-representativeness of the mode in high-dimensional spaces are less concerning if the top-level parameters of a hierarchical model are relatively low-dimensional, and we are using something like Laplace approximation to integrate over the high-dimensional latent variables at lower levels in the model.) Conversely, an otherwise MLE-loving researcher might choose to plug their empirical-Bayes+regularization model into a Hamiltonian Monte Carlo engine to get better uncertainty estimates of derived quantities than are available via (say) the generalized delta method.
+
+
+## History
+
+Earlier-generation tools: AD Model Builder, original BUGS ...
+
+## To do/other topics
+
+* How does expectation-maximization fit into these frameworks? (NIMBLE has MCEM ...)
+* Connections with other languages: Python [JAX, PyTorch, Tensorflow, [Edward](https://edwardlib.org/)], Julia ([Turing.jl](https://turinglang.org/)), the broader ML/AI context
+* Other tools: variational inference, nearest-neighbor GPs, ...
+* Case studies? Revisit examples from @bolkerStrategies2013a?
+* other methods: sequential MC/particle filtering (`nimbleSMC` [@michaudSequential2021], `pomp`), ABC, ODEs (`odin`, `RTMBode`, `Stan`), ...
+* techniques from ML: L1 penalties (could be combined with AD? but requires soft thresholding); cross-validation (NIMBLE); etc.. Eco-stats approaches mostly more model-based.
+
+```{r nceas_ex, echo = FALSE}
+ex_df <- read.delim(header = TRUE, sep = "|",
+                    text = 
+                        "example | description                                       
+OrangeTree 	| Nonlinear growth model (normal/least-squares)
+Theta 	| Theta-logistic population growth model (state-space)
+Tadpole |	Size-dependence in predation risk (binomial response)
+Weeds 	| Simple population growth model
+Min 	| Time series of mineralization (matrix-exponential solution of ODEs): normal/least-squares
+Owls 	| Zero-inflated count data with random effects
+Skate 	| Bayesian state-space model of winter skate mortality (ADMB, BUGS only)
+Nmix 	| N-mixture model with random observer effects (ADMB, BUGS only)
+Wildflower | Flowering probability as a function of size; binomial GLMM with multiple random effects
+")
+knitr::kable(ex_df)
+```
+
+## References
