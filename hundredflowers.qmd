@@ -77,7 +77,7 @@ find_pkgs <- function(pkg, ignore = character(0),
     ret <- c(ret, add)
     return(ret)
 }
-find_pkgs("TMB", ignore = c("RTMB", "tmbstan"), add = c("gllvm", "tramME", "))
+find_pkgs("TMB", ignore = c("RTMB", "tmbstan"), add = c("gllvm", "tramME"))
 find_pkgs("INLA")
 find_pkgs("nimble")
 ## are 
