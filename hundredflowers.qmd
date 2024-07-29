@@ -52,9 +52,9 @@ The main platforms I have in mind are
 - both autodiff and Gibbs samplers construct a DAG, although at different levels (call graph/tape vs. sampling sequence)
 - Many low-/mid-level platforms have formula-based front ends that handle more narrowly scoped problems (`TMB`/`glmmTMB`, `Stan`/`brms`, `JAGS`/`runjags::template.jags()`, etc.)
 
+The lists below are determined by text matching against names of packages on CRAN, plus packages I happen to be aware of; could do it instead/in addition by looking at the reverse dependency graph from CRAN ...
+
 ```{r pkgs, echo = FALSE}
-## search for downstream packages by text matching; could do it instead/in addition
-## by looking at the reverse dependency graph ...
 a1 <- available.packages()
 re_setdiff <- function(x, y, ...) {
    for (yy in y) {
@@ -77,7 +77,7 @@ find_pkgs <- function(pkg, ignore = character(0),
     ret <- c(ret, add)
     return(ret)
 }
-find_pkgs("TMB", ignore = c("RTMB", "tmbstan"), add = c("gllvm", "tramME"))
+find_pkgs("TMB", ignore = c("RTMB", "tmbstan"), add = c("gllvm", "tramME", "))
 find_pkgs("INLA")
 find_pkgs("nimble")
 ## are 
