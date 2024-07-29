@@ -1,5 +1,6 @@
 ---
 title: "brain dump on convergence of model-fitting toolboxes"
+author: Ben Bolker
 date: today
 bibliography: ./hundredflowers.bib
 format:
@@ -19,7 +20,7 @@ This is a brain dump, perhaps/hopefully to be turned into a review paper eventua
 <img src = "hundredflowers.png" class = "textwrap" width="200px">
 <!-- https://www.pinterest.com/pin/356980707936914391/ -->
 
-Attending ISEC 2024 in Swansea recently, I was very excited about what appears to be a significant convergence of mid-level toolboxes for constructing complex models for ecological data. A medium-sized handful of platforms are now available for building and efficiently estimating models including various kinds of correlation structure (spatial, temporal, phylogenetic), complex random effects, smooth nonlinear terms, and a wide range of conditional distributions. Equally exciting, these platforms are becoming more interoperable, allowing the use of structures that have been built and tested on one platform within another. 
+Attending ISEC 2024 in Swansea recently, I was very excited about what appears to be a significant convergence of mid-level toolboxes for constructing complex models for ecological data. A medium-sized handful of platforms is now available for quickly building and efficiently parameterizing models that include various kinds of correlation structure (spatial, temporal, phylogenetic); complex random effects; smooth nonlinear terms; other latent structures such as hidden Markov or N-mixture models; and a wide range of conditional distributions. Equally exciting, these platforms are becoming more interoperable, allowing the use of structures that have been built and tested on one platform within another. 
 
 I like the idea of ["let a hundred flowers bloom"](https://en.wikipedia.org/wiki/Hundred_Flowers_Campaign) to represent this explosion of diversity, although the historical original is a terrible model (Mao's campaign to "Let a hundred flowers bloom; let a hundred schools of thought contend" ended in an ideological crackdown). I will let go of this idea eventually.
 
@@ -34,7 +35,7 @@ The main platforms I have in mind are
 - `TMB`, `RTMB`: autodiff + Laplace approximation. Connectors: `tmbstan`. Procedural. Base language C++ (`TMB`), R (`RTMB`) [@kristensenTMB2016]
 - `nimble`: Gibbs sampling, HMC, SMC ... autodiff. Base language BUGS. Graphical. [@devalpineProgramming2017;@berahaJAGS2021]
 - `INLA`: nested Laplace approximation. Formula. Connectors: `fmesher`. [@krainskiAdvanced2018;@bakkaSpatial2018;@soyerDynamic2022]
-- `greta`: autodiff via PyTorch. Base language R (via Python?). Procedural. [@goldinggreta2019]
+- `greta`: autodiff via PyTorch. Base language BUGS-like. Graphical. [@goldinggreta2019]
 - `Stan`: (`rethinking`, `brms`): autodiff, HMC (improved NUTS) sampling. Base language C++. Procedural (`rethinking::ulam()` is graphical; `brms` and `rstanarm` are formula).
 - `mgcv`: (`gamm4`, `scam`): exportable smooth bases/penalty matrix. Formula. [@woodGeneralized2017]
 - `JAGS`: Gibbs sampling. Base language BUGS. Graphical.
@@ -82,6 +83,7 @@ find_pkgs("nimble")
 ## are 
 find_pkgs("jags", ignore = c("rjags", "R2jags"))
 find_pkgs("stan", ignore = c("stand", "StanHeaders", "rstan"))
+find_pkgs("greta", add = c("greta.gam"))
 ```
 
 ## Connectors
@@ -119,10 +121,11 @@ Earlier-generation tools: AD Model Builder, original BUGS ...
 
 ## To do/other topics
 
-* How does expectation-maximization fit into these frameworks? (NIMBLE has MCEM ...)
+* limitations of discrete latent variables/differentiability (need to marginalize if using with AD)
+* (How) does expectation-maximization fit into these frameworks? (NIMBLE has MCEM ...)
 * Connections with other languages: Python [JAX, PyTorch, Tensorflow, [Edward](https://edwardlib.org/)], Julia ([Turing.jl](https://turinglang.org/)), the broader ML/AI context
 * Other tools: variational inference, nearest-neighbor GPs, ...
-* Case studies? Revisit examples from @bolkerStrategies2013a?
+* Case studies? Revisit examples from @bolkerStrategies2013a? (These are super-tedious, but useful. Maybe there would be enough interest to do it in a distributed way?)
 * other methods: sequential MC/particle filtering (`nimbleSMC` [@michaudSequential2021], `pomp`), ABC, ODEs (`odin`, `RTMBode`, `Stan`), ...
 * techniques from ML: L1 penalties (could be combined with AD? but requires soft thresholding); cross-validation (NIMBLE); etc.. Eco-stats approaches mostly more model-based.
 
