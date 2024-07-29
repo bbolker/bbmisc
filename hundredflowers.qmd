@@ -100,10 +100,10 @@ The ability to import/export functionality from one platform to another is an en
 
 Many of these platforms have converged to using a similar set of computational techniques. Whole books can and have been written about each of these tools, but it may be useful to write a little bit about each one so that users can get a broader sense of what these platforms are doing, and tradeoffs between approaches (e.g. `mgcv` typically uses low-rank approximations while `TMB`/`INLA` rely more on sparse matrices).
 
-- automatic differentiation (AD) [@griewankautomatic1989a, @griewankIntroduction2003, @kristensenTMB2016] (`TMB`, `Stan`)
+- automatic differentiation (AD) [@griewankautomatic1989a;@griewankIntroduction2003;@kristensenTMB2016] (`TMB`, `Stan`)
 - sparse matrix methods (`lme4`, `TMB`, `INLA`), especially the use of sparse precision matrices/Gauss-Markov random fields
 - low-rank approximation (`mgcv`)
-- Basis expansion [@woodGeneralized2017, @hefleybasis2017] (`mgcv`); equivalence between precision matrices of multivariate Normal variables/Gaussian processes and smoothing penalties [@hodgesRichly2013, @woodStable2004]
+- Basis expansion [@woodGeneralized2017;@hefleybasis2017] (`mgcv`); equivalence between precision matrices of multivariate Normal variables/Gaussian processes and smoothing penalties [@hodgesRichly2013;@woodStable2004]
 - Gibbs sampling (`JAGS`, `nimble`)
 - Laplace approximation (enabled by AD), quadrature (importance sampling, ...) (`TMB`, `nimble`, ... ?)
 - INLA
