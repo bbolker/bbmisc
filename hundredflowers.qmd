@@ -105,6 +105,8 @@ For example:
 - `mgcv` typically uses low-rank approximations while `TMB`/`INLA` rely more on sparse matrices
 - `mgcv` (and methods derived from its smooths) rely on precision/covariance/penalty matrices being known up to a scaling constant (e.g. the scale and shape of Gaussian process kernels are determined when specifying the model, rather than being optimized over)
 
+Techniques/tools:
+
 - automatic differentiation (AD) [@griewankautomatic1989a;@griewankIntroduction2003;@kristensenTMB2016] (`TMB`, `Stan`)
 - sparse matrix methods (`lme4`, `TMB`, `INLA`), especially the use of sparse precision matrices/Gauss-Markov random fields
 - low-rank approximation (`mgcv`)
