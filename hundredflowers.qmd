@@ -98,7 +98,12 @@ The ability to import/export functionality from one platform to another is an en
 
 ## Methods
 
-Many of these platforms have converged to using a similar set of computational techniques. Whole books can and have been written about each of these tools, but it may be useful to write a little bit about each one so that users can get a broader sense of what these platforms are doing, and tradeoffs between approaches (e.g. `mgcv` typically uses low-rank approximations while `TMB`/`INLA` rely more on sparse matrices).
+Many of these platforms have converged to using a similar set of computational techniques. Whole books can and have been written about each of these tools, but it may be useful to write a little bit about each one so that users can get a broader sense of what these platforms are doing, and tradeoffs between approaches.
+
+For example:
+
+- `mgcv` typically uses low-rank approximations while `TMB`/`INLA` rely more on sparse matrices
+- `mgcv` (and methods derived from its smooths) rely on precision/covariance/penalty matrices being known up to a scaling constant (e.g. the scale and shape of Gaussian process kernels are determined when specifying the model, rather than being optimized over)
 
 - automatic differentiation (AD) [@griewankautomatic1989a;@griewankIntroduction2003;@kristensenTMB2016] (`TMB`, `Stan`)
 - sparse matrix methods (`lme4`, `TMB`, `INLA`), especially the use of sparse precision matrices/Gauss-Markov random fields
