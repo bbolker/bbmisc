@@ -2698,7 +2698,7 @@ margin: 10px;
 <ul>
 <li>automatic differentiation (AD) <span class="citation" data-cites="griewankautomatic1989a griewankIntroduction2003 kristensenTMB2016">(<a href="#ref-griewankautomatic1989a" role="doc-biblioref">A. Griewank 1989</a>; <a href="#ref-griewankIntroduction2003" role="doc-biblioref">Andreas Griewank and Walther 2003</a>; <a href="#ref-kristensenTMB2016" role="doc-biblioref">Kristensen et al. 2016</a>)</span> (<code>TMB</code>, <code>Stan</code>)</li>
 <li>sparse matrix methods (<code>lme4</code>, <code>TMB</code>, <code>INLA</code>), especially the use of sparse precision matrices/Gauss-Markov random fields</li>
-<li>low-rank approximation (<code>mgcv</code>)</li>
+<li>low-rank approximations/factor analytic models/separable covariance structures (<code>mgcv</code>; <code>gllvm</code>, <code>rr()</code> in <code>glmmTMB</code>; <code>SEPARABLE_t</code> (<code>TMB</code>)/<code>dseparable</code> (<code>RTMB</code>))</li>
 <li>Basis expansion <span class="citation" data-cites="woodGeneralized2017 hefleybasis2017">(<a href="#ref-woodGeneralized2017" role="doc-biblioref">Simon N. Wood 2017</a>; <a href="#ref-hefleybasis2017" role="doc-biblioref">Hefley et al. 2017</a>)</span> (<code>mgcv</code>); equivalence between precision matrices of multivariate Normal variables/Gaussian processes and smoothing penalties <span class="citation" data-cites="hodgesRichly2013 woodStable2004">(<a href="#ref-hodgesRichly2013" role="doc-biblioref">J. S. Hodges 2013</a>; <a href="#ref-woodStable2004" role="doc-biblioref">Simon N. Wood 2004</a>)</span></li>
 <li>Gibbs sampling (<code>JAGS</code>, <code>nimble</code>)</li>
 <li>Laplace approximation (enabled by AD), quadrature (importance sampling, …) (<code>TMB</code>, <code>nimble</code>, … ?)</li>

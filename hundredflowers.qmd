@@ -109,7 +109,7 @@ Techniques/tools:
 
 - automatic differentiation (AD) [@griewankautomatic1989a;@griewankIntroduction2003;@kristensenTMB2016] (`TMB`, `Stan`)
 - sparse matrix methods (`lme4`, `TMB`, `INLA`), especially the use of sparse precision matrices/Gauss-Markov random fields
-- low-rank approximation (`mgcv`)
+- low-rank approximations/factor analytic models/separable covariance structures (`mgcv`; `gllvm`, `rr()` in `glmmTMB`; `SEPARABLE_t` (`TMB`)/`dseparable` (`RTMB`))
 - Basis expansion [@woodGeneralized2017;@hefleybasis2017] (`mgcv`); equivalence between precision matrices of multivariate Normal variables/Gaussian processes and smoothing penalties [@hodgesRichly2013;@woodStable2004]
 - Gibbs sampling (`JAGS`, `nimble`)
 - Laplace approximation (enabled by AD), quadrature (importance sampling, ...) (`TMB`, `nimble`, ... ?)
