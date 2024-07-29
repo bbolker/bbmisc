@@ -124,7 +124,7 @@ More to the point, for a given model a hurried Bayesian might choose to use opti
 
 ## History
 
-Earlier-generation tools: AD Model Builder, original BUGS ...
+Earlier-generation platforms: AD Model Builder [@fournierAD2011], original BUGS [@lunnBUGS2012a] ...
 
 ## To do/other topics
 
