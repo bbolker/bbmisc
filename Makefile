@@ -34,6 +34,9 @@ Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 %.html: %.qmd
 	quarto render $<
 
+docs/%.html: %.html
+	mv $< docs/$<
+
 %.pdf: %.pdf
 	quarto render $< --to pdf
 
