@@ -2696,11 +2696,11 @@ margin: 10px;
 </ul>
 <p>Techniques/tools:</p>
 <ul>
-<li>automatic differentiation (AD) <span class="citation" data-cites="griewankautomatic1989a griewankIntroduction2003 kristensenTMB2016">(<a href="#ref-griewankautomatic1989a" role="doc-biblioref">A. Griewank 1989</a>; <a href="#ref-griewankIntroduction2003" role="doc-biblioref">Andreas Griewank and Walther 2003</a>; <a href="#ref-kristensenTMB2016" role="doc-biblioref">Kristensen et al. 2016</a>)</span> (<code>TMB</code>, <code>Stan</code>)</li>
+<li>automatic differentiation (AD) <span class="citation" data-cites="griewankautomatic1989a griewankIntroduction2003 kristensenTMB2016">(<a href="#ref-griewankautomatic1989a" role="doc-biblioref">A. Griewank 1989</a>; <a href="#ref-griewankIntroduction2003" role="doc-biblioref">Andreas Griewank and Walther 2003</a>; <a href="#ref-kristensenTMB2016" role="doc-biblioref">Kristensen et al. 2016</a>)</span> (<code>TMB</code>, Stan, NIMBLE)</li>
 <li>sparse matrix methods (<code>lme4</code>, <code>TMB</code>, <code>INLA</code>), especially the use of sparse precision matrices/Gauss-Markov random fields</li>
 <li>low-rank approximations/factor analytic models/separable covariance structures (<code>mgcv</code>; <code>gllvm</code>, <code>rr()</code> in <code>glmmTMB</code>; <code>SEPARABLE_t</code> (<code>TMB</code>)/<code>dseparable</code> (<code>RTMB</code>))</li>
 <li>Basis expansion <span class="citation" data-cites="woodGeneralized2017 hefleybasis2017">(<a href="#ref-woodGeneralized2017" role="doc-biblioref">Simon N. Wood 2017</a>; <a href="#ref-hefleybasis2017" role="doc-biblioref">Hefley et al. 2017</a>)</span> (<code>mgcv</code>); equivalence between precision matrices of multivariate Normal variables/Gaussian processes and smoothing penalties <span class="citation" data-cites="hodgesRichly2013 woodStable2004">(<a href="#ref-hodgesRichly2013" role="doc-biblioref">J. S. Hodges 2013</a>; <a href="#ref-woodStable2004" role="doc-biblioref">Simon N. Wood 2004</a>)</span></li>
-<li>Gibbs sampling (<code>JAGS</code>, <code>nimble</code>)</li>
+<li>Gibbs sampling (JAGS, NIMBLE)</li>
 <li>Laplace approximation (enabled by AD), quadrature (importance sampling, …) (<code>TMB</code>, <code>nimble</code>, … ?)</li>
 <li>INLA</li>
 </ul>
@@ -2724,6 +2724,7 @@ margin: 10px;
 <li>Case studies? Revisit examples from <span class="citation" data-cites="bolkerStrategies2013a">Bolker et al. (<a href="#ref-bolkerStrategies2013a" role="doc-biblioref">2013</a>)</span>? (These are super-tedious, but useful. Maybe there would be enough interest to do it in a distributed way?)</li>
 <li>other methods: sequential MC/particle filtering (<code>nimbleSMC</code> <span class="citation" data-cites="michaudSequential2021">(<a href="#ref-michaudSequential2021" role="doc-biblioref">Michaud et al. 2021</a>)</span>, <code>pomp</code>), ABC, ODEs (<code>odin</code>, <code>RTMBode</code>, <code>Stan</code>), …</li>
 <li>techniques from ML: L1 penalties (could be combined with AD? but requires soft thresholding); cross-validation (NIMBLE); etc.. Eco-stats approaches mostly more model-based.</li>
+<li>how should platforms be formatted? Depends if we’re referring to an R package or not? Case, monospace/code format or regular … ?</li>
 </ul>
 <div class="cell">
 <div class="cell-output-display">

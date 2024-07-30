@@ -107,11 +107,11 @@ For example:
 
 Techniques/tools:
 
-- automatic differentiation (AD) [@griewankautomatic1989a;@griewankIntroduction2003;@kristensenTMB2016] (`TMB`, `Stan`)
+- automatic differentiation (AD) [@griewankautomatic1989a;@griewankIntroduction2003;@kristensenTMB2016] (`TMB`, Stan, NIMBLE)
 - sparse matrix methods (`lme4`, `TMB`, `INLA`), especially the use of sparse precision matrices/Gauss-Markov random fields
 - low-rank approximations/factor analytic models/separable covariance structures (`mgcv`; `gllvm`, `rr()` in `glmmTMB`; `SEPARABLE_t` (`TMB`)/`dseparable` (`RTMB`))
 - Basis expansion [@woodGeneralized2017;@hefleybasis2017] (`mgcv`); equivalence between precision matrices of multivariate Normal variables/Gaussian processes and smoothing penalties [@hodgesRichly2013;@woodStable2004]
-- Gibbs sampling (`JAGS`, `nimble`)
+- Gibbs sampling (JAGS, NIMBLE)
 - Laplace approximation (enabled by AD), quadrature (importance sampling, ...) (`TMB`, `nimble`, ... ?)
 - INLA
 
@@ -135,6 +135,7 @@ Earlier-generation platforms: AD Model Builder [@fournierAD2011], original BUGS 
 * Case studies? Revisit examples from @bolkerStrategies2013a? (These are super-tedious, but useful. Maybe there would be enough interest to do it in a distributed way?)
 * other methods: sequential MC/particle filtering (`nimbleSMC` [@michaudSequential2021], `pomp`), ABC, ODEs (`odin`, `RTMBode`, `Stan`), ...
 * techniques from ML: L1 penalties (could be combined with AD? but requires soft thresholding); cross-validation (NIMBLE); etc.. Eco-stats approaches mostly more model-based.
+* how should platforms be formatted? Depends if we're referring to an R package or not? Case, monospace/code format or regular ... ?
 
 ```{r nceas_ex, echo = FALSE}
 ex_df <- read.delim(header = TRUE, sep = "|",
