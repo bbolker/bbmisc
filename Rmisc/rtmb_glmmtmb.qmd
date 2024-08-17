@@ -3,6 +3,9 @@ title: "GLMMs in RTMB"
 author: "Ben Bolker"
 date: today
 code-annotations: below
+format:
+  html:
+    embed-resources: true
 ---
 
 An illustration of a moderately general/customizable framework for building your own GLMMs in `RTMB`.
