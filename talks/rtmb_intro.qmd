@@ -1,0 +1,148 @@
+---
+title: "RTMB intro"
+bibliography: rtmb.bib
+---
+
+## what is RTMB?
+
+* like TMB [@kristensenTMB2016] but more convenient (although less mature)
+* evaluation of R functions in compiled code (sort of)
+* automatic differentiation
+* Laplace approximation engine
+
+![](pix/TMB.png)
+
+```{r pkgs, message=FALSE}
+library(bbmle)
+library(RTMB)
+library(tmbstan)
+library(igraph)
+library(ggplot2); theme_set(theme_bw())
+```
+
+## what is autodiff?
+
+- fancy chain rule
+- various ways to do it
+- $C(\ell'_\theta)<4C(\ell)$ ("cheap gradient principle")
+- time-efficient, maybe memory-hungry
+
+## simple (?) example
+
+```{r}
+f1 <- function(param) {
+    param$x^2 + cos(param$y)
+}
+par1 <- list(x=1, y = 2)
+lobstr::ast(!!body(f1))
+```
+
+```{r}
+ff1 <- MakeADFun(f1, par1)
+names(ff1)
+ff1$fn()  ## uses $par (== par1) as default
+tape1 <- MakeTape(f1, par1)
+plot(graph_from_adjacency_matrix(tape1$graph()),
+     layout=layout_as_tree, vertex.size = 25)
+```
+
+No speed advantage yet ...
+
+```{r}
+bench1 <- microbenchmark::microbenchmark(ff1$fn(), f1(par1))
+autoplot(bench1) + aes(fill=I("gray"))
+```
+
+But we can get gradients right away.
+
+```{r}
+ff1$gr()
+```
+
+## a GLM
+
+```{r}
+
+```
+
+
+```{r}
+library(bbmle)
+library(emdbook)
+load(system.file("vignetteData","orob1.rda",package="bbmle"))
+m1 <- mle2(m~dbetabinom(prob,size=n,theta),
+            param=list(prob~dilution),
+            start=list(prob=0.5,theta=1),
+            data=orob1)
+```
+
+```{r}
+bb <- function (x, prob, size, theta, log = FALSE)  {
+    v <- lfactorial(size) - lfactorial(x) - lfactorial(size - x) -
+        lbeta(theta * (1 - prob), theta * prob) +
+        lbeta(size - x + theta * (1 - prob), x + theta * prob)
+    if (log) v else exp(v)
+}
+```
+
+```{r}
+X <- model.matrix(~dilution, data = orob1)
+tmbdata <- list(n = orob1$n, m = orob1$m, X = X)
+lbeta <- function(a, b) lgamma(a) + lgamma(b) - lgamma(a+b)
+
+bb <- function (x, prob, size, theta, shape1, shape2, log = FALSE) 
+{
+    if (missing(prob) && !missing(shape1) && !missing(shape2)) {
+        prob <- shape1/(shape1 + shape2)
+        theta <- shape1 + shape2
+    }
+    v <- lfactorial(size) - lfactorial(x) -
+        lfactorial(size - x) - lbeta(theta * (1 - prob), theta * prob) +
+        lbeta(size - x + theta * (1 - prob), x + theta * prob)
+    if (log) v else exp(v)
+}
+
+fn <- function(param) {
+    getAll(param, tmbdata)
+    probvec <- plogis(X %*% beta_prob)
+    thetavec <- exp(X %*% beta_theta)
+    -sum(bb(m, prob = probvec,
+                             size = n,
+                             theta = thetavec, log = TRUE))
+}
+pars <- list(beta_prob = rep(0, 3), beta_theta = rep(0,3))
+fn(pars)    
+
+ff <- MakeADFun(fn, pars)
+ff$fn()
+autoplot(microbenchmark::microbenchmark(fn(pars), ff$fn()),
+         times = 1000)
+```
+
+```{r echo =FALSE, eval = FALSE}
+## digression: testing von Mises definition
+## taken from circular:::DvonmisesRad, without worrying about non-log scale
+##  or limiting values of mu=0 etc)
+library(circular)
+dvm <- function(pars) {
+    getAll(pars)
+    kappa <- exp(log_kappa)
+    sum(log(2 * pi) + log(besselI(kappa, nu = 0) + kappa) +
+        kappa * (cos(x - 2*pi*plogis(logit_mu))))
+}
+x <- rvonmises(1000, mu = pi/4, kappa = 2)
+pars <- list(log_kappa=0, logit_mu = 0)
+dvm(pars)
+ff <- MakeADFun(dvm, pars)
+ff$fn(pars)
+```
+## traps and drawbacks
+
+* have to handle prediction, tests, diagnostics, etc. etc. yourself
+* data handling (see [here](https://groups.google.com/g/tmb-users/c/sq3y5aTwvjo), [here](https://groups.google.com/g/tmb-users/c/YzSjsHyFYJ8)
+* non-standard probability distributions
+* use of `<-[` (see [here](https://groups.google.com/g/tmb-users/c/HlPqkfcCa1g)) etc.
+
+## documentation
+
+- http://www.nielsensweb.org/swansea2024/
