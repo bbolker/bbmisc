@@ -18,6 +18,7 @@ library(RTMB)
 library(tmbstan)
 library(igraph)
 library(ggplot2); theme_set(theme_bw())
+data("prussian", package = "pscl")
 ```
 
 ## what is autodiff?
@@ -50,7 +51,7 @@ No speed advantage yet ...
 
 ```{r}
 bench1 <- microbenchmark::microbenchmark(ff1$fn(), f1(par1))
-autoplot(bench1) + aes(fill=I("gray"))
+print(bench1)
 ```
 
 But we can get gradients right away.
@@ -62,9 +63,60 @@ ff1$gr()
 ## a GLM
 
 ```{r}
-
+X <- model.matrix(~ factor(year), data = prussian)
+par2 <- list(beta = rep(0, ncol(X)))
+f2 <- function(pars) {
+    getAll(pars)
+    mu <- exp(X %*% beta)
+    -sum(dpois(prussian$y, lambda = mu, log = TRUE))
+}
+f2(par2)
+ff2 <- MakeADFun(f2, par2)
+ff2$fn()
 ```
 
+```{r}
+bench2 <- microbenchmark::microbenchmark(ff2$fn(), f2(par2))
+print(bench2)
+```
+
+```{r}
+fit2 <- with(ff2, nlminb(par, fn, gr))
+```
+
+```{r}
+g2 <- glm(y ~ factor(year), data = prussian, family = poisson)
+all.equal(unname(coef(g2)), unname(fit2$par), tolerance = 1e-6)
+```
+
+## GLMM
+
+We can make this a GLMM with *very* little additional effort.
+
+```{r}
+Z_y <- Matrix::sparse.model.matrix(~year, data = prussian)
+Z_c <- Matrix::sparse.model.matrix(~corp, data = prussian)
+par3 <- list(beta0 = 0, b_y = rep(0, ncol(Z_y)), b_c = rep(0, ncol(Z_c)),
+             logsd_c = 0, logsd_y = 0)
+f3 <- function(pars) {
+    getAll(pars)
+    mu <- exp(beta0 + Z_y %*% b_y + Z_c %*% b_c)
+    mu <- drop(as.matrix(mu))
+    nll <- -sum(dpois(prussian$y, lambda = mu, log = TRUE))
+    nll <- nll - sum(dnorm(b_y, sd = exp(logsd_y), log = TRUE))
+    nll <- nll - sum(dnorm(b_c, sd = exp(logsd_c), log = TRUE))
+    return(nll)
+}
+f3(par3)
+ff3 <- MakeADFun(f3, par3)
+ff3$fn()
+ff3 <- MakeADFun(f3, par3, random = c("b_y", "b_c"), silent = TRUE)
+ff3$fn()
+fit3 <- with(ff3, nlminb(par, fn, gr))
+fit3$par
+```
+
+## more complexity (beta-binomial)
 
 ```{r}
 library(bbmle)
@@ -136,13 +188,14 @@ dvm(pars)
 ff <- MakeADFun(dvm, pars)
 ff$fn(pars)
 ```
-## traps and drawbacks
+
+## tricks and traps
 
 * have to handle prediction, tests, diagnostics, etc. etc. yourself
 * data handling (see [here](https://groups.google.com/g/tmb-users/c/sq3y5aTwvjo), [here](https://groups.google.com/g/tmb-users/c/YzSjsHyFYJ8)
 * non-standard probability distributions
 * use of `<-[` (see [here](https://groups.google.com/g/tmb-users/c/HlPqkfcCa1g)) etc.
 
-## documentation
+## documentation and links
 
 - http://www.nielsensweb.org/swansea2024/
