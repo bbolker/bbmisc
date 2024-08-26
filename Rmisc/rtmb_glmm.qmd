@@ -29,11 +29,11 @@ X <- model.matrix(nobars(form), sleepstudy)   # <3>
 fam <- poisson()                              # <4>
 us <- unstructured(2)                         # <5>
 ```
-1. `reformulas::subbars()` replaces any bars (`|`) with `+` in the formula so that it can be interpreted by `model.frame()` - all variables that appear in the formula will be included in the model frame, including expansion of data-dependent terms like splines.
+1. `reformulas::subbars()` replaces any bars (`|`) with `+` in the formula so that it can be interpreted by `model.frame()` --- all variables that appear in the formula will be included in the model frame, including expansion of data-dependent terms like splines.
 2. `reformulas::mkReTrms()` generates the required $Z$ matrix (actually its transpose), as the `Zt` element of a list. If there are multiple random effect terms, `Zt` will include them all concatenated into a single matrix, while `Ztlist` will include them as separate elements in a list. The returned value includes other information (see the docs), but `Zt` is the only component we need in this example. `calc.lambdat = FALSE` specifies that `mkReTrms` should not return the Cholesky factor of the covariance matrix of the (combined) random effects (we don't need it and it is sometimes a large object).
-3. This constructs the model matrix for the fixed-effects component, in the usual way (`reformulas::nobars` drops the random-effect terms)
-4. This *may* be useful (but turns out not to be in this example, see below) for getting terms such as the link function, inverse link function, (scaled) variance function, etc. for the conditional distribution
-5. This returns an object that includes a function `$corr` for computing an unstructured correlation matrix from a vector of parameters (see [glmmTMB documentation](https://cran.r-project.org/web/packages/glmmTMB/vignettes/covstruct.html#unstructured) or [TMB documentation](http://kaskr.github.io/adcomp/classdensity_1_1UNSTRUCTURED__CORR__t.html) for more info). For a vector-valued random effect of length only two (i.e. {intercept, slope}) this approach is overkill because there is only a single correlation parameter, but it will generalize to larger correlation matrices.
+3. This constructs the model matrix for the fixed-effects component, in the usual way (`reformulas::nobars` drops the random-effect terms).
+4. This *may* be useful (but turns out not to be in this example, see below) for getting terms such as the link function, inverse link function, (scaled) variance function, etc. for the conditional distribution.
+5. This returns a list that includes a function `corr` for computing an unstructured correlation matrix from a vector of parameters (see [glmmTMB documentation](https://cran.r-project.org/web/packages/glmmTMB/vignettes/covstruct.html#unstructured) or [TMB documentation](http://kaskr.github.io/adcomp/classdensity_1_1UNSTRUCTURED__CORR__t.html) for more info). For a vector-valued random effect of length only two (i.e. {intercept, slope}) this approach is overkill because there is only a single correlation parameter, but it will generalize to larger correlation matrices.
 
 Now the negative log-likelihood function itself:
 
@@ -57,7 +57,7 @@ nll <- function(pars) {
 5. This line computes the conditional log-likelihood. Since we know that the response variable is `round(Reaction)` we could have used that instead (breaking differentiability is OK *as long as the computation doesn't depend in any way on model parameters*), but `model.response(fr)` is a little bit more general. (Don't ask me how this works with binomial responses specified as a two-column matrix, please.) TMB uses `dnbinom` to specify the default base-R probability/size parameterization (which we rarely want) and `dnbinom2` to specify the alternative, and more generally useful, mean/variance parameterization. If you want some other parameterization such as `nbinom1` from `glmmTMB` you have to code the parameter transformation yourself.
 6. Convert the vector of random effect log-standard deviations (length-2 in this case) to standard deviations (we could do this on the fly in the next line, but this is more readable).
 7. Compute the random effects covariance matrix from standard deviations and correlation parameters. We could equivalently use `diag(sdvec) %*% cormat %*% diag(sdvec)` to do this transformation
-8. Compute the negative log-likelihood of $b$ conditional on $\Sigma$ (given a matrix-valued first argument, `dmvnorm()` returns a vector of (log-)likelihoods, one for each row/subject); subtract it from the conditional log-likelihood we already computed.
+8. Compute the log-likelihood of $b$ conditional on $\Sigma$ (given a matrix-valued first argument, `dmvnorm()` returns a vector of (log-)likelihoods, one for each row/subject); subtract it from the conditional log-likelihood we already computed.
 
 
 Set up the parameters. These are 'reasonable' values for this problem. 
@@ -85,14 +85,13 @@ rnll <- MakeADFun(nll, pars)
 rnll$fn()
 ```
 
-
-Now specify that `b` should be treated as a random effect. `silent = TRUE` turns off a lot of messages about intermediate steps of the Laplace approximation calculation. Now the negative log-likelihood should be lower, because the `b` parameters are automatically optimized as part of the Laplace approximation step.
+Now specify that `b` should be treated as a random effect. `silent = TRUE` turns off a lot of messages about intermediate steps of the Laplace approximation calculation. Now the negative log-likelihood should be lower (better goodness of fit), because the `b` parameters are automatically optimized as part of the Laplace approximation step.
 ```{r test3}
 rnll2 <- MakeADFun(nll, pars, random = "b", silent = TRUE)
 rnll2$fn()
 ```
 
-Now feed these to `nlminb` (or any optimizer of your choice). You can use any optimizer here, but using an optimizer that doesn't take advantage of gradient information is missing out on some of the huge benefits of using (R)TMB.
+Now feed these to `nlminb` (or any optimizer of your choice). You can use any optimizer here, but using an optimizer that doesn't take advantage of gradient information would miss out on some of the main benefits of using (R)TMB.
 
 ```{r fit}
 fit <- with(rnll2, nlminb(start = par, objective = fn, gradient = gr))
@@ -100,7 +99,7 @@ print(fit)
 ```
 
 We use `with()` to make the code slightly nicer (we don't have to repeat `rnll2$` in front of `par`, `fn`, and `gr`).
-The warning is (mostly) harmless, it means that an `NaN` value was encountered somewhere during the fitting process. It would be nice to dig in and robustify the code so this didn't happen, but at the moment that's more trouble than it's worth.
+The warning is (mostly) harmless; it means that an `NaN` value was encountered somewhere during the fitting process. It would be nice to dig in and robustify the code so this didn't happen, but at the moment that's more trouble than it's worth.
 The `fit` results only give us information about the 'top-level' parameters (fixed effects and dispersion parameters). To get information on the conditional modes, etc. etc., we have to do more work ...
 
 Note that, as promised, calling the objective function with no arguments now gives us the *last* value evaluated, which is the same as the optimum returned by `nlminb`.
@@ -124,4 +123,4 @@ There are lots more details and tricks involving predictions, reported derived q
 * in principle you could use factor-analytic terms (i.e., as in `rr()` in `glmmTMB`), although in practice these involve additional complexity for (e.g.) picking adequate starting values ...
 * compute downstream quantities like the Hessian (`optimHess(fit$par, rnll2$fn, rnll2$gr)`), covariance matrix (use `solve()` to invert the Hessian), likelihood profiles (`TMB::tmbprofile()`), etc etc.  Use `OBS()` to enable simulations and quantile residuals, `ADREPORT()` to compute standard deviations of derived quantities. The [RTMB introduction](https://kaskr.r-universe.dev/articles/RTMB/RTMB-introduction.html) is a good place to start.
 * add priors/regularizing terms (by computing log-priors and subtracting them from the `nll` value)
-* consider using box-constrained optimization to set bounds on RE standard deviations, dispersion parameters, correlation parameters, zero-inflation parameters, etc. - this will behave better in the case where the parameters converge to the boundaries (e.g. parameterize the negative binomial as $V = \mu(1+\psi \mu)$ and use the `lower` argument to `nlminb` to enforce the constraint $\psi \ge 0$)
+* instead of using link functions to transform (e.g.) standard deviations to an unconstrained scale, use box-constrained optimization to set bounds on this type of parameters (RE standard deviations, dispersion parameters, correlation parameters, zero-inflation parameters, etc.). This may behave better in the case where the parameters converge to the boundaries (e.g. parameterize the negative binomial as $V = \mu(1+\psi \mu)$ and use the `lower` argument to `nlminb` to enforce the constraint $\psi \ge 0$)
