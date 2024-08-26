@@ -148,6 +148,7 @@ fit3$par
 * have to implement exotic probability distributions yourself
 * use of `<-[` (see [here](https://groups.google.com/g/tmb-users/c/HlPqkfcCa1g)) etc.
 * not widely used yet; there will be holes
+* compare to: `bbmle` (no random effects, no autodiff); [NIMBLE](https://r-nimble.org/) (more restricted set of back-ends); Stan (see [tmbstan](https://CRAN.R-project.org/package=tmbstan)), JAGS, etc..
 
 ## documentation and links
 
