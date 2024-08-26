@@ -1,6 +1,13 @@
 ---
 title: "RTMB intro"
 bibliography: rtmb.bib
+author: "Ben Bolker"
+date: today
+licence: CC-BY-SA
+code-annotations: below
+format:
+  html:
+    embed-resources: true
 ---
 
 ## what is RTMB?
@@ -199,3 +206,4 @@ ff$fn(pars)
 ## documentation and links
 
 - http://www.nielsensweb.org/swansea2024/
+- 
