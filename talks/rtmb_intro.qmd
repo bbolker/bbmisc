@@ -37,7 +37,7 @@ data("prussian", package = "pscl")
 
 ## simple (?) example
 
-```{r}
+```{r ex1-ast}
 f1 <- function(param) {
     param$x^2 + cos(param$y)
 }
@@ -45,62 +45,74 @@ par1 <- list(x=1, y = 2)
 lobstr::ast(!!body(f1))
 ```
 
-```{r}
-ff1 <- MakeADFun(f1, par1)
-names(ff1)
-ff1$fn()  ## uses $par (== par1) as default
+```{r ex1-tape}
 tape1 <- MakeTape(f1, par1)
 plot(graph_from_adjacency_matrix(tape1$graph()),
      layout=layout_as_tree, vertex.size = 25)
 ```
 
+Now we construct the full TMB object (includes objective function, gradient, etc.)
+```{r ex1-makefn}
+ff1 <- MakeADFun(f1, par1)
+names(ff1)
+ff1$fn()  ## uses $par (== par1) as default
+```
+
 No speed advantage yet ...
 
-```{r}
+```{r ex1-bench}
 bench1 <- microbenchmark::microbenchmark(ff1$fn(), f1(par1))
 print(bench1)
 ```
 
 But we can get gradients right away.
 
-```{r}
+```{r ex1-gr}
 ff1$gr()
 ```
 
-## a GLM
+## a simple GLM
 
-```{r}
-X <- model.matrix(~ factor(year), data = prussian)
-par2 <- list(beta = rep(0, ncol(X)))
+Set up model matrix (can also parameterize the model 'by hand', i.e. `beta0 + beta_y[year]` etc., but I find that extremely tedious).
+
+```{r ex2}
+X2 <- model.matrix(~ factor(year), data = prussian)
+par2 <- list(beta = rep(0, ncol(X2)))
 f2 <- function(pars) {
-    getAll(pars)
-    mu <- exp(X %*% beta)
+    getAll(pars)  ## this is like with() or attach()
+    mu <- exp(X2 %*% beta)
     -sum(dpois(prussian$y, lambda = mu, log = TRUE))
 }
 f2(par2)
-ff2 <- MakeADFun(f2, par2)
+ff2 <- MakeADFun(f2, par2, silent = TRUE)
 ff2$fn()
+ff2$gr()
 ```
 
-```{r}
+```{r ex2-bench}
 bench2 <- microbenchmark::microbenchmark(ff2$fn(), f2(par2))
 print(bench2)
 ```
 
-```{r}
+Objective function in RTMB is already twice as fast ...
+
+```{r fit2}
 fit2 <- with(ff2, nlminb(par, fn, gr))
 ```
 
-```{r}
+Compare with GLM fit:
+
+```{r glm2}
 g2 <- glm(y ~ factor(year), data = prussian, family = poisson)
 all.equal(unname(coef(g2)), unname(fit2$par), tolerance = 1e-6)
 ```
 
 ## GLMM
 
-We can make this a GLMM with *very* little additional effort.
+We can make this a GLMM with *very* little additional effort. Again, we can parameterize either 'by hand' or with a random effects model matrix $Z$ (see [here](http://bbolker.github.io/bbmisc/rtmb_glmm.html) for a more complex but more general formulation of GLMMs in RTMB ...)
 
-```{r}
+```{r ex3}
+## RTMB knows about sparse matrices
 Z_y <- Matrix::sparse.model.matrix(~year, data = prussian)
 Z_c <- Matrix::sparse.model.matrix(~corp, data = prussian)
 par3 <- list(beta0 = 0, b_y = rep(0, ncol(Z_y)), b_c = rep(0, ncol(Z_c)),
@@ -108,24 +120,45 @@ par3 <- list(beta0 = 0, b_y = rep(0, ncol(Z_y)), b_c = rep(0, ncol(Z_c)),
 f3 <- function(pars) {
     getAll(pars)
     mu <- exp(beta0 + Z_y %*% b_y + Z_c %*% b_c)
+    ## need to convert to a vector here ...
     mu <- drop(as.matrix(mu))
+    ## conditional (negative) log-likelihood
     nll <- -sum(dpois(prussian$y, lambda = mu, log = TRUE))
+    ## log-likelihoods of the random effects
     nll <- nll - sum(dnorm(b_y, sd = exp(logsd_y), log = TRUE))
     nll <- nll - sum(dnorm(b_c, sd = exp(logsd_c), log = TRUE))
     return(nll)
 }
 f3(par3)
-ff3 <- MakeADFun(f3, par3)
+## make AD fun *without* Laplace approximation
+ff3 <- MakeADFun(f3, par3, silent = TRUE)
 ff3$fn()
+## now integrate over random effects
 ff3 <- MakeADFun(f3, par3, random = c("b_y", "b_c"), silent = TRUE)
 ff3$fn()
 fit3 <- with(ff3, nlminb(par, fn, gr))
 fit3$par
 ```
 
+## tricks and traps
+
+* objective function **must be differentiable** with respect to parameters (no `if()`, `abs()`, `round()`, `min()`, `max()` depending on parameters)
+* have to handle prediction, tests, diagnostics, etc. etc. yourself
+* data handling (see [here](https://groups.google.com/g/tmb-users/c/sq3y5aTwvjo), [here](https://groups.google.com/g/tmb-users/c/YzSjsHyFYJ8)
+* have to implement exotic probability distributions yourself
+* use of `<-[` (see [here](https://groups.google.com/g/tmb-users/c/HlPqkfcCa1g)) etc.
+* not widely used yet; there will be holes
+
+## documentation and links
+
+- [RTMB on R-universe](https://kaskr.r-universe.dev/RTMB)
+- [ISEC 2024 workshop](http://www.nielsensweb.org/swansea2024/)
+- [TMB-users list](https://groups.google.com/g/tmb-users) on Google Groups
+- [GLMMs in RTMB](http://bbolker.github.io/bbmisc/rtmb_glmm.html)
+
 ## more complexity (beta-binomial)
 
-```{r}
+```{r betabinom-mle2, warning = FALSE}
 library(bbmle)
 library(emdbook)
 load(system.file("vignetteData","orob1.rda",package="bbmle"))
@@ -134,6 +167,8 @@ m1 <- mle2(m~dbetabinom(prob,size=n,theta),
             start=list(prob=0.5,theta=1),
             data=orob1)
 ```
+
+(`NaN` warnings)
 
 ```{r}
 bb <- function (x, prob, size, theta, log = FALSE)  {
@@ -175,7 +210,7 @@ fn(pars)
 ff <- MakeADFun(fn, pars)
 ff$fn()
 autoplot(microbenchmark::microbenchmark(fn(pars), ff$fn()),
-         times = 1000)
+         times = 1000) + aes(fill = I("gray"))
 ```
 
 ```{r echo =FALSE, eval = FALSE}
@@ -196,14 +231,3 @@ ff <- MakeADFun(dvm, pars)
 ff$fn(pars)
 ```
 
-## tricks and traps
-
-* have to handle prediction, tests, diagnostics, etc. etc. yourself
-* data handling (see [here](https://groups.google.com/g/tmb-users/c/sq3y5aTwvjo), [here](https://groups.google.com/g/tmb-users/c/YzSjsHyFYJ8)
-* non-standard probability distributions
-* use of `<-[` (see [here](https://groups.google.com/g/tmb-users/c/HlPqkfcCa1g)) etc.
-
-## documentation and links
-
-- http://www.nielsensweb.org/swansea2024/
-- 
