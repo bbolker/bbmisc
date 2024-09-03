@@ -42,7 +42,7 @@ f1 <- function(param) {
     param$x^2 + cos(param$y)
 }
 par1 <- list(x=1, y = 2)
-lobstr::ast(!!body(f1))
+## lobstr::ast(!!body(f1))
 ```
 
 ```{r ex1-tape}
