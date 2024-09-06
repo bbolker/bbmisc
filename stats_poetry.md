@@ -11,6 +11,7 @@ title: "statistics poetry"
 * ["Statistical Lament"](https://poetrywithmathematics.blogspot.com/2012/04/statistics-lament.html) (Robert J. MacG. Dawson 2011, *The Mathematical Intelligencer* 33 (3): 106. https://doi.org/10.1007/s00283-011-9234-3 after "Both Sides Now" (Joni Mitchell))
 .
 * [The Bayesian Songbook](https://mindstalk.net/bayesSongbook2006.pdf), ed. Brad Carlin (2006)
+
 Contributions welcome.
 
 ---
