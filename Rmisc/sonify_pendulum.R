@@ -31,6 +31,7 @@ grad <- function(t, y, parms) {
 
 pars <- c(g=9.8, l1=1, l2=1, m1 = 1, m2 = 1)
 y0 <- c(th1=pi/4, th2=pi/4, om1=0, om2=0)
+## need more extreme starting values for chaos)
 y1 <- c(th1=3*pi/4, th2=-3*pi/4, om1=0, om2=0)
 grad(0, y1, pars)
 
@@ -46,5 +47,21 @@ s1 <- with(res1, sonify(time, th1, play = FALSE))
 s2 <- with(res2, sonify(time, th1, waveform = "sawtooth", play = FALSE))
 
 ## how do we combine these?? multichannel/etc. ?
-tuneR::writeWave(s2, "tmp.wav")
-system("xdg-open tmp.wav")
+tuneR::writeWave(s1, "tmp1.wav")
+tuneR::writeWave(s2, "tmp2.wav")
+system("xdg-open tmp1.wav")
+system("xdg-open tmp2.wav")
+
+## adding seems to work ...
+s12 <- s1
+s12@.Data <- s1@.Data + s2@.Data
+s12 <- normalize(s12, unit = "16")
+tuneR::writeWave(s12, "tmp12.wav")
+system("xdg-open tmp12.wav")
+
+## FIXME
+## * pitches seem different -- different harmonics emphasized?
+## * explain/understand meanings of variables (see W'pedia page)
+## * normalize angles somehow/switch back to x, y coordinates?
+## * distinguish pendula via octave/ left vs right channel / volume /timbre?
+
