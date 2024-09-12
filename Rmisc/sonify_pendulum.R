@@ -4,6 +4,8 @@ library(deSolve)
 library(sonify)
 library(tuneR)
 
+play <- function(fn) system(paste("xdg-open", fn))
+
 ## th1: upper angle, th2: lower angle
 ## om1, om2: angular velocities
 ## lower pendulum center of mass (distance below suspension point):
@@ -51,8 +53,10 @@ s2 <- sonify(tvec, calc_y(res2), waveform = "sawtooth", play = FALSE)
 ## how do we combine these?? multichannel/etc. ?
 tuneR::writeWave(s1, "tmp1.wav")
 tuneR::writeWave(s2, "tmp2.wav")
-system("xdg-open tmp1.wav")
-system("xdg-open tmp2.wav")
+if (FALSE) {
+    play("tmp1.wav")
+    play("tmp2.wav")
+}
 
 s_comb <- function(s1, s2) {
     ## adding seems to work ...
@@ -68,19 +72,42 @@ s_lrcomb <- function(s1, s2) {
     return(normalize(s12, unit = "16"))
 }
 
+s_lrsum <- function(s0, mat) {
+    sout <- s0
+    nc <- ncol(mat)
+    R <- rowSums(mat[,  1:(nc/2)])
+    L <- rowSums(mat[,-(1:(nc/2))])
+    sout@.Data[] <- cbind(R, L)
+    return(normalize(sout, unit = "16"))
+}
+
 tuneR::writeWave(s_comb(s1, s2), "timbres.wav")
-system("xdg-open timbres.wav")
+if (FALSE) play("timbres.wav")
 
 s1L <- sonify(tvec, calc_y(res1), waveform = "square", play = FALSE,
              stereo = FALSE)
 s2R <- sonify(tvec, calc_y(res2), waveform = "sawtooth", play = FALSE,
               stereo = FALSE)
 tuneR::writeWave(s_comb(s1L, s2R), "timbres_LR.wav")
-system("xdg-open timbres_LR.wav")
+if (FALSE) play("timbres_R.wav")
+
 ## * distinguish pendula via octave/ left vs right channel / volume /timbre?
 
 s1L_low <- sonify(tvec, calc_y(res1), waveform = "square", play = FALSE,
              stereo = FALSE, flim = c(220, 440))
 tuneR::writeWave(s_comb(s1L_low, s2R), "timbres_LR_oct.wav")
-system("xdg-open timbres_LR_oct.wav")
+if (FALSE) play("timbres_LR_oct.wav")
 
+sfun <- function() {
+    dd <- as.data.frame(ode(y1+0.001*runif(4, -1, 1), seq(0, 20, by = 0.1), grad, pars))
+    ss <- sonify(dd$time, calc_y(dd), waveform = "square", play = FALSE,
+                 stereo = FALSE)
+    ss@.Data[,1]
+}
+    
+set.seed(101)
+res_mat <- replicate(10, sfun())
+
+s_many <- s_lrsum(s1, res_mat)
+tuneR::writeWave(s_many, "many.wav")
+play("many.wav")
