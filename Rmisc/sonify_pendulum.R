@@ -4,6 +4,7 @@ library(deSolve)
 library(sonify)
 library(tuneR)
 
+
 play <- function(fn) system(paste("xdg-open", fn))
 
 ## th1: upper angle, th2: lower angle
@@ -77,7 +78,8 @@ s_lrsum <- function(s0, mat) {
     nc <- ncol(mat)
     R <- rowSums(mat[,  1:(nc/2)])
     L <- rowSums(mat[,-(1:(nc/2))])
-    sout@.Data[] <- cbind(R, L)
+    sout@.Data <- cbind(R, L)
+    colnames(sout@.Data) <- c("FR", "FL")
     return(normalize(sout, unit = "16"))
 }
 
@@ -99,8 +101,10 @@ tuneR::writeWave(s_comb(s1L_low, s2R), "timbres_LR_oct.wav")
 if (FALSE) play("timbres_LR_oct.wav")
 
 sfun <- function() {
-    dd <- as.data.frame(ode(y1+0.001*runif(4, -1, 1), seq(0, 20, by = 0.1), grad, pars))
+    dd <- as.data.frame(ode(y1+0.001*runif(4, -1, 1),
+                            seq(0, 20, by = 0.1), grad, pars))
     ss <- sonify(dd$time, calc_y(dd), waveform = "square", play = FALSE,
+                 duration = 25,
                  stereo = FALSE)
     ss@.Data[,1]
 }
