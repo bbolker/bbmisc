@@ -248,7 +248,7 @@ plot_fun <- function(sims) {
 }
 ```
 
-Using true correlation parameters $\{0.5, -0.3, 0.5}$ (shown by the purple sphere below) with a small data set (5 groups, 5 [trivariate] observations per group) and large noise ($\sigma^2_r=1$), we get lots of variation in the estimated parameters, with many being singular/on the edge of the elliptope (red dots have $\det(C) < 10^{-6}$; black dots are in the interior).
+Using true correlation parameters $\{0.5, -0.3, 0.5\}$ (shown by the purple sphere below) with a small data set (5 groups, 5 [trivariate] observations per group) and large noise ($\sigma^2_r=1$), we get lots of variation in the estimated parameters, with many being singular/on the edge of the elliptope (red dots have $\det(C) < 10^{-6}$; black dots are in the interior).
 
 ```{r plot1}
 plot_fun(sims1)
