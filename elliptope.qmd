@@ -59,7 +59,7 @@ which they presumably used to make this picture:
 
 ![](rouss_elliptope.png)
 
-(they also comment that the rounded triangle you get from a projection is "as used in a Wankel engine or a movie projector").
+(they also comment that the rounded triangle you get from a projection is "as used in a [Wankel engine](https://en.wikipedia.org/wiki/Wankel_engine) or a movie projector"; see also [here](https://11011110.github.io/blog/2020/07/05/shape-wankel-rotor.html) and @shungGeometryTrochoidaltypeMachines1994 for more on the shape of the Wankel rotor, which is probably *not* exactly the same as this projection ...).
 
 Brute force: generate a grid, compute determinants, draw the contour where $\det(C) = 0$ (much faster than computing minimum eigenvalues!)
 
@@ -123,7 +123,7 @@ Now I'm interested in seeing the distribution of fitted correlation parameters i
 $$
 \begin{split}
 y_{ij} & = \beta_0 + \epsilon_{c, ij} + \epsilon_{r, ijk} \\
-\epsilon_{r, ijk} & \sim N(0, \sigma^2_r \\
+\epsilon_{r, ijk} & \sim N(0, \sigma^2_r) \\
 \epsilon_{c, i} & \sim \textrm{MVN}(0, C)
 \end{split}
 $$
