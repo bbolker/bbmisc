@@ -309,3 +309,4 @@ show(ee)
 * check on `NA` determinant results ...
 * compare `glmmTMB` results?
 * fuss with 4x4 printing (split long equation? adapt [this](https://stackoverflow.com/questions/65406726/how-to-propagate-n-to-sympy-latex) or [this](https://tex.stackexchange.com/questions/317844/auto-breaking-of-long-equations)?); think about 4x4 (=6d) geometry/projections 
+* very tangentially, it would be interesting to compare this rounded shape with other rounded tetrahedral shapes: e.g. [Meissner tetrahedra](https://en.wikipedia.org/wiki/Reuleaux_tetrahedron#Meissner_bodies), [Reuleaux tetrahedra](https://en.wikipedia.org/wiki/Reuleaux_tetrahedron), power transformations of the tetrahedron (i.e., taking the points of a tetrahedron and squaring them leads to a circle, so presumably raising them to a power $1 < \alpha <  2$ would lead to some kind of rounded tetrahedron?)
