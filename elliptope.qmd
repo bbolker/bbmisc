@@ -1,0 +1,311 @@
+---
+title: "the 'elliptope' (space of pos def 3x3 correlation matrices)"
+author: Ben Bolker
+date: today
+bibliography: elliptope.bib
+format:
+    html: 
+       embed-resources: true
+       code-fold: true
+---
+
+```{r setup}
+#| message: false
+library(rgl)
+library(misc3d)
+library(dplyr)
+library(ggplot2); theme_set(theme_bw())
+## https://stackoverflow.com/questions/10504724/change-the-default-colour-palette-in-ggplot
+## Okabe-Ito, skip black
+scale_fill_discrete <- function(..., values = palette.colors(4)[-1]) {
+    scale_fill_manual(..., values = values)
+}
+rgl::setupKnitr(autoprint = TRUE)
+options(rgl.useNULL=TRUE)
+if (FALSE) {
+    install.packages("cmdstanr",
+                     repos = c('https://stan-dev.r-universe.dev',
+                               getOption("repos")))
+    remotes::install_github("rmcelreath/rethinking")
+}
+library(rethinking)
+library(lme4)
+options(bitmapType = "cairo")
+```
+
+<!-- https://stackoverflow.com/questions/63595786/rmarkdown-how-to-embed-an-3d-plot -->
+
+Consider this $3\times 3$ correlation matrix:
+$$
+C = \left(
+\begin{array}{ccc}
+1      & \rho_1 & \rho_2 \\
+\rho_1 & 1      & \rho_3 \\
+\rho_2 & \rho_3 & 1
+\end{array}
+\right)
+$$
+
+What does the set $\{\rho_1, \rho_2, \rho_3\}: C \textrm{ is pos. def.}$ look like? This is answered nicely by @rousseeuwShapeCorrelationMatrices1994, but I will explore it some here. (Will also consider how this connects to singular model fits in mixed models ...)
+
+Based on the determinant characteristic for the edge of the space ($\det(C) = 0$), Roousseuw and Molenberghs derive this relationship:
+
+> Indeed, if we fix $r_{YZ} = c$ with $|c| < 1$, we find
+> $$
+> r^2_{XY} + r^2_{XZ} - 2 c r_{XY} r_{XZ} = 1 - c^2
+> $$
+
+which they presumably used to make this picture:
+
+![](rouss_elliptope.png)
+
+(they also comment that the rounded triangle you get from a projection is "as used in a Wankel engine or a movie projector").
+
+Brute force: generate a grid, compute determinants, draw the contour where $\det(C) = 0$ (much faster than computing minimum eigenvalues!)
+
+```{r calc}
+n <- 51
+cvec <- seq(-1, 1, length.out = n)
+M <- as.matrix(expand.grid(r1=cvec, r2=cvec, r3=cvec))
+efun <- function(x) {
+    M <- diag(3)
+    ## works for 3x3 but not more generally?
+    M[lower.tri(M)] <- x
+    M[upper.tri(M)] <- x
+    M
+}
+efun2 <- function(x) det(efun(x))
+e.val <- apply(M, 1, efun2)
+```
+
+```{r plot3d}
+aa <- array(e.val, c(n, n, n))
+misc3d::contour3d(aa, cvec, cvec, cvec, level = 0,
+                  ## this renders as a nice clear mesh in X11 but
+                  ##  the rendering seems to be messed up in web3d/
+                  ##  whatever rgl using in the HTML rendering
+                  ## fill = FALSE,
+                  color = "blue",
+                  alpha = 0.5)
+## add pos-def
+csym <- M |> as.data.frame() |> dplyr::filter(e.val>=0 & r1 == r2 & r1 == r3)
+## min neg value for pos def?
+axes3d()
+with(csym, lines3d(r1, r2, r3, color = "red", lwd =3))
+spheres3d(-1/2, -1/2, -1/2, color = "red", radius = 0.05)
+grid3d(side = c("x-", "y-", "z-"))
+```
+
+The red line shows the compound symmetric case ($r_1=r_2=r_3$), the ball is the minimum value for $K=3$ ($r=-1/2$).  You can use the mouse to rotate and zoom the figure ...
+
+<!-- https://github.com/quarto-dev/quarto-cli/issues/141 -->
+Or with `sympy`:
+
+```{python sympy}
+from sympy import *
+var('rho1 rho2 rho3');
+M = Matrix([[1, rho1, rho2], [rho1, 1, rho3], [rho2, rho3, 1]])
+ee = M.det()
+show = lambda x: print('$$\n%s = 0\n$$\n' % latex(x))
+```
+
+```{python show.results}
+#| output: asis
+show(ee)
+```
+
+It would be interesting to simulate a bunch of multivariate data sets with large noise/low replication and look at the distribution of $\{\rho_1, \rho_2, \rho_3\}$ estimates in this space (i.e., how do they cluster on the boundaries?)
+
+## simulations
+
+Now I'm interested in seeing the distribution of fitted correlation parameters in a mixed model in the case where we have small/noisy data sets. The model is
+
+$$
+\begin{split}
+y_{ij} & = \beta_0 + \epsilon_{c, ij} + \epsilon_{r, ijk} \\
+\epsilon_{r, ijk} & \sim N(0, \sigma^2_r \\
+\epsilon_{c, i} & \sim \textrm{MVN}(0, C)
+\end{split}
+$$
+where $i$=group, $j$=level, $k$=replicate. That is, we have a $3\times 3$ correlated random effect (with all variances equal to 1).
+
+```{r sim_funs}
+## shouldn't hard-code K=3 here ...
+my_eig <- purrr::safely(\(x) eigen(x, only.values = TRUE)$values,
+                        otherwise = rep(NA_real_, 3))
+
+#' @param ng number of groups
+#' @param n  number per group
+#' @param K dimension
+#' @param eta LKJ parameter (1 = flat, >1 = biased toward diagonal)
+#' @param cor_method how to pick correlation (random or user-specified?)
+#' @param cor
+simfun <- function(ng = 5, n = 5, K = 3, eta = 0.1,
+                   cor_method = c("rlkj", "matspec"),
+                   sd_r = 1,
+                   cor_val = NULL) {
+    cor_method <- match.arg(cor_method)
+    if (cor_method == "rlkj") {
+        ok <- FALSE
+        while (!ok) {
+            cormat <- rethinking::rlkjcorr( n =1 , K =K  , eta = eta)
+            corchol <- try(t(chol(cormat)), silent = TRUE)
+            ok <- !inherits(corchol, "try-error")
+        }
+    } else {
+        cormat <- cor_val
+        corchol <- t(chol(cormat))
+    }
+    corcvec <- corchol[lower.tri(corchol, diag = TRUE)]
+    varnm <- paste0("x", 1:(K-1))
+    dd <- matrix(rnorm((K-1)*n*ng), ncol = K-1) |> 
+        as.data.frame() |> setNames(varnm)
+    dd$g <- factor(rep(1:ng, each = n))
+    reterm <- sprintf("(%s | g)", paste(varnm, collapse = "+"))
+    dd$y <- simulate(
+        reformulate(c("1", reterm)),
+        family = gaussian,
+        newdata = dd,
+        newparams = list(beta = 0, theta = corcvec, sigma = sd_r))[[1]]
+    return(dd)
+}
+
+fitfun <- function(dd) {
+    varnm <- setdiff(colnames(dd), c("y", "g"))
+    reterm <- sprintf("(%s | g)", paste(varnm, collapse = "+"))
+    form <- reformulate(c("1", reterm), response = "y")
+    fit <- suppressWarnings(suppressMessages(lmer(form, data = dd)))
+    return(fit)
+}
+
+sumfun <- function(fit) {
+    vv <- VarCorr(fit)$g
+    sdvec_est <- sqrt(diag(vv))
+    cormat_est <- attr(vv, "corr")
+    corvec_est <- cormat_est[lower.tri(cormat_est)]
+    detv <- det(vv)
+    detc <- det(cormat_est)
+    list(sdvec = sdvec_est, cormat = cormat_est,
+         corvec = corvec_est,
+         cov_det = detv, cor_det = detc,
+         sing = isSingular(fit))
+}
+set.seed(101)
+sim1 <- simfun(cor_method = "matspec", cor_val = efun(rep(0.8, 3)))
+sum1 <- sumfun(fit1 <- fitfun(sim1))
+## isSingular(fit1, tol = 1e-3)
+## not rated as singular because default tol is 1e-4 ...
+mk_sims <- function(true_corvec, nsims = 1000,
+                    do_pb = interactive(), seed = NULL,
+                    sim_args = list(),
+                    fit_args = list()) {
+    if (!is.null(seed)) set.seed(seed)
+    sims <- vector("list", length = nsims)
+    if (do_pb) pb <- txtProgressBar(style = 3, max = nsims)
+    for (i in 1:nsims) {
+        if (interactive()) setTxtProgressBar(pb, i)
+        sim0 <- do.call(simfun,
+                        c(list(cor_method = "matspec", cor_val = efun(true_corvec)),
+                          sim_args))
+        fit0 <- do.call(fitfun, c(list(sim0), fit_args))
+        sims[[i]] <- sumfun(fit0)
+    }
+    names(true_corvec) <- paste0("r", 1:3)
+    attr(sims, "truecor") <- true_corvec
+    return(sims)
+}
+```
+
+```{r run_sims, cache=TRUE}
+fn <- "poscor_sims.rda"
+if (file.exists(fn)) {
+    load(fn)
+} else {
+    cc <- c(0.5, -0.3, 0.5)
+    sims1 <- mk_sims(cc)
+    sims2 <- mk_sims(cc, sim_args = list(ng=10, n=10, sd_r = 1))
+    sims3 <- mk_sims(cc, sim_args = list(ng=20, n=20, sd_r = 0.01))
+    save(list=paste0("sims", 1:3), file = fn)
+}
+```
+
+```{r plot_funs}
+get_cor <- function(sims) {
+    corvec_comb <- (sapply(sims, "[[", "corvec")
+        |> t()
+        |> as.data.frame()
+        |> setNames(paste0("r", 1:3))
+    )
+}
+plot_fun <- function(sims) {
+    singvec <- sapply(sims, function(x) { x$cor_det < 1e-6 })
+    cormat <- get_cor(sims)
+    true_cor <- attr(sims, "truecor")
+    with(cormat, plot3d(r1, r2, r3, col = as.numeric(singvec)+1))
+    with(as.list(true_cor), spheres3d(r1, r2, r3, radius = 0.05, col = "purple"))
+    misc3d::contour3d(aa, cvec, cvec, cvec, level = 0, color="black", alpha = 0.1,
+                      add = TRUE)
+}
+```
+
+Using true correlation parameters $\{0.5, -0.3, 0.5}$ (shown by the purple sphere below) with a small data set (5 groups, 5 [trivariate] observations per group) and large noise ($\sigma^2_r=1$), we get lots of variation in the estimated parameters, with many being singular/on the edge of the elliptope (red dots have $\det(C) < 10^{-6}$; black dots are in the interior).
+
+```{r plot1}
+plot_fun(sims1)
+```
+
+
+Increasing the sample size to (10, 10):
+
+```{r plot2}
+plot_fun(sims2)
+```
+
+Decreasing $\sigma^2_r$ to 0.01:
+
+```{r plot3}
+plot_fun(sims3)
+```
+
+```{r calc_hist}
+sim_list <- list(small_n = sims1, lg_n = sims2, lg_n_small_sd = sims3)
+det_dat <- sim_list |>
+    purrr::map_dfr(
+               \(x) tibble(det = sapply(x, "[[", "cor_det")),
+               .id = "sim") |>
+    mutate(across(sim, \(x) factor(x, levels = names(sim_list))))
+mindet <- with(det_dat, min(det[!is.na(det) & det>0]))
+```
+
+Here are the distributions of $\log_{10}(\det(\hat C))$ for each case. I don't know what the multiple modes represent: maybe values that end up near different faces of the elliptope?
+
+```{r plot_hist}
+#| message: false
+#| warning: false
+ggplot(det_dat, aes(x = log10(det + mindet/10), fill = sim)) +
+    geom_histogram(position = "identity", alpha = 0.5, bins = 90) +
+    geom_vline(xintercept = log10(mindet/10), lty = 2)
+```
+
+## 4x4 case
+
+```{python sympy-4d}
+var('r12 r13 r14 r23 r24 r34');
+M = Matrix([[1,   r12, r13, r14],
+            [r12,   1, r23, r24],
+            [r13, r23,   1, r34],
+            [r14, r24, r34,   1]]);
+ee = M.det()
+```
+
+```{python show-results-4d}
+#| output: asis
+show(ee)
+```
+
+## to do (?)
+
+* alt-text
+* check on `NA` determinant results ...
+* compare `glmmTMB` results?
+* fuss with 4x4 printing (split long equation? adapt [this](https://stackoverflow.com/questions/65406726/how-to-propagate-n-to-sympy-latex) or [this](https://tex.stackexchange.com/questions/317844/auto-breaking-of-long-equations)?); think about 4x4 (=6d) geometry/projections 
