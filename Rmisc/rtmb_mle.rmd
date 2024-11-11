@@ -18,7 +18,25 @@ New features/improvements:
 - linear submodels should allow random effects!
 
 ```{r}
-mle <- function(form, data, start) {
+mle <- function(nll, data, start, ...) {
+    ## build function
+    ## getAll
+    ## nll (substitute ~ -> %~%)
+    
+    ##
+    
     
 }
+```
+
+```{r}
+library(RTMB)
+f <- function(pars) {
+    getAll(pars)
+    y %~% dbinom(size = 1, prob = p)
+}
+pars <- list(p = 0.5)
+y <- rbinom(1000, size = 1, p = 0.3)
+ff <- MakeADFun(f, pars)
+ff$fn()
 ```
