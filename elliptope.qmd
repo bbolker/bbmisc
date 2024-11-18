@@ -73,12 +73,14 @@ M <- as.matrix(expand.grid(r1=cvec, r2=cvec, r3=cvec))
 efun <- function(x, n=3) {
     M <- diag(n)
     M[lower.tri(M)] <- x
-    M[upper.tri(M)] <- x
+    M[upper.tri(M)] <- t(M)[upper.tri(M)]
     M
 }
+set.seed(101); stopifnot(isSymmetric(efun(rnorm(6), 4)))
 efun2 <- function(x, n=3) det(efun(x, n=n))
 e.val <- apply(M, 1, efun2)
 ```
+
 
 ```{r plot3d}
 aa <- array(e.val, c(n, n, n))
@@ -354,23 +356,25 @@ show(ee)
 ## higher-dimensional elliptopes
 
 ```{r}
-dd <- replicate(6, c(-1,1), simplify = FALSE) |>
-    do.call(what = expand.grid)
-detval <- apply(dd, 1, \(x) efun2(unlist(x), n=4))
-dd2 <- dd[detval==0,]
+get_verts <- function(n, retval = c("n", "df"), verbose = FALSE) {
+    retval <- match.arg(retval)
+    n_el <- n*(n-1)/2
+    dd <- replicate(n_el, c(-1,1), simplify = FALSE) |>
+        do.call(what = expand.grid)
+    detval <- apply(dd, 1, \(x) efun2(unlist(x), n=n))
+    dd2 <- dd[detval==0,]
+    labs <- outer(1:n, 1:n, paste, sep = ".")
+    names(dd2) <- labs[lower.tri(labs)]
+    if (verbose) cat(nrow(dd2), "\n")
+    if (retval == "df") return(dd2)
+    return(nrow(dd2))
+}
+
+dd2 <- get_verts(4, retval = "df")
+print(dd2, row.names = FALSE)
 nrow(dd2)
 apply(dd2, 1, \(x) table(factor(unlist(x), levels = c(-1, 1)))) |>
     apply(MARGIN=2, FUN = \(x) paste(x, collapse = ",")) |> table()
 
-e_verts <- function(n) {
-    nx <- n*(n-1)/2
-    dd <- replicate(nx, c(-1,1), simplify = FALSE) |>
-    do.call(what = expand.grid)
-    detval <- apply(dd, 1, \(x) efun2(unlist(x), n=n))
-    nvert <- nrow(dd[detval==0,])
-    cat(nvert, "\n")
-    return(nvert)
-}
-## sapply(3:7, e_verts)
-## [1]       4      52     740   22662 1292457
+sapply(3:7, get_verts)
 ```
