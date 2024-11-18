@@ -70,14 +70,13 @@ Brute force: generate a grid, compute determinants, draw the contour where $\det
 n <- 51
 cvec <- seq(-1, 1, length.out = n)
 M <- as.matrix(expand.grid(r1=cvec, r2=cvec, r3=cvec))
-efun <- function(x) {
-    M <- diag(3)
-    ## works for 3x3 but not more generally?
+efun <- function(x, n=3) {
+    M <- diag(n)
     M[lower.tri(M)] <- x
     M[upper.tri(M)] <- x
     M
 }
-efun2 <- function(x) det(efun(x))
+efun2 <- function(x, n=3) det(efun(x, n=n))
 e.val <- apply(M, 1, efun2)
 ```
 
@@ -115,6 +114,17 @@ show = lambda x: print('$$\n%s = 0\n$$\n' % latex(x))
 ```{python show.results}
 #| output: asis
 show(ee)
+```
+
+```{python sympy2}
+eq1 = Eq(ee, 0)
+## orthogonal to the (x=y=z) line
+eq2 = Eq(rho1 + rho2 + rho3, 0)
+proj = solve([eq1, eq2], rho1, rho2, rho3)
+```
+
+```{python show.proj}
+show(proj)
 ```
 
 It would be interesting to simulate a bunch of multivariate data sets with large noise/low replication and look at the distribution of $\{\rho_1, \rho_2, \rho_3\}$ estimates in this space (i.e., how do they cluster on the boundaries?)
@@ -232,7 +242,7 @@ mk_sims <- function(true_corvec, nsims = 1000,
 ```
 
 ```{r run_sims, cache=TRUE}
-fn <- "poscor_sims.rda"
+fn <- "elliptope_sims.rda"
 if (file.exists(fn)) {
     load(fn)
 } else {
@@ -340,3 +350,27 @@ show(ee)
 * compare `glmmTMB` results?
 * fuss with 4x4 printing (split long equation? adapt [this](https://stackoverflow.com/questions/65406726/how-to-propagate-n-to-sympy-latex) or [this](https://tex.stackexchange.com/questions/317844/auto-breaking-of-long-equations)?); think about 4x4 (=6d) geometry/projections 
 * very tangentially, it would be interesting to compare this rounded shape with other rounded tetrahedral shapes: e.g. [Meissner tetrahedra](https://en.wikipedia.org/wiki/Reuleaux_tetrahedron#Meissner_bodies), [Reuleaux tetrahedra](https://en.wikipedia.org/wiki/Reuleaux_tetrahedron), power transformations of the tetrahedron (i.e., taking the points of a tetrahedron and squaring them leads to a circle, so presumably raising them to a power $1 < \alpha <  2$ would lead to some kind of rounded tetrahedron?)
+
+## higher-dimensional elliptopes
+
+```{r}
+dd <- replicate(6, c(-1,1), simplify = FALSE) |>
+    do.call(what = expand.grid)
+detval <- apply(dd, 1, \(x) efun2(unlist(x), n=4))
+dd2 <- dd[detval==0,]
+nrow(dd2)
+apply(dd2, 1, \(x) table(factor(unlist(x), levels = c(-1, 1)))) |>
+    apply(MARGIN=2, FUN = \(x) paste(x, collapse = ",")) |> table()
+
+e_verts <- function(n) {
+    nx <- n*(n-1)/2
+    dd <- replicate(nx, c(-1,1), simplify = FALSE) |>
+    do.call(what = expand.grid)
+    detval <- apply(dd, 1, \(x) efun2(unlist(x), n=n))
+    nvert <- nrow(dd[detval==0,])
+    cat(nvert, "\n")
+    return(nvert)
+}
+## sapply(3:7, e_verts)
+## [1]       4      52     740   22662 1292457
+```
