@@ -376,5 +376,5 @@ nrow(dd2)
 apply(dd2, 1, \(x) table(factor(unlist(x), levels = c(-1, 1)))) |>
     apply(MARGIN=2, FUN = \(x) paste(x, collapse = ",")) |> table()
 
-sapply(3:7, get_verts)
+sapply(3:7, get_verts, verbose=TRUE)
 ```
