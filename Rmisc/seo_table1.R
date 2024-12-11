@@ -17,6 +17,7 @@ dd <- read_csv("seo_table1.csv") |>
 ## 'b', 'c' are biased vs corrected; 'x' applies when neither of those is relevant (e.g. GS, plug-in)
 ## use open points for x, closed points with different fills for b and c?
 
+## baseline plot (use as basis for downstream plots)
 theme_set(theme_bw(base_size = 20))
 gg0 <- ggplot(dd, aes(x = method, y = value, colour = correct, shape = correct)) +
     zmargin +
@@ -40,8 +41,10 @@ cval <- 0.95
 qq <- qnorm(c(0.025, 0.975))
 ## manually set breaks for logit scale
 brkvec <- c(0.25, 0.5, 0.75, 0.9, 0.95)
+## Gaussian-approx binom CIs around nominal coverage
 binom_sd <- sqrt(cval*(1-cval)/nsim)
 
+## Gaussian-approx binom CIs around observed coverage values
 dds$cover2 <- (dds$cover
     |> mutate(se = sqrt(value*(1-value)/nsim),
               lwr = value + qq[1]*se,
@@ -65,5 +68,7 @@ plot_var <- gg0 %+% filter(dds$var, method != "GS") +
     geom_hline(data = GS, aes(yintercept = value), color = "black", lty = 2) +
     expand_limits(y=0)
 
-## needs patchwork library loaded!
+## needs patchwork package loaded!
 plot_cover / plot_var
+
+## FIXME: add a filled-white foreground for "x" points (pch = 22, pt.bg = "white") ?
