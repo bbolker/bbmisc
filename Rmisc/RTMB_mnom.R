@@ -45,7 +45,7 @@ fn0 <- function(pars) {
                    \(i) lgamma(size[i] + 1) +
                         sum(Z[i,] * log(probs[i,]) - lgamma(Z[i,] + 1)))
     b_lik <- sum(dnorm(b, 0, exp(logsd), log = TRUE))
-    -sum(b_lik + liks)
+    -1*(sum(b_lik) + liks)
 }
 
 fn0(pars)
