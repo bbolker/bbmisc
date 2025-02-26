@@ -159,7 +159,7 @@ fit3$par
 
 ## more complexity (beta-binomial)
 
-```{r betabinom-mle2, warning = FALSE}
+```{r betabinom-mle2, message=FALSE, warning=FALSE}
 library(bbmle)
 library(emdbook)
 load(system.file("vignetteData","orob1.rda",package="bbmle"))
@@ -169,7 +169,7 @@ m1 <- mle2(m~dbetabinom(prob,size=n,theta),
             data=orob1)
 ```
 
-(`NaN` warnings)
+(this produces lots of `lbeta` `NaN` warnings)
 
 ```{r}
 bb <- function (x, prob, size, theta, log = FALSE)  {
