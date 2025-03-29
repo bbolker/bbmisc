@@ -1,0 +1,62 @@
+---
+title: "tools for calibrating ODE models"
+bibliography: ode_braindump.bib
+---
+
+# Overview
+
+* convenience (e.g. gradient function specification in R)
+* speed (compilation to C++)
+* use of sensitivity equations
+* automatic differentiation
+* handling weak identifiability (ability to specify priors/regularizing factors)
+* flexibility
+
+# Tools
+
+## collocInfer
+
+@ramsayParameter2007
+
+@hookerCollocInfer2016
+
+* [pCODE package](https://CRAN.R-project.org/package=pCODE) (on [GitHub](https://github.com/alex-haixuw/PCODE))
+* collocInfer package
+
+## [macpan2](https://canmod.github.io/macpan2)
+
+
+`macpan2` is primarily designed for fitting discrete-time epidemiological (compartmental models) but ...
+
+* ODE support is somewhat rudimentary (fixed-time step RK4 only, probably less efficiently implemented)
+
+## [odin](https://mrc-ide.github.io/odin/)
+
+## [fitode]()
+
+@earnFitting2024
+
+## [Stan](mc-stan.org)
+
+Heavily focused on Hamiltonian Monte Carlo (although direct optimization, variational inference, may be possible?)
+
+## SUNDIALS
+
+* https://sn248.github.io/sundialr/
+
+> Currently `sundialr` provides an interface to the serial versions of `cvode` (for solving ODES), `cvodes` (for solving ODE with sensitivity equations) and `ida` (for solving differential-algebraic equations) using the Linear Solver (dense version).
+
+* https://github.com/sgsokol/r2sundials ([comparison with sundialr](https://github.com/sgsokol/r2sundials?tab=readme-ov-file#sundialr))
+
+## TMB
+
+@kristensenTMB2016
+
+[Template Model Builder]()
+
+* no built-in ODE capability
+
+TMB's predecessor, AD Model Builder, had a few examples for fitting ODEs, but the code for these was more complicated than "specify your gradient equations and push the button": see
+Example 1.14 in the [ADMB manual](https://github.com/admb-project/admb/releases/download/admb-12.3/admb-12.3.pdf) ([code](https://github.com/admb-project/admb/blob/dd6ccb3a46d44582455f76d9569b012918dc2338/examples/admb/chem_eng/chem_eng.tpl))
+
+
