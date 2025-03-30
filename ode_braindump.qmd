@@ -1,11 +1,18 @@
 ---
 title: "tools for calibrating ODE models"
 bibliography: ode_braindump.bib
+format:
+  html:
+    embed-resources: true
 ---
 
 # Overview
 
-* convenience (e.g. gradient function specification in R)
+In the past, researchers interested in fitting parameters for dynamical systems would often use straightforward *trajectory matching* approaches [@Bolker2008, @earnFitting2024]
+
+[fmincon](https://www.mathworks.com/help/optim/ug/fmincon.html), [optim](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/optim.html)
+
+* convenience (e.g. gradient function specification in R; ease of specifying link functions/parameter transformations)
 * speed (compilation to C++)
 * use of sensitivity equations
 * automatic differentiation
@@ -13,15 +20,6 @@ bibliography: ode_braindump.bib
 * flexibility
 
 # Tools
-
-## collocInfer
-
-@ramsayParameter2007
-
-@hookerCollocInfer2016
-
-* [pCODE package](https://CRAN.R-project.org/package=pCODE) (on [GitHub](https://github.com/alex-haixuw/PCODE))
-* collocInfer package
 
 ## [macpan2](https://canmod.github.io/macpan2)
 
@@ -31,6 +29,8 @@ bibliography: ode_braindump.bib
 * ODE support is somewhat rudimentary (fixed-time step RK4 only, probably less efficiently implemented)
 
 ## [odin](https://mrc-ide.github.io/odin/)
+
+Fast, convenient ODE integration by [transpiling](https://en.wikipedia.org/wiki/Source-to-source_compiler) R definitions to C++. Integration via `odin` may give up to a hundred-fold speed improvment in some cases ...
 
 ## [fitode]()
 
@@ -59,4 +59,11 @@ Heavily focused on Hamiltonian Monte Carlo (although direct optimization, variat
 TMB's predecessor, AD Model Builder, had a few examples for fitting ODEs, but the code for these was more complicated than "specify your gradient equations and push the button": see
 Example 1.14 in the [ADMB manual](https://github.com/admb-project/admb/releases/download/admb-12.3/admb-12.3.pdf) ([code](https://github.com/admb-project/admb/blob/dd6ccb3a46d44582455f76d9569b012918dc2338/examples/admb/chem_eng/chem_eng.tpl))
 
+## collocation inference
 
+This refers to a *generalized profiling* approach that combines trajectory matching and gradient matching [@ramsayParameter2007, @hookerCollocInfer2016, @hookerParameterizing2011]
+
+* [pCODE package](https://CRAN.R-project.org/package=pCODE) (on [GitHub](https://github.com/alex-haixuw/PCODE))
+* collocInfer package
+
+## References
