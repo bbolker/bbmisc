@@ -9,11 +9,11 @@ date: today
 
 # Overview
 
-* Researchers interested in fitting parameters for dynamical systems would often use straightforward *trajectory matching* approaches [@Bolker2008;@earnFitting2024] with systems of ordinary differential equations (ODEs) [@earnFitting2024]. This is often challenging. 
+* Researchers interested in fitting parameters for dynamical systems would often use straightforward *trajectory matching* approaches [@Bolker2008] with systems of ordinary differential equations (ODEs) [@earnFitting2024]. This is often challenging. 
 
-* Researchers are often ambitious, trying to fit fairly high-dimensional ODE systems to small, noisy data sets
-* Sets of ODEs are often [weakly identified](https://stats.stackexchange.com/questions/324014/what-is-a-weakly-identified-parameterization)
-* Default methods for general-purpose nonlinear optimizers, such as MATLAB's [fmincon](https://www.mathworks.com/help/optim/ug/fmincon.html) or R's [optim](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/optim.html) use finite-difference approximations to compute gradients of the likelihood, when gradients are not supplied by the user. These are often slow and imprecise approximations, making optimization harder.
+* Researchers are often ambitious, trying to fit fairly high-dimensional ODE systems to small, noisy data sets.
+* Sets of ODEs are often [weakly identified](https://stats.stackexchange.com/questions/324014/what-is-a-weakly-identified-parameterization).
+* Default methods for general-purpose nonlinear optimizers, such as MATLAB's [fmincon](https://www.mathworks.com/help/optim/ug/fmincon.html) or R's [optim](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/optim.html), use finite-difference approximations to compute gradients of the likelihood by default (i.e., when the user doesn't supply gradients). These are often slow and imprecise approximations, making optimization harder.
 
 @raueLessons2013 highlight the importance of using *sensitivity equations*, which augment the system of ODEs with additional equations that are integrated to find the gradient of model predictions (states of the system at observed time points) with respect to dynamical parameters. (Likelihoods may also depend on other, non-dynamical parameters, e.g. parameters such as reporting rate or dispersion parameters.) While sensitivity equations can be composed by hand for simple systems, it is both convenient and computationally efficient to use *automatic differentiation* [@griewankIntroduction2003] to generate the sensitivity equations.
 
