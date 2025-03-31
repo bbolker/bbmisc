@@ -37,7 +37,7 @@ Source for this document (a Quarto file) [here](https://github.com/bbolker/bbmis
 
 ## [odin](https://mrc-ide.github.io/odin/)
 
-Fast, convenient ODE integration by [transpiling](https://en.wikipedia.org/wiki/Source-to-source_compiler) R definitions to C++. Integration via `odin` may give up to a hundred-fold speed improvment in some cases ... but not integrated with tools for autodiff/sensitivity equations
+Fast, convenient ODE integration by [transpiling](https://en.wikipedia.org/wiki/Source-to-source_compiler) R definitions to C++. Integration via `odin` may give up to a hundred-fold speed improvement in some cases ... but not integrated with tools for autodiff/sensitivity equations
 
 ## [fitode](https://github.com/parksw3/fitode)
 
