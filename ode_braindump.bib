@@ -115,3 +115,71 @@
   year = 	 {2008},
   address =	 {Princeton, NJ}
 }
+
+@article{elderdUncertainty2006,
+  title = {Uncertainty in Predictions of Disease Spread and Public Health Responses to Bioterrorism and Emerging Diseases},
+  author = {Elderd, Bret D. and Dukic, Vanja M. and Dwyer, Greg},
+  year = {2006},
+  month = oct,
+  journal = {Proceedings of the National Academy of Sciences},
+  volume = {103},
+  number = {42},
+  pages = {15693--15697},
+  doi = {10.1073/pnas.0600816103},
+  urldate = {2010-10-26},
+  abstract = {Concerns over bioterrorism and emerging diseases have led to the widespread use of epidemic models for evaluating public health strategies. Partly because epidemic models often capture the dynamics of prior epidemics remarkably well, little attention has been paid to how uncertainty in parameter estimates might affect model predictions. To understand such effects, we used Bayesian statistics to rigorously estimate the uncertainty in the parameters of an epidemic model, focusing on smallpox bioterrorism. We then used a vaccination model to translate the uncertainty in the model parameters into uncertainty in which of two vaccination strategies would provide a better response to bioterrorism, mass vaccination, or vaccination of social contacts, so-called ``trace vaccination.'' Our results show that the uncertainty in the model parameters is remarkably high and that this uncertainty has important implications for vaccination strategies. For example, under one plausible scenario, the most likely outcome is that mass vaccination would save {$\approx$}100,000 more lives than trace vaccination. Because of the high uncertainty in the parameters, however, there is also a substantial probability that mass vaccination would save 200,000 or more lives than trace vaccination. In addition to providing the best response to the most likely outcome, mass vaccination thus has the advantage of preventing outcomes that are only slightly less likely but that are substantially more horrific. Rigorous estimates of uncertainty thus can reveal hidden advantages of public health strategies, suggesting that formal uncertainty estimation should play a key role in planning for epidemics.},
+  note = {http://www.pnas.org/content/103/42/15693.abstract},
+  file = {/home/bolker/Documents/zotero_new/storage/SXUSBGTP/Elderd et al. - 2006 - Uncertainty in predictions of disease spread and p.pdf;/home/bolker/Documents/zotero_new/storage/FBV68VI2/15693.html}
+}
+
+@article{griewankIntroduction2003,
+  title = {Introduction to {{Automatic Differentiation}}},
+  author = {Griewank, Andreas and Walther, Andrea},
+  year = {2003},
+  journal = {PAMM},
+  volume = {2},
+  number = {1},
+  pages = {45--49},
+  issn = {1617-7061},
+  doi = {10.1002/pamm.200310012},
+  urldate = {2020-09-18},
+  abstract = {Automatic, or algorithmic, differentiation (AD) is a chain rule-based technique for evaluating derivatives of functions given as computer programs for their elimination. We review the main characteristics and application of AD and illustrate the methodology on a simple example.},
+  copyright = {Copyright {\copyright} 2003 WILEY-VCH Verlag GmbH \& Co. KGaA, Weinheim},
+  langid = {english},
+  note = {https://onlinelibrary.wiley.com/doi/abs/10.1002/pamm.200310012},
+  file = {/home/bolker/Documents/zotero_new/storage/WMFYIFDJ/Griewank and Walther - 2003 - Introduction to Automatic Differentiation.pdf;/home/bolker/Documents/zotero_new/storage/PABDERVX/pamm.html}
+}
+
+@inproceedings{maComparison2021,
+  title = {A {{Comparison}} of {{Automatic Differentiation}} and {{Continuous Sensitivity Analysis}} for {{Derivatives}} of {{Differential Equation Solutions}}},
+  booktitle = {2021 {{IEEE High Performance Extreme Computing Conference}} ({{HPEC}})},
+  author = {Ma, Yingbo and Dixit, Vaibhav and Innes, Michael J and Guo, Xingjian and Rackauckas, Chris},
+  year = {2021},
+  month = sep,
+  pages = {1--9},
+  issn = {2643-1971},
+  doi = {10.1109/HPEC49654.2021.9622796},
+  urldate = {2025-03-31},
+  abstract = {Derivatives of differential equation solutions are commonly for parameter estimation, fitting neural differential equations, and as model diagnostics. However, with a litany of choices and a Cartesian product of potential methods, it can be difficult for practitioners to understand which method is likely to be the most effective on their particular application. In this manuscript we investigate the performance characteristics of Discrete Local Sensitivity Analysis implemented via Automatic Differentiation (DSAAD) against continuous adjoint sensitivity analysis. Non-stiff and stiff biological and pharmacometric models, including a PDE discretization, are used to quantify the performance of sensitivity analysis methods. Our benchmarks show that on small stiff and non-stiff systems of ODEs (approximately {$<$} 100 parameters+ODEs), forward-mode DSAAD is more efficient than both reverse-mode and continuous forward/adjoint sensitivity analysis. The scalability of continuous adjoint methods is shown to be more efficient than discrete adjoints and forward methods after crossing this size range. These comparative studies demonstrate a trade-off between memory usage and performance in the continuous adjoint methods that should be considered when choosing the technique, while numerically unstable backsolve techniques from the machine learning literature are demonstrated as unsuitable for most scientific models. The performance of adjoint methods is shown to be heavily tied to the reverse-mode AD method used for the vector-Jacobian product calculations, with tape-based AD methods shown to be 2 orders of magnitude slower on nonlinear partial differential equations than static AD techniques. In addition, these results demonstrate the out-of-the-box applicability of DSAAD to differential-algebraic equations, delay differential equations, and hybrid differential equation systems where the event timing and effects are dependent on model parameters, showcasing an ease of implementation advantage for DSAAD approaches. Together, these benchmarks provide a guide to help practitioners to quickly identify the best mixture of continuous sensitivities and automatic differentiation for their applications.},
+  keywords = {Benchmark testing,Fitting,Machine learning,Parameter estimation,Partial differential equations,Scalability,Sensitivity analysis},
+  note = {https://ieeexplore.ieee.org/abstract/document/9622796},
+  file = {/home/bolker/Documents/zotero_new/storage/A9TD5JFV/Ma et al. - 2021 - A Comparison of Automatic Differentiation and Continuous Sensitivity Analysis for Derivatives of Dif.pdf}
+}
+
+@article{grinsztajnBayesian2021,
+  title = {Bayesian Workflow for Disease Transmission Modeling in {{Stan}}},
+  author = {Grinsztajn, L{\'e}o and Semenova, Elizaveta and Margossian, Charles C. and Riou, Julien},
+  year = {2021},
+  journal = {Statistics in Medicine},
+  volume = {40},
+  number = {27},
+  pages = {6209--6234},
+  issn = {1097-0258},
+  doi = {10.1002/sim.9164},
+  urldate = {2022-11-14},
+  abstract = {This tutorial shows how to build, fit, and criticize disease transmission models in Stan, and should be useful to researchers interested in modeling the severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) pandemic and other infectious diseases in a Bayesian framework. Bayesian modeling provides a principled way to quantify uncertainty and incorporate both data and prior knowledge into the model estimates. Stan is an expressive probabilistic programming language that abstracts the inference and allows users to focus on the modeling. As a result, Stan code is readable and easily extensible, which makes the modeler's work more transparent. Furthermore, Stan's main inference engine, Hamiltonian Monte Carlo sampling, is amiable to diagnostics, which means the user can verify whether the obtained inference is reliable. In this tutorial, we demonstrate how to formulate, fit, and diagnose a compartmental transmission model in Stan, first with a simple susceptible-infected-recovered model, then with a more elaborate transmission model used during the SARS-CoV-2 pandemic. We also cover advanced topics which can further help practitioners fit sophisticated models; notably, how to use simulations to probe the model and priors, and computational techniques to scale-up models based on ordinary differential equations.},
+  langid = {english},
+  keywords = {Bayesian workflow,compartmental models,epidemiology,infectious diseases},
+  note = {https://onlinelibrary.wiley.com/doi/abs/10.1002/sim.9164},
+  file = {/home/bolker/Documents/zotero_new/storage/CPBRGQYS/Grinsztajn et al. - 2021 - Bayesian workflow for disease transmission modelin.pdf;/home/bolker/Documents/zotero_new/storage/YIKLLXAF/sim.html}
+}
