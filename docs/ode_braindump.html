@@ -3097,7 +3097,7 @@ vertical-align: -.125em;
 <section id="overview" class="level1">
 <h1>Overview</h1>
 <ul>
-<li><p>Researchers interested in fitting parameters for dynamical systems would often use straightforward <em>trajectory matching</em> approaches <span class="citation" data-cites="Bolker2008">Earn, Park, and Bolker (<a href="#ref-earnFitting2024" role="doc-biblioref">2024</a>)</span> with systems of ordinary differential equations (ODEs) <span class="citation" data-cites="earnFitting2024">(@ <a href="#ref-earnFitting2024" role="doc-biblioref">Earn, Park, and Bolker 2024</a>)</span>. This is often challenging.</p></li>
+<li><p>Researchers interested in fitting parameters for dynamical systems would often use straightforward <em>trajectory matching</em> approaches <span class="citation" data-cites="Bolker2008 earnFitting2024">(<a href="#ref-Bolker2008" role="doc-biblioref">Bolker 2008</a>; <a href="#ref-earnFitting2024" role="doc-biblioref">Earn, Park, and Bolker 2024</a>)</span> with systems of ordinary differential equations (ODEs) <span class="citation" data-cites="earnFitting2024">(<a href="#ref-earnFitting2024" role="doc-biblioref">Earn, Park, and Bolker 2024</a>)</span>. This is often challenging.</p></li>
 <li><p>Researchers are often ambitious, trying to fit fairly high-dimensional ODE systems to small, noisy data sets</p></li>
 <li><p>Sets of ODEs are often <a href="https://stats.stackexchange.com/questions/324014/what-is-a-weakly-identified-parameterization">weakly identified</a></p></li>
 <li><p>Default methods for general-purpose nonlinear optimizers, such as MATLAB’s <a href="https://www.mathworks.com/help/optim/ug/fmincon.html">fmincon</a> or R’s <a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/optim.html">optim</a> use finite-difference approximations to compute gradients of the likelihood, when gradients are not supplied by the user. These are often slow and imprecise approximations, making optimization harder.</p></li>
@@ -3125,7 +3125,7 @@ vertical-align: -.125em;
 </section>
 <section id="fitode" class="level2">
 <h2 class="anchored" data-anchor-id="fitode"><a href="https://github.com/parksw3/fitode">fitode</a></h2>
-<p>A tool for doing (limited) autodiff, and generating sensitivity equations, from models coded in R. See <span class="citation" data-cites="earnFitting2024">Earn, Park, and Bolker (<a href="#ref-earnFitting2024" role="doc-biblioref">2024</a>)</span> (and package vignettes) for examples.</p>
+<p>A tool for doing (limited) autodiff, and generating sensitivity equations, from models coded in R. See <span class="citation" data-cites="earnFitting2024">Earn, Park, and Bolker (<a href="#ref-earnFitting2024" role="doc-biblioref">2024</a>)</span> (and <a href="https://cran.r-project.org/web/packages/fitode/vignettes/fitode.pdf">package vignette</a>) for examples.</p>
 </section>
 <section id="macpan2" class="level2">
 <h2 class="anchored" data-anchor-id="macpan2"><a href="https://canmod.github.io/macpan2">macpan2</a></h2>
@@ -3142,13 +3142,13 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="sundials"><a href="https://computing.llnl.gov/projects/sundials">SUNDIALS</a></h2>
 <p>A well-established tool for numerical solution of ODEs and sensitivity equations. There are R interfaces:</p>
 <ul>
-<li>https://sn248.github.io/sundialr/</li>
+<li><a href="https://sn248.github.io/sundialr/">sundialr package</a></li>
 </ul>
 <blockquote class="blockquote">
 <p>Currently <code>sundialr</code> provides an interface to the serial versions of <code>cvode</code> (for solving ODES), <code>cvodes</code> (for solving ODE with sensitivity equations) and <code>ida</code> (for solving differential-algebraic equations) using the Linear Solver (dense version).</p>
 </blockquote>
 <ul>
-<li>https://github.com/sgsokol/r2sundials (<a href="https://github.com/sgsokol/r2sundials?tab=readme-ov-file#sundialr">comparison with sundialr</a>)</li>
+<li><a href="https://github.com/sgsokol/r2sundials">r2sundials package</a> (<a href="https://github.com/sgsokol/r2sundials?tab=readme-ov-file#sundialr">comparison with sundialr</a>)</li>
 </ul>
 </section>
 <section id="template-model-builder" class="level2">
@@ -3156,6 +3156,7 @@ vertical-align: -.125em;
 <p>This is a general-purpose autodiff tool, heavily integrated with R <span class="citation" data-cites="kristensenTMB2016">(<a href="#ref-kristensenTMB2016" role="doc-biblioref">Kristensen et al. 2016</a>)</span>; it is used in <code>macpan2</code>.</p>
 <ul>
 <li>no built-in ODE capability</li>
+<li>While original TMB definitions were entirely in C++, the <a href="https://github.com/kaskr/RTMB">RTMB package</a> allows objective functions written in R; there is an <a href="https://kaskr.r-universe.dev/RTMBode/doc/manual.html#ode">experimental package with ODE support</a></li>
 </ul>
 <p>TMB’s predecessor, <a href="https://www.admb-project.org/">AD Model Builder</a> (now in legacy/maintenance mode), had a few examples for fitting ODEs, but the code for these was more complicated than “specify your gradient equations and push the button”: see Example 1.14 in the <a href="https://github.com/admb-project/admb/releases/download/admb-12.3/admb-12.3.pdf">ADMB manual</a> (<a href="https://github.com/admb-project/admb/blob/dd6ccb3a46d44582455f76d9569b012918dc2338/examples/admb/chem_eng/chem_eng.tpl">code</a>)</p>
 </section>
@@ -3174,6 +3175,95 @@ vertical-align: -.125em;
 <li><a href="https://github.com/rtqichen/torchdiffeq">torchdiffeq</a> Python library</li>
 <li><a href="https://docs.sciml.ai/SciMLSensitivity/stable/manual/differential_equation_sensitivities/">SciMLSensitivity.jl</a></li>
 </ul>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 13%">
+<col style="width: 10%">
+<col style="width: 17%">
+<col style="width: 8%">
+<col style="width: 13%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;"> </th>
+<th style="text-align: center;">gradient fn written in R</th>
+<th style="text-align: center;">fast gradient evaluation</th>
+<th style="text-align: center;">sensitivity equations</th>
+<th style="text-align: center;">autodiff</th>
+<th style="text-align: center;">parameter transformations</th>
+<th style="text-align: center;">priors</th>
+<th style="text-align: center;">ODE integrators</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">macpan2</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">(x)</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">fitode</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">(x)</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">Stan</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">(x)</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">SUNDIALS</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">(x)</td>
+<td style="text-align: center;">(x)</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">(R)TMB</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">(x)</td>
+<td style="text-align: center;">(x)</td>
+<td style="text-align: center;">(x)</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">odin</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;">x</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="references" class="level2 unnumbered">
 

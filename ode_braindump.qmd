@@ -9,7 +9,7 @@ date: today
 
 # Overview
 
-* Researchers interested in fitting parameters for dynamical systems would often use straightforward *trajectory matching* approaches [@Bolker2008, @earnFitting2024] with systems of ordinary differential equations (ODEs) [@@earnFitting2024]. This is often challenging. 
+* Researchers interested in fitting parameters for dynamical systems would often use straightforward *trajectory matching* approaches [@Bolker2008;@earnFitting2024] with systems of ordinary differential equations (ODEs) [@earnFitting2024]. This is often challenging. 
 
 * Researchers are often ambitious, trying to fit fairly high-dimensional ODE systems to small, noisy data sets
 * Sets of ODEs are often [weakly identified](https://stats.stackexchange.com/questions/324014/what-is-a-weakly-identified-parameterization)
@@ -41,7 +41,7 @@ Fast, convenient ODE integration by [transpiling](https://en.wikipedia.org/wiki/
 
 ## [fitode](https://github.com/parksw3/fitode)
 
-A tool for doing (limited) autodiff, and generating sensitivity equations, from models coded in R. See @earnFitting2024 (and package vignettes) for examples.
+A tool for doing (limited) autodiff, and generating sensitivity equations, from models coded in R. See @earnFitting2024 (and [package vignette](https://cran.r-project.org/web/packages/fitode/vignettes/fitode.pdf)) for examples.
 
 ## [macpan2](https://canmod.github.io/macpan2)
 
@@ -57,17 +57,18 @@ A general tool for Bayesian estimation using autodiff on the posterior probabili
 
 A well-established tool for numerical solution of ODEs and sensitivity equations. There are R interfaces:
 
-* https://sn248.github.io/sundialr/
+* [sundialr package](https://sn248.github.io/sundialr/)
 
 > Currently `sundialr` provides an interface to the serial versions of `cvode` (for solving ODES), `cvodes` (for solving ODE with sensitivity equations) and `ida` (for solving differential-algebraic equations) using the Linear Solver (dense version).
 
-* https://github.com/sgsokol/r2sundials ([comparison with sundialr](https://github.com/sgsokol/r2sundials?tab=readme-ov-file#sundialr))
+* [r2sundials package](https://github.com/sgsokol/r2sundials) ([comparison with sundialr](https://github.com/sgsokol/r2sundials?tab=readme-ov-file#sundialr))
 
 ## [Template Model Builder](https://kaskr.github.io/adcomp/Introduction.html)
 
 This is a general-purpose autodiff tool, heavily integrated with R [@kristensenTMB2016]; it is used in `macpan2`.
 
 * no built-in ODE capability
+* While original TMB definitions were entirely in C++, the [RTMB package](https://github.com/kaskr/RTMB) allows objective functions written in R; there is an [experimental package with ODE support](https://kaskr.r-universe.dev/RTMBode/doc/manual.html#ode)
 
 TMB's predecessor, [AD Model Builder](https://www.admb-project.org/) (now in legacy/maintenance mode), had a few examples for fitting ODEs, but the code for these was more complicated than "specify your gradient equations and push the button": see
 Example 1.14 in the [ADMB manual](https://github.com/admb-project/admb/releases/download/admb-12.3/admb-12.3.pdf) ([code](https://github.com/admb-project/admb/blob/dd6ccb3a46d44582455f76d9569b012918dc2338/examples/admb/chem_eng/chem_eng.tpl))
@@ -84,5 +85,13 @@ Collocation inference is a *generalized profiling* approach that combines trajec
 * MATLAB code is also available for collocation inference, e.g. in the supplementary material of some of the papers referenced.
 * [torchdiffeq](https://github.com/rtqichen/torchdiffeq) Python library
 * [SciMLSensitivity.jl](https://docs.sciml.ai/SciMLSensitivity/stable/manual/differential_equation_sensitivities/)
+
+## Summary
+
+```{r table, echo=FALSE, results = "asis"}
+library(pander)
+dd <- read.csv("ode_tools.csv", check.names = FALSE)
+pander(dd, split.cells = 10, split.table = Inf)
+```
 
 ## References
