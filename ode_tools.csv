@@ -3,5 +3,5 @@ macpan2,x,x,x,x,x,x,(x)
 fitode,x,,x,(x),x,x,x
 Stan,,x,x,x,(x),x,x
 SUNDIALS,,x,x,(x),(x),,x
-(R)TMB,x,x,,x,(x),(x),(x)
-odin,x,x,,,,,
+(R)TMB,x,x,(x),x,(x),(x),(x)
+odin,x,x,,,,,x
