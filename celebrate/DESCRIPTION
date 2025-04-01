@@ -4,6 +4,7 @@ Version: 0.0.2
 Author: Ben Bolker <bolker@mcmaster.ca>
 Maintainer: Ben Bolker <bolker@mcmaster.ca>
 Depends: audio
+URL: https://github.com/bbolker/bbmisc/tree/master/celebrate
 Description: Celebrate your successes and mourn your failures.
 License: GPL-3 + LICENSE
 Encoding: UTF-8
