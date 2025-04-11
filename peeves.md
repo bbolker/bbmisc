@@ -43,6 +43,8 @@ Reading your own prose out loud is a good way to proofread and find awkward phra
 
     A similar example from evolutionary biology: "species X has larger female-biased sexual size dimorphism" → "species X has larger females relative to males" or "females are larger in species X"
 * Avoid constructions of the type "A and B have effects C and D, respectively" &mdash; you save a few words this way but the reader has to work harder to associate A with C and B with D
+* using possessives appropriately can make your prose punchier (e.g., use "hosts' ability to ..." instead of "the ability of hosts to ...")
+* [Misplaced modifiers](https://penultimateword.com/editing-blogs/accidental-comedy-in-grammar-dangling-and-misplaced-modifiers/)[^5]
 
 ## Punctuation
 
@@ -57,7 +59,7 @@ Reading your own prose out loud is a good way to proofread and find awkward phra
 
 Always spell-check. Spell-checking won't catch everything, and you may have to skip over a lot of technical vocabulary that's not in the dictionary, but there's no excuse for not doing it.
 
-Everyone overuses their favorite kinds of punctuation, words, or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary. I sometimes get carried away with em-dashes or semicolons.)[^5]
+Everyone overuses their favorite kinds of punctuation, words, or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary. I sometimes get carried away with em-dashes or semicolons.)[^6]
 
 If you are using [BibTeX](http://www.bibtex.org/), check for capitalization! Most journal styles automatically set titles in all lower-case, so you have to protect any words that should be Capitalized or CAPITALIZED with curly brackets {} (some reference managers automatically {protect} {every} {word} {in} {the} {title}, but I prefer that only necessary words are protected).
 
@@ -87,12 +89,13 @@ Information that is only available on a standalone web site should provide infor
 - avoid contractions ("don't", "won't") in formal writing. 
 - "creatures": this word connotes things that were created, which you might want to avoid in scientific writing. Just use "organisms" (or something general enough for your taxon of choice)
 - "unique", "complex", "dynamic", "nonlinear", "intricate": are you using those words to denote something specific, or are you arm-waving about how cool and interesting your subject is?
- 
+- "delve" (see [this paper discussing words that are especially favoured by LLMs like ChatGPT](https://arxiv.org/html/2412.11385v1) ...)
+
 ## Organization
 
 * I often write the introduction last, and almost always write the abstract last.
 * I hate writing formal outlines, but it works for  some people. I sometimes write a first draft and *then* write an outline by reducing the draft I wrote to a skeleton of bullet points, rearranging the information I put in the first draft into a better order.
-* If you find yourself using vague connectors like "furthermore", "additionally", "moroever", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
+* If you find yourself using vague connectors like "furthermore", "additionally", "moreover", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
 * If you find yourself using phrases like "as mentioned earlier" or "as we have already discussed" frequently, it suggests that you might need to restructure your paper so that you don't have to repeat information
 * If each section in a literature review covers a single reference source you probably need to synthesize more, with each section covering several related references that cover the same topic. Otherwise your paper may be repetitive (because multiple references are likely to cover similar topics) and feel list-y.
 * Your introduction should include only the key information necessary to interest the reader in your topic and motivate them to read the rest of the paper. This information can include some brief background and context, but more in-depth discussion of the context and comparison to other work should wait until the discussion.
@@ -119,7 +122,9 @@ Last updated 2023-11-25
 
 [^4]: This advice contradicts the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.) Or: "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)" [Whitman, *Song of Myself*](https://poets.org/poem/song-myself-51)
 
-[^5]: I also like footnotes, but they're rarely used, and rarely a good idea, in scientific writing. (They're common in the humanties.)
+[^5]: this example from a student paper: "When delving into the complex life cycles of the lamprey, female adult lampreys will lay thousands of eggs" is *sort of* a misplaced modifier, but an odd one. I think it's actually a vague connector gone wrong, i.e. the author meant something like "Now let's delve into the complex life cycle of the lamprey. Female adult lampreys will ..."
+ 
+[^6]: I also like footnotes, but they're rarely used, and rarely a good idea, in scientific writing. (They're common in the humanities.)
 
 
 
