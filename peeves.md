@@ -43,8 +43,8 @@ Reading your own prose out loud is a good way to proofread and find awkward phra
 
     A similar example from evolutionary biology: "species X has larger female-biased sexual size dimorphism" → "species X has larger females relative to males" or "females are larger in species X"
 * Avoid constructions of the type "A and B have effects C and D, respectively" &mdash; you save a few words this way but the reader has to work harder to associate A with C and B with D
-* using possessives appropriately can make your prose punchier (e.g., use "hosts' ability to ..." instead of "the ability of hosts to ...")
-* [Misplaced modifiers](https://penultimateword.com/editing-blogs/accidental-comedy-in-grammar-dangling-and-misplaced-modifiers/)[^5]
+* Using possessives appropriately can make your prose punchier (e.g., use "hosts' ability to ..." instead of "the ability of hosts to ...")
+* Avoid [misplaced modifiers](https://penultimateword.com/editing-blogs/accidental-comedy-in-grammar-dangling-and-misplaced-modifiers/)[^5]
 
 ## Punctuation
 
@@ -71,7 +71,7 @@ I prefer author-date style citation. It is less compact than using numbered refe
 
 Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/) because it is free, powerful, and convenient, but you can use anything that works for you and your co-authors. Using a citation manager means you can keep track of everything you've read whether or not you use it in your paper; any modern citation manager + document preparation system will make the process of switching reference formats nearly painless.
 
-When citing scholarly work that is available online (e.g. a peer-reviewed journal article or conference proceedings, or an article in a preprint archive), give the full citation information, not just the URL or DOI (*digital object identifier*); it's more formal, and readers who are familiar with the literature in your area will be able to know what you're citing without having to click through a link. Do include the URL or DOI in the citation, for convenience. Use the DOI in place of the URL of the publisher's web site wherever possible. 
+When citing scholarly work that is available online (e.g. a peer-reviewed journal article or conference proceedings, or an article in a preprint archive), give the full citation information, not just the URL or DOI (*digital object identifier*); it's more formal, and readers who are familiar with the literature in your area will be able to know what you're citing without having to click through a link. Do include the DOI in the citation if one is available; don't include both the DOI and the URL. URLs that link to the publisher's web site are often unreliable in the long term; URLS that include the DOI, such as `http://www.aimspress.com/article/doi/10.3934/mbe.2024321`, are redundant with the DOI itself.
 
 Information that is only available on a standalone web site should provide information about the date when you accessed it but you don't need to do this with journal articles or other information that has a DOI; such sources are assumed to be stable.
 
