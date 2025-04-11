@@ -112,7 +112,7 @@ I'm sure that I have violated some of my own rules while writing this document.
 
 ---
 
-Last updated 2023-11-25
+Last updated 2024-04-10
 
 [^1]: I've titled the document "peeves" in recognition of the fact that opinions about language and writing are necessarily subjective; the linguists at Language Log, who are also referred to elsewhere in this document, call [prescriptivist](https://dictionary.cambridge.org/dictionary/english/prescriptivist) opinions about language ["peeves"](https://languagelog.ldc.upenn.edu/nll/?p=3144)
 
