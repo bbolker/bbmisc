@@ -45,7 +45,7 @@ where $e$ is the exposure (typically, but not necessarily, an integer).  I will 
 Some example data on red-winged blackbird nest survivorship in Brant County, Ontario from Reta Meng (part of her undergraduate thesis with Dr. Pat Chow-Fraser of McMaster University):
 
 ```{r opts_pkgs,message=FALSE}
-pkgs <- sort(c("lme4", "RTMB", "bbmle",
+pkgs <- sort(c("lme4", "RTMB", "bbmle", "glmmTMB",
                "tidyverse", "patchwork",
                "emmeans", "visreg", "sjPlot", "effects",
                "broom","broom.mixed"))
@@ -105,7 +105,7 @@ Marginal plots of survival prob vs predictors:
 ```{r plot1,fig.width=8,fig.height=4}
 mdat <- pivot_longer(dat2, -(1:4), names_to = "variable")
 ggplot(mdat,aes(x=value,y=Surv))+
-    geom_point(alpha=0.5,aes(size=Exposure))+
+    geom_point(alpha=0.3, aes(size=Exposure))+
     geom_smooth(method="gam", method.args = list(family = "binomial"),
                 formula = y ~ s(x, k = 12)) +
     facet_wrap(~variable,scale="free_x")+
@@ -187,7 +187,6 @@ summary(m_glm)
 RTMB is a general framework for writing likelihood functions (including those with random effects) that can be fitted efficiently.
 Setting up the model is slightly more complicated in RTMB (below I've made it slightly more complex than absolutely necessary, for generality). (More info on RTMB [here](https://kaskr.r-universe.dev/articles/RTMBp/RTMB-introduction.html) and [here](https://bbolker.github.io/bbmisc/rtmb_intro.html).)
 
-
 ```{r rtmb}
 nllfun <- function(par) {
     getAll(par, tmbdata)    ## 'attach' parameter components and data
@@ -208,10 +207,15 @@ stopifnot(all.equal(tmbfun$fn(), nll0))            ## test TMB function
 tmbfit <- with(tmbfun, nlminb(par, fn, gr))        ## fit model
 ```
 
-```{r rtmb_tidy}
+Model summary:
+```{r rtmb_glance}
 glance(tmbfun)
+```
+
+```{r rtmb_tidy}
 tidy(tmbfun, conf.int = TRUE) |>
-    dplyr::mutate(term = c("(Intercept)", "NestHeight"))
+    ## unfortunately RTMB doesn't carry parameter names along
+    dplyr::mutate(term = colnames(X))
 ```
 
 * *Advantages*: fast, flexible, extendable to GLMMs
@@ -219,7 +223,7 @@ tidy(tmbfun, conf.int = TRUE) |>
 
 ## Random effects
 
-In principle, we should be able to implement this model with random effects (i.e., allowing for differential exposure of different nests) in either `lme4` or in RTMB.  (Doing it in `bbmle` is essentially impossible.)
+In principle, we should also be able to implement this model with random effects (i.e., allowing for differential exposure of different nests) in either `lme4` or in RTMB.  (Doing it in `bbmle` is essentially impossible.)
 
 Random effect of `Nest.ID`:
 
@@ -256,16 +260,23 @@ tmbdata_RE <- c(tmbdata, list(Z=Z))
 par0_RE <- list(
     ## beta=unname(tmbfit$par),
     beta = unname(fixef(m_glmer)),
-    b = rep(0, ncol(Z)), log_nestSD = 0)
-nllfun(par0_RE)
+    b = rep(0, ncol(Z)),
+    log_nestSD = 0)
+## nllfun(par0_RE)
 tmbfun_RE <- MakeADFun(nllfun_RE, par0_RE, silent = TRUE, random = "b")
 class(tmbfun_RE) <- "TMB"
-tmbfun_RE$fn()
 tmbfit_RE <- with(tmbfun_RE, nlminb(par, fn, gr))
+```
+
+Model fit:
+
+```{r tmbfit_RE}
 tmbfit_RE
 ```
 
 ¿ getting different answers from `glmer` and `RTMB`, what's going on?
+
+Plot likelihood profile of `log_nestSD`:
 
 ```{r tmbprofile}
 prof <- TMB::tmbprofile(tmbfun_RE, name = "log_nestSD",
@@ -299,13 +310,14 @@ glmer_nll <- apply(surf, 1, \(x)
 
 ```{r plot_liksurf, fig.width = 12, fig.height = 6}
 lmin <- min(c(RTMB_nll, glmer_nll))
+eps <- 1e-3
 surfx <- cbind(surf, RTMB_nll, glmer_nll) |>
-    mutate(across(c(RTMB_nll, glmer_nll), ~ . - lmin + 1e-4))
+    mutate(across(c(RTMB_nll, glmer_nll), ~ . - lmin + eps))
 gg0 <- ggplot(surfx, aes(int, nh)) +
     facet_wrap(~logsd, labeller = label_both) +
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0)) +
-    scale_fill_viridis_c(trans = "log10", limits = c(1e-4, 30), name = "neg log lik") +
+    scale_fill_viridis_c(trans = "log10", limits = c(eps, 30), name = "Δneg log lik") +
     theme(panel.spacing = grid::unit(0, "lines"))
 gg0_RTMB <- gg0 +
     geom_raster(aes(fill=RTMB_nll)) +
@@ -322,6 +334,8 @@ gg0_RTMB + gg0_glmer
 Is `glmer` somehow doing something wrong with the custom link function?
 
 Compare predictions ... (hard to compare with data: data are binary, differ in exposure ...)
+
+Weirdly, the two models give very similar minimum negative log-likelihoods ... is this a coincidence?
 
 ## downstream plotting
 
@@ -359,8 +373,24 @@ m_glmer_cloglog <- update(m_glmer,
                           family = binomial(link = "cloglog"),
                           start = NULL,
                           control = glmerControl(optimizer = "bobyqa"))
-summary(m_glmer_cloglog)
+m_glmmTMB_cloglog <- glmmTMB(
+    formula = formula(m_glmer_cloglog),
+    family = binomial(link = "cloglog"),
+    data = dat2S)
 ```
+
+```{r compare_AICs}
+## make sure tmbfun_RE wasn't messed up by loglik surf evals
+with(tmbfun_RE$env, tmbfun_RE$fn(last.par.best[-random]))
+mod_list <- list(glmer_cloglog = m_glmer_cloglog,
+                 glmmTMB_cloglog = m_glmmTMB_cloglog,
+                 glmer_powlogit = m_glmer,
+                 RTMB_powlogit = tmbfun_RE)
+purrr::map_dfr(mod_list, glance, .id = "model") |>
+    dplyr::select(c(model, logLik, AIC))
+```
+
+Looks like `glmmTMB` finds a slightly better solution than `glmer` ...
 
 Compare predictions?
 
@@ -412,11 +442,9 @@ mle2(Exposure~dcgeom(prob=plogis(mu),cens=Surv),
 * finish cloglog comparisons, coef plots, etc. (AIC ...)
 * benchmark?
 * WinBUGS/Stan/`tmbstan` solutions?
-* fix formatting etc.
 * mention evaluation problem with exposure / fragility for predictions etc.
 * survival model examples: interval censoring etc..  Time-dependent covariates?  Time-dependent hazard?
 * discuss individual-level frailty: identifiability issues?  Are they overcome by exposure-dependence?
-* comparison of cloglog/Gompertz approach?
-* check and describe bird literature: Shaffer, Nur, Heisey, White, etc.
+* check and describe bird literature: Shaffer, Nur, Heisey, White, etc. Trends in "cloglog+ecology" vs "power-logit (whatever Shaffer calls it)" over time? Maybe this is all explained in @heiseyABCsa? Would still be interesting to see a trend analysis ... see also @heathcoteSpatial2023, @fletcherConflicting2021, @anttonenPredation2023
 
 ## References
