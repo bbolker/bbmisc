@@ -49,7 +49,7 @@ where $e$ is the exposure (typically, but not necessarily, an integer).  I will 
  
 Some example data on red-winged blackbird nest survivorship in Brant County, Ontario from Reta Meng (part of her undergraduate thesis with Dr. Pat Chow-Fraser of McMaster University):
 
-```{r opts_pkgs,echo=FALSE,message=FALSE}
+```{r opts_pkgs,message=FALSE}
 pkgs <- sort(c("reshape2","lme4",
                "plyr","bbmle",
                "visreg","emmeans","sjPlot",
@@ -188,9 +188,9 @@ summary(m_glm)
 * *Advantages*: probably faster, no need for starting values, more compact syntax, maybe extendable to GLMMs
 * *Disadvantages*: less flexible. Because of the way `glm` is set up, the exposure variable can't be drawn from inside the `data` argument, which makes it harder to use methods such as `predict` on the results of the fit. Setting `..exposure` globally provides a hack around this (see below).
 
-## method 3: RTMB
+### method 3: RTMB
 
-This was previously done with AD Model Builder, but is much easier in RTMB. Setting up the model is slightly more complicated in RTMB (below I've made it slightly more complex than absolutely necessary, for generality).
+This was previously done with AD Model Builder, but is much easier in RTMB. Setting up the model is slightly more complicated in RTMB (below I've made it slightly more complex than absolutely necessary, for generality). (More info on RTMB [here](https://kaskr.r-universe.dev/articles/RTMBp/RTMB-introduction.html) and [here](https://bbolker.github.io/bbmisc/rtmb_intro.html).)
 
 
 ```{r rtmb}
@@ -220,23 +220,25 @@ tidy(tmbfun, conf.int = TRUE) |>
 
 ## Random effects
 
-In principle, we should be able to implement this model with random effects in either `lme4` or in RTMB.  (Doing it in `bbmle` is essentially impossible.)
+In principle, we should be able to implement this model with random effects (i.e., allowing for differential exposure of different nests) in either `lme4` or in RTMB.  (Doing it in `bbmle` is essentially impossible.)
 
-Random effect of individuals:
+Random effect of `Nest.ID`:
 
 ### lme4
 
 ```{r lme4,message=FALSE}
 library("lme4")
 m_glmer <- glmer(Surv~NestHeight+(1|Nest.ID),
-         family=binomial(link=logexp(dat2S$Exposure)),
-         data=dat2S,start=list(theta=1,fixef=c(1,0)))
+                 family=binomial(link=logexp(dat2S$Exposure)),
+                 data=dat2S,start=list(theta=1,fixef=c(1,0)))
 summary(m_glmer)
 ```
 
 "works" (but don't know if it's correct).
 
 ## RTMB
+
+We can use RTMB's built-in machinery to add a random effect.
 
 ```{r rtmb_RE}
 nllfun_RE <- function(par) {
@@ -304,14 +306,19 @@ plot(emmeans(m_glmer, ~NestHeight, at=list(NestHeight=1:10)))  ## "works"
 plot(allEffects(m_glmer, type="response"))
 rm(..exposure)
 ```
-### ADMB
-
-(To do)
 
 ## Survival model
 
-If we have multiple observations per individual (i.e. each observed individual is) we should really *not* be treating each observation
-separately.  Adding a random effect of individual might help a little but is papering over the cracks.
+Most nests 'die' (are predated) only once, but nest 2AF has 3 cases with `Surv == 0` (is this a typo?)
+```{r survtab}
+with(subset(dat2S, Surv == 0),
+     table(Nest.ID) |> table())
+subset(dat2S, Nest.ID == "2AF")
+```
+
+If every nest either survives the whole time or is predated once and then is gone (i.e. not observed again),
+it might not be quite right to treat each observation
+separately.  Adding a random effect of individual might help a little but might be papering over the cracks.
 i.e., we ought to model as a (possibly censored) geometric or exponential distribution.
 
 Check geometric/exponential equivalence:
