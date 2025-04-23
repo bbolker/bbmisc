@@ -6,6 +6,7 @@ output:
   html_document:
     toc: true
   code_folding: hide
+bibliography: brant.bib
 ---
 
 ## Introduction
@@ -40,7 +41,7 @@ Suppose we don't want to do this, and instead want to stick with the logistic fo
 $$
 \mu = \left( \text{Logistic}(\eta) \right)^e,
 $$
-where $e$ is the exposure (typically, but not necessarily, an integer).  I will call this the *power-logistic link* approach; it is popular in analyses of nest survival. The code below explores both the complementary log-log and power-logistic approaches. In my opinion the complementary log-log approach seems **much more statistically coherent and computationally convenient** than the power-exponential (it can be used in any GLM-based framework that provides a cloglog link option for binomial models). I get e-mail about this document a few times a year, implying that people are still using the power-logistic approach. I would be interested in hearing arguments or explanations from biostatisticians or ecologists about why the power-logistic might be preferred: is it just historical, does it fit the data better, or does it have advantages I haven't thought of?
+where $e$ is the exposure (typically, but not necessarily, an integer).  I will call this the *power-logistic link* approach; it is popular in analyses of nest survival [@shafferUnified2004b]. The code below explores both the complementary log-log and power-logistic approaches. In my opinion the complementary log-log approach seems **much more statistically coherent and computationally convenient** than the power-exponential (it can be used in any GLM-based framework that provides a cloglog link option for binomial models). I get e-mail about this document a few times a year, implying that people are still using the power-logistic approach. I would be interested in hearing arguments or explanations from biostatisticians or ecologists about why the power-logistic might be preferred: is it just historical, does it fit the data better, or does it have advantages I haven't thought of?
 
 - more here: difference from standard survival analysis (highly discretized/interval-censored; interested in covariates; maybe willing to use parametric models; maybe interested in density-dependent mortality? typically have one or more cross-sectional observations of a population, rather than a single longitudinal survey of a cohort)
 
@@ -140,10 +141,10 @@ summary(m_mle2)
 
 ## Method 2: `glm`
 
-Generalized linear modeling code can be hacked to fit the power-logistic link, by providing a custom link function.   SAS and R code to do this is available from [a 'wayback machine' archive of Terry Shaffer's USGS web page](https://web.archive.org/web/20121024230530/https://www.npwrc.usgs.gov/resource/birds/nestsurv/index.htm)
+Generalized linear modeling code can be hacked to fit the power-logistic link, by providing a custom link function.   SAS and R code to do this is available from [a 'wayback machine' archive of Terry Shaffer's USGS web page](https://web.archive.org/web/20121024230530/https://www.npwrc.usgs.gov/resource/birds/nestsurv/index.htm).
 
 This is an updated version of Mark Herzog's R code (should run in "recent" R versions, e.g at least >=3.5.0 [??])
-```{r}
+```{r logexp_link}
 library(MASS)
 logexp <- function(exposure = 1) {
   ## hack to help with visualization, post-prediction etc etc
@@ -237,7 +238,7 @@ summary(m_glmer)
 
 ## RTMB
 
-```{r}
+```{r rtmb_RE}
 nllfun_RE <- function(par) {
     getAll(par, tmbdata_RE)
     eta <- X %*% beta + Z %*% b  ## now with random (nest) effects included
@@ -260,7 +261,9 @@ tmbfit_RE <- with(tmbfun_RE, nlminb(par, fn, gr))
 tmbfit_RE
 ```
 
-```{r}
+¿ getting different answers from `glmer` and `RTMB`, what's going on?
+
+```{r tmbprofile}
 prof <- TMB::tmbprofile(tmbfun_RE, name = "log_nestSD",
                         ystep = 0.1,
                         parm.range = c(-2, 2),
@@ -268,7 +271,9 @@ prof <- TMB::tmbprofile(tmbfun_RE, name = "log_nestSD",
 plot(prof, type = "b")
 ```
 
-```{r}
+Try different starting values?
+
+```{r glmer2}
 m_glmer2 <- update(m_glmer,
                   start=list(theta=exp(-0.97),
                              fixef=c(1.8,1.4)))
@@ -340,12 +345,14 @@ mle2(Exposure~dcgeom(prob=plogis(mu),cens=Surv),
 
 ## To do
 
-
+* finish cloglog comparisons, coef plots, etc. (AIC ...)
 * benchmark?
-* WinBUGS/Stan solutions?
+* WinBUGS/Stan/`tmbstan` solutions?
 * fix formatting etc.
 * mention evaluation problem with exposure / fragility for predictions etc.
 * survival model examples: interval censoring etc..  Time-dependent covariates?  Time-dependent hazard?
 * discuss individual-level frailty: identifiability issues?  Are they overcome by exposure-dependence?
 * comparison of cloglog/Gompertz approach?
 * check and describe bird literature: Shaffer, Nur, Heisey, White, etc.
+
+## References
