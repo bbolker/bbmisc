@@ -439,6 +439,8 @@ mle2(Exposure~dcgeom(prob=plogis(mu),cens=Surv),
 
 ## To do
 
+* test glmer vs RTMB mixed-model case with simulations
+* try with chat data?
 * finish cloglog comparisons, coef plots, etc. (AIC ...)
 * benchmark?
 * WinBUGS/Stan/`tmbstan` solutions?

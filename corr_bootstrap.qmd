@@ -3,6 +3,9 @@ title: "bootstrapping correlated data"
 author: Ben Bolker
 date: today
 bibliography: corr_bootstrap.bib
+format:
+  html:
+    embed-resources: true
 ---
 
 Bootstrapping, and other forms of sampling-based testing and evaluation such as permutation tests and cross-validation, are powerful tools, but like all statistical approaches they make assumptions --- in particular, the act of independently resampling assumes *independence* at some level. This independence need not be at thelevel of individual observations --- for example, the [Mantel test of correlation](https://en.wikipedia.org/wiki/Mantel_test) works by permuting the rows and columns of a matrix of distances, rather than individual observations (corresponding to an $\{x,y\}$ pair). While this is a potentially deep rabbit hole, this document **briefly** reviews some of the ways of doing bootstrapping for correlated data and explains why resampling is is difficult for models with correlation and non-Gaussian conditional distributions. 
