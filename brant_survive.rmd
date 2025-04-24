@@ -1,0 +1,452 @@
+---
+title: "Analyzing binary survival data, accounting for differences in exposure"
+author: "Ben Bolker"
+date: "`r format(Sys.time(),'%d %b %Y')`"
+output:
+  html_document:
+    toc: true
+    code_folding: hide
+bibliography: brant.bib
+---
+
+## Introduction
+
+A very common situation in ecology (and elsewhere) is a binary-outcome survival model where individuals, each measured once, differ in their exposure, typically because they have been observed for different lengths of time (this is different from typical *survival analysis*, where we know either the exact moment that someone died, or that they were still alive when we stopped observing them). The classic statistical approach to this problem is to use a *complementary log-log* ("cloglog") link. The `cloglog` function is $C(\mu)=\log(-\log(1-\mu))$; its inverse is $\mu=C^{-1}(\eta) = 1-\exp(-\exp(\eta))$. Thus if we expect mortality $\mu_0$ over a period $\Delta t=1$ and the linear predictor $\eta=C^{-1}(\mu_0)$ then 
+$$
+C^{-1}(\eta+\log \Delta t)=(1-\exp(-\exp(\eta) \cdot \Delta t)).
+$$
+Some algebra shows that this is equal to $1-(1-\mu_0)^{\Delta t}$,
+which is what we want.
+
+The function $\exp(-\exp(x))$ is called the *Gompertz* function (it
+is also the CDF of the *extreme value* distribution),
+so fitting a model with this inverse-link function (i.e. fitting a
+`cloglog` link to the survival, rather than the mortality,
+probability) is called a 
+[*gompit* (or *extreme value*) regression](http://www.stata.com/support/faqs/stat/gompit.html).
+
+The bottom line is that if we change the form of the dependence of survival on covariates from logistic to complementary log-log, we can sneak the exposure variable in via an offset.
+
+To use this approach in R, use `family=binomial(link="cloglog")` and add a term of the form `offset(log(A))` to the formula (some modeling functions take `offset` as a separate
+argument).
+
+If instead of using `log(A)` as an offset you allow it to be a *covariate* (predictor, independent variable, whatever you want to call it), that implies a linearly increasing or decreasing log-hazard → a hazard that is a power-law function of exposure → a [Weibull distribution](https://en.wikipedia.org/wiki/Weibull_distribution) for the distribution of survival times (when the coefficient is 1, i.e. if we use an offset, this reduces to an exponentially distributed survival time).
+
+Suppose we don't want to do this, and instead want to stick with the logistic form, but want to have the link function be
+$$
+\mu = \left( \text{Logistic}(\eta) \right)^e,
+$$
+where $e$ is the exposure (typically, but not necessarily, an integer).  I will call this the *power-logistic link* approach; it is popular in analyses of nest survival [@shafferUnified2004b]. The code below explores both the complementary log-log and power-logistic approaches. In my opinion the complementary log-log approach seems **much more statistically coherent and computationally convenient** than the power-exponential (it can be used in any GLM-based framework that provides a cloglog link option for binomial models). I get e-mail about this document a few times a year, implying that people are still using the power-logistic approach. I would be interested in hearing arguments or explanations from biostatisticians or ecologists about why the power-logistic might be preferred: is it just historical, does it fit the data better, or does it have advantages I haven't thought of?
+
+- more here: difference from standard survival analysis (highly discretized/interval-censored; interested in covariates; maybe willing to use parametric models; maybe interested in density-dependent mortality? typically have one or more cross-sectional observations of a population, rather than a single longitudinal survey of a cohort)
+
+## Data
+ 
+Some example data on red-winged blackbird nest survivorship in Brant County, Ontario from Reta Meng (part of her undergraduate thesis with Dr. Pat Chow-Fraser of McMaster University):
+
+```{r opts_pkgs,message=FALSE}
+pkgs <- sort(c("lme4", "RTMB", "bbmle", "glmmTMB",
+               "tidyverse", "patchwork",
+               "emmeans", "visreg", "sjPlot", "effects",
+               "broom","broom.mixed"))
+invisible(sapply(pkgs,library,character.only=TRUE))
+theme_set(theme_bw())
+require(knitr)
+opts_chunk$set(tidy=FALSE,fig.width=5,fig.height=5)
+```
+
+Package versions:
+```{r pkgversion,echo=FALSE}
+print(sapply(pkgs,function(x) as.character(packageVersion(x))),
+      quote=FALSE)
+```
+Parameters:
+
+* `Exposure` = exposure days
+* `surv`= survival of the nest contents (1=nest has contents, 0=nest empty)
+* `survive` = outcome of the nest (1=successful, 0=failure)
+* `nestheight` = height of nest
+* `averageSPL`= sound pressure level near the nest
+* `distroad` = distance from nest to road
+* `waterdepth`= water depth surrounding the nest 
+ 
+<!-- https://stackoverflow.com/questions/41196823/embed-csv-in-html-rmarkdown -->
+
+
+```{r getdat}
+dat <- read.csv("brant_survive.csv")
+## orig_names <- scan("brant_survive.csv",what=character(),nlines=1,sep=",")
+dat2 <- subset(dat,
+    select=c(Nest.ID,Exposure,Date,Surv,
+             NestHeight,AverageSPL,DistEdge,
+             DistWater,DistRoad))
+dat2S <- subset(dat2,Exposure>0)
+```
+
+```{r embed_data,echo=FALSE,message=FALSE}
+encoded <- openssl::base64_encode(
+  paste0(collapse="\n",
+      readLines("./brant_survive.csv")
+  ))
+```
+
+[Download CSV](`r sprintf('data:text/csv;base64,%s', encoded)`) (or get data from [GitHub](https://github.com/bbolker/bbmisc/blob/master/brant_survive.csv))
+
+```{r nonvary,echo=FALSE,eval=FALSE}
+## Non-varying variables:
+n_uniq <- sapply(dat,function(x) length(unique(x)))
+names(dat)[n_uniq==1]
+```
+
+Total samples: `r nrow(dat2)` observations, `r length(unique(dat2$Nest.ID))` nests. 
+
+Marginal plots of survival prob vs predictors:
+
+```{r plot1,fig.width=8,fig.height=4}
+mdat <- pivot_longer(dat2, -(1:4), names_to = "variable")
+ggplot(mdat,aes(x=value,y=Surv))+
+    geom_point(alpha=0.3, aes(size=Exposure))+
+    geom_smooth(method="gam", method.args = list(family = "binomial"),
+                formula = y ~ s(x, k = 12)) +
+    facet_wrap(~variable,scale="free_x")+
+    coord_cartesian(ylim=c(-0.05,1.05))+xlab("")+ylab("Survival")
+```
+
+In what follows I'm only going to model the effect of nest height on survivorship, but the example should generalize to any number of continuous or categorical predictors ...
+
+## Methods
+
+### Method 1: `bbmle`
+
+The `bbmle` package offers a formula interface that lets us do general nonlinear MLE fitting reasonably conveniently.
+
+```{r bbmle_fit,message=FALSE}
+library(bbmle)
+m_mle2 <- mle2(Surv~dbinom(plogis(mu)^Exposure,size=1),
+     parameters=list(mu~NestHeight),
+     start=list(mu=2),data=dat2S)
+summary(m_mle2)
+```
+
+* *Advantages*: simple, flexible.
+* *Disadvantages*: need to specify starting values; probably slow.
+
+## Method 2: `glm`
+
+Generalized linear modeling code can be hacked to fit the power-logistic link, by providing a custom link function.   SAS and R code to do this is available from [a 'wayback machine' archive of Terry Shaffer's USGS web page](https://web.archive.org/web/20121024230530/https://www.npwrc.usgs.gov/resource/birds/nestsurv/index.htm).
+
+This is an updated version of Mark Herzog's R code (should run in "recent" R versions, e.g at least >=3.5.0 [??])
+```{r logexp_link}
+library(MASS)
+logexp <- function(exposure = 1) {
+    ## hack to help with visualization, post-prediction etc etc
+    ## FIXME: can we do more to make sure an exposure arg is not
+    ##  accidentally masked by a global ..exposure?
+    get_exposure <- function() {
+        if (exists("..exposure", env=.GlobalEnv))
+            return(get("..exposure", envir=.GlobalEnv))
+        exposure
+    }
+    linkfun <- function(mu) qlogis(mu^(1/get_exposure()))
+    ## FIXME: is there some trick we can play here to allow
+    ##   evaluation in the context of the 'data' argument?
+    linkinv <- function(eta) plogis(eta)^get_exposure()
+    logit_mu_eta <- function(eta) {
+        ifelse(abs(eta)>30,.Machine$double.eps,
+               exp(eta)/(1+exp(eta))^2)
+    }
+    mu.eta <- function(eta) {       
+        get_exposure() * plogis(eta)^(get_exposure()-1) *
+            logit_mu_eta(eta)
+    }
+    valideta <- function(eta) TRUE
+    link <- paste("logexp(", deparse(substitute(exposure)), ")",
+                  sep="")
+    structure(list(linkfun = linkfun, linkinv = linkinv,
+                   mu.eta = mu.eta, valideta = valideta, 
+                   name = link),
+              class = "link-glm")
+}
+```
+
+This is basically a modified version of the logit link function produced by `binomial()`.  The original version used `.Call(stats:::C_logit_mu_eta, eta, PACKAGE = "stats")`, but I decided it was safer (if marginally slower) to write a pure-R version of `C_logit_mu_eta` and include it in the function.
+
+Now use it:
+```{r glmfit}
+m_glm <- glm(Surv~NestHeight,
+         family=binomial(link=logexp(dat2S$Exposure)),
+         data=dat2S,start=c(1,0))
+summary(m_glm)
+```
+
+* *Advantages*: probably faster, no need for starting values, more compact syntax, maybe extendable to GLMMs
+* *Disadvantages*: less flexible. Because of the way `glm` is set up, the exposure variable can't be drawn from inside the `data` argument, which makes it harder to use methods such as `predict` on the results of the fit. Setting `..exposure` globally provides a hack around this (see below).
+
+### method 3: RTMB
+
+RTMB is a general framework for writing likelihood functions (including those with random effects) that can be fitted efficiently.
+Setting up the model is slightly more complicated in RTMB (below I've made it slightly more complex than absolutely necessary, for generality). (More info on RTMB [here](https://kaskr.r-universe.dev/articles/RTMBp/RTMB-introduction.html) and [here](https://bbolker.github.io/bbmisc/rtmb_intro.html).)
+
+```{r rtmb}
+nllfun <- function(par) {
+    getAll(par, tmbdata)    ## 'attach' parameter components and data
+    eta <- X %*% beta       ## compute predicted log-odds of mortality
+    prob0 <- plogis(eta)    ## probability per day
+    prob <- prob0^Exposure  ## overall probability
+    REPORT(prob)            ## for extracting computed info
+    ADREPORT(eta)
+    -sum(dbinom(Surv, prob, size = 1, log = TRUE))  ## compute negative log-likelihood
+}
+par0 <- list(beta = c(0,0))                        ## starting parameter values
+X <- model.matrix(~ 1 + NestHeight, data = dat2S)  ## model for linear predictor (could add other preds etc)
+tmbdata <- c(dat2S, list(X=X))                     ## encapsulate data needed by the model
+nll0 <- nllfun(par0)                               ## test base-R function
+tmbfun <- MakeADFun(nllfun, par0, silent = TRUE)   ## construct TMB object
+class(tmbfun) <- "TMB"                             ## for later convenience (broom.mixed)
+stopifnot(all.equal(tmbfun$fn(), nll0))            ## test TMB function
+tmbfit <- with(tmbfun, nlminb(par, fn, gr))        ## fit model
+```
+
+Model summary:
+```{r rtmb_glance}
+glance(tmbfun)
+```
+
+```{r rtmb_tidy}
+tidy(tmbfun, conf.int = TRUE) |>
+    ## unfortunately RTMB doesn't carry parameter names along
+    dplyr::mutate(term = colnames(X))
+```
+
+* *Advantages*: fast, flexible, extendable to GLMMs
+* *Disadvantages*: most complex code
+
+## Random effects
+
+In principle, we should also be able to implement this model with random effects (i.e., allowing for differential exposure of different nests) in either `lme4` or in RTMB.  (Doing it in `bbmle` is essentially impossible.)
+
+Random effect of `Nest.ID`:
+
+### lme4
+
+```{r lme4,message=FALSE}
+library("lme4")
+m_glmer <- glmer(Surv~NestHeight+(1|Nest.ID),
+                 family=binomial(link=logexp(dat2S$Exposure)),
+                 data=dat2S,start=list(theta=1,fixef=c(1,0)))
+summary(m_glmer)
+```
+
+"works" (but don't know if it's correct).
+
+### RTMB
+
+We can use RTMB's built-in machinery to add a random effect.
+
+```{r rtmb_RE}
+nllfun_RE <- function(par) {
+    getAll(par, tmbdata_RE)
+    eta <- X %*% beta + Z %*% b  ## now with random (nest) effects included
+    prob0 <- plogis(eta)
+    prob <- prob0^Exposure
+    REPORT(prob)
+    ADREPORT(eta)
+    nll <- -sum(dbinom(Surv, prob, size = 1, log = TRUE))
+    nllpen <- -sum(dnorm(b, 0, exp(log_nestSD), log = TRUE))
+    nll + nllpen
+}
+Z <- Matrix::fac2sparse(dat2S$Nest.ID)
+tmbdata_RE <- c(tmbdata, list(Z=Z))
+par0_RE <- list(
+    ## beta=unname(tmbfit$par),
+    beta = unname(fixef(m_glmer)),
+    b = rep(0, ncol(Z)),
+    log_nestSD = 0)
+## nllfun(par0_RE)
+tmbfun_RE <- MakeADFun(nllfun_RE, par0_RE, silent = TRUE, random = "b")
+class(tmbfun_RE) <- "TMB"
+tmbfit_RE <- with(tmbfun_RE, nlminb(par, fn, gr))
+```
+
+Model fit:
+
+```{r tmbfit_RE}
+tmbfit_RE
+```
+
+¿ getting different answers from `glmer` and `RTMB`, what's going on?
+
+Plot likelihood profile of `log_nestSD`:
+
+```{r tmbprofile}
+prof <- TMB::tmbprofile(tmbfun_RE, name = "log_nestSD",
+                        ystep = 0.1,
+                        parm.range = c(-2, 2),
+                        trace = FALSE, ytol = 3)
+plot(prof, type = "b")
+```
+
+Try different starting values?
+
+```{r glmer2}
+m_glmer2 <- update(m_glmer,
+                  start=list(theta=exp(-0.97),
+                             fixef=c(1.8,1.4)))
+```
+
+Explore likelihood surfaces:
+
+```{r comp_liksurf, cache=TRUE}
+surf <- expand.grid(int = seq(1.2, 2, length.out = 31),
+            nh = seq(1.1, 1.9, length.out = 31),
+            logsd = seq(-120, 120, by = 16)/100)
+RTMB_nll <- apply(surf, 1, tmbfun_RE$fn)
+glmerfun <- getME(m_glmer, "devfun")
+## note parameter order is different for glmer (REs first);
+## SD, not log-SD scale
+glmer_nll <- apply(surf, 1, \(x)
+                   glmerfun(c(exp(x[3]), x[1:2]))/2)
+```
+
+```{r plot_liksurf, fig.width = 12, fig.height = 6}
+lmin <- min(c(RTMB_nll, glmer_nll))
+eps <- 1e-3
+surfx <- cbind(surf, RTMB_nll, glmer_nll) |>
+    mutate(across(c(RTMB_nll, glmer_nll), ~ . - lmin + eps))
+gg0 <- ggplot(surfx, aes(int, nh)) +
+    facet_wrap(~logsd, labeller = label_both) +
+    scale_x_continuous(expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_viridis_c(trans = "log10", limits = c(eps, 30), name = "Δneg log lik") +
+    theme(panel.spacing = grid::unit(0, "lines"))
+gg0_RTMB <- gg0 +
+    geom_raster(aes(fill=RTMB_nll)) +
+    geom_contour(aes(z=RTMB_nll)) +
+    theme(legend.position = "none") +
+    labs(title = "RTMB")
+gg0_glmer <- gg0 +
+    geom_raster(aes(fill=glmer_nll)) +
+    geom_contour(aes(z=glmer_nll)) +
+    labs(title = "glmer")
+gg0_RTMB + gg0_glmer
+```
+
+Is `glmer` somehow doing something wrong with the custom link function?
+
+Compare predictions ... (hard to compare with data: data are binary, differ in exposure ...)
+
+Weirdly, the two models give very similar minimum negative log-likelihoods ... is this a coincidence?
+
+## downstream plotting
+
+If we use `cloglog` we need to make sure the offset is handled properly by whatever prediction/plotting machinery we are using downstream; if we use `link=logexp` we need to set a `..exposure` variable in the **global environment**, if we are plotting on the response (probability) scale, to allow the hack we defined above to work.  Make sure to remove `..exposure` afterwards to avoid confusion ...
+
+```{r visreg}
+..exposure <- mean(dat2S$Exposure)
+visreg(m_glmer, "NestHeight", scale="response")
+rm(..exposure) ## clean up!
+```
+
+```{r sjPlot}
+..exposure <- mean(dat2S$Exposure)
+sjPlot::plot_model(m_glmer,type="pred")
+rm(..exposure) ## clean up!
+```
+
+```{r emmeans}
+plot(emmeans(m_glmer, ~NestHeight, at=list(NestHeight=1:10)))  ## "works"
+```
+
+```{r effects}
+..exposure <- mean(dat2S$Exposure)
+plot(allEffects(m_glmer, type="response"))
+rm(..exposure)
+```
+
+## Comparing cloglog and power-logit fits
+
+Is one or the other objectively better (in terms of AIC)?
+
+```{r cloglog_REfit}
+m_glmer_cloglog <- update(m_glmer,
+                          . ~ . + offset(log(Exposure)),
+                          family = binomial(link = "cloglog"),
+                          start = NULL,
+                          control = glmerControl(optimizer = "bobyqa"))
+m_glmmTMB_cloglog <- glmmTMB(
+    formula = formula(m_glmer_cloglog),
+    family = binomial(link = "cloglog"),
+    data = dat2S)
+```
+
+```{r compare_AICs}
+## make sure tmbfun_RE wasn't messed up by loglik surf evals
+with(tmbfun_RE$env, tmbfun_RE$fn(last.par.best[-random]))
+mod_list <- list(glmer_cloglog = m_glmer_cloglog,
+                 glmmTMB_cloglog = m_glmmTMB_cloglog,
+                 glmer_powlogit = m_glmer,
+                 RTMB_powlogit = tmbfun_RE)
+purrr::map_dfr(mod_list, glance, .id = "model") |>
+    dplyr::select(c(model, logLik, AIC))
+```
+
+Looks like `glmmTMB` finds a slightly better solution than `glmer` ...
+
+Compare predictions?
+
+## Survival model
+
+Most nests 'die' (are predated) only once, but nest 2AF has 3 cases with `Surv == 0` (is this a typo?)
+```{r survtab}
+with(subset(dat2S, Surv == 0),
+     table(Nest.ID) |> table())
+subset(dat2S, Nest.ID == "2AF")
+```
+
+If every nest either survives the whole time or is predated once and then is gone (i.e. not observed again),
+it might not be quite right to treat each observation
+separately.  Adding a random effect of individual might help a little but might be papering over the cracks.
+i.e., we ought to model as a (possibly censored) geometric or exponential distribution.
+
+Check geometric/exponential equivalence:
+```{r}
+dgeom(2,0.5)
+diff(pexp(2:3,-log(0.5)))
+```
+
+```{r eval=FALSE}
+library("plyr")
+dat_agg <- ddply(dat2S,"Nest.ID",
+          summarize,Exposure=sum(Exposure),
+                    Surv=tail(Surv,1),
+                   NestHeight=NestHeight[1],AverageSPL=AverageSPL[1],
+                 DistEdge=DistEdge[1],
+             DistWater=DistWater[1],DistRoad=DistRoad[1])
+dcgeom <- function(x,prob,cens,log=FALSE) {
+  ifelse(!cens,dgeom(x,prob,log=log),
+         pgeom(x,prob,lower.tail=FALSE,log.p=log))
+  }
+dcexp <- function(x,rate,cens,log=FALSE) {
+  ifelse(!cens,dexp(x,rate,log=log),
+         pexp(x,prob,lower.tail=FALSE,log.p=log))
+  }
+with(dat_agg,-sum(dcgeom(Exposure,prob=0.5,cens=Surv,log=TRUE)))
+mle2(Exposure~dcgeom(prob=plogis(mu),cens=Surv),
+     parameters=list(mu~NestHeight),
+     start=list(mu=0),data=dat_agg)
+```
+**fixme**: use exponential instead of geometric distribution
+
+## To do
+
+* test glmer vs RTMB mixed-model case with simulations
+* try with chat data?
+* finish cloglog comparisons, coef plots, etc. (AIC ...)
+* benchmark?
+* WinBUGS/Stan/`tmbstan` solutions?
+* mention evaluation problem with exposure / fragility for predictions etc.
+* survival model examples: interval censoring etc..  Time-dependent covariates?  Time-dependent hazard?
+* discuss individual-level frailty: identifiability issues?  Are they overcome by exposure-dependence?
+* check and describe bird literature: Shaffer, Nur, Heisey, White, etc. Trends in "cloglog+ecology" vs "power-logit (whatever Shaffer calls it)" over time? Maybe this is all explained in @heiseyABCsa? Would still be interesting to see a trend analysis ... see also @heathcoteSpatial2023, @fletcherConflicting2021, @anttonenPredation2023
+
+## References

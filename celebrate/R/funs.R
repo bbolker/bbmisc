@@ -21,8 +21,8 @@ linux_and_play_available <- function() {
 }
 
 .onAttach <- function(libname, pkgname) {
-    packageStartupMessage("WARNING: this package is augmenting the printout ",
-                          "of statistical model summaries with audio output. ",
+    packageStartupMessage("WARNING: this package augments the print method ",
+                          "for the results of statistical models with audio output. ",
                           "Prepare to be annoyed and/or embarrassed ..."
                           )
 }
@@ -50,7 +50,9 @@ play_cmd <- function(outcome) {
     } else stop("unknown player option")
     return(NULL)
 }        
-    
+
+get_alpha <- function() getOption("celebrate.alpha", 0.05)
+
 ##' @importFrom stats coef
 ##' @export
 print.summary.lm <- function(x,...) {
@@ -61,7 +63,12 @@ print.summary.lm <- function(x,...) {
     cc <- coef(x)
     cc <- cc[rownames(cc)!="(Intercept)",,drop=FALSE]
     pvals <- cc[,"Pr(>|t|)"]
-    play_cmd(if (any(pvals<0.05)) "success" else "failure")
+    play_cmd(if (any(pvals<get_alpha())) "success" else "failure")
     return(invisible(x))
 }
 
+#' @export
+print.htest <- function(x, ...) {
+    stats:::print.htest(x, ...)
+    play_cmd(if(x$p.value < get_alpha()) "success" else "failure")
+}

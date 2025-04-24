@@ -1,0 +1,21 @@
+---
+title: "autodiff in R"
+---
+
+## Pure R
+
+* [RTMB](https://kaskr.r-universe.dev/RTMB);
+* [micrograd](https://github.com/dfalbel/micrograd) ("only useful for educational purposes")
+(1/n) Piggybacking here to toot the horn of RTMB https://kaskr.r-universe.dev/RTMB, an amazing resource for autodiff in R (honestly, the first complete AD solution in R) ; previous attempts were limited in various ways 
+
+
+
+limited: (e.g. base-R deriv(), Derivs package)
+inactive/incomplete https://github.com/quantumelixir/radx
+depends on another language (autodiffr, Julia, https://non-contradiction.github.io/autodiffr/articles/autodiffr_intro.html; TMB, C++, https://kaskr.github.io/adcomp/_book/Introduction.html; greta https://greta-stats.org, torch pkgs https://torch.mlverse.org/, Python)
+
+see also https://ms.mcmaster.ca/~bolker/misc/jacobian.html
+
+madness package
+
+Radford Neal https://glizen.com/radfordneal/ftp/riot2019.pdf

@@ -1,0 +1,42 @@
+---
+title: RTMB+mle
+---
+
+What would an RTMB-based `bbmle` replacement look like? It should have the following (existing) capabilities:
+
+- specify a model and data (as a function or as a formula), and starting parameters
+- fit the model using a choice of optimizers
+- package the result and provide a range of downstream S3 methods
+- compute profiles
+- allow fixed parameters (mapping)
+- linear submodels for specified parameters
+
+New features/improvements:
+
+- better handling of complex parameters (i.e. parameters specified as scalar/vector/etc., with `unlist()`
+- link functions for parameters and for location/scale args
+- linear submodels should allow random effects!
+
+```{r}
+mle <- function(nll, data, start, ...) {
+    ## build function
+    ## getAll
+    ## nll (substitute ~ -> %~%)
+    
+    ##
+    
+    
+}
+```
+
+```{r}
+library(RTMB)
+f <- function(pars) {
+    getAll(pars)
+    y %~% dbinom(size = 1, prob = p)
+}
+pars <- list(p = 0.5)
+y <- rbinom(1000, size = 1, p = 0.3)
+ff <- MakeADFun(f, pars)
+ff$fn()
+```

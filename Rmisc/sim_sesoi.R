@@ -24,6 +24,12 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
                         lwr = conf.int[1], upr = conf.int[2]))
 }    
 
+## how many cases should we distinguish?
+## (1) show the effect is small or large
+##    * care less about the sign if it's small?
+
+## true effect is positive, small/large
+## 
 levs <- c("large/clear sign",
           "unclear magnitude/clear sign",
           "small/clear sign",

@@ -1,0 +1,44 @@
+---
+title: "bootstrapping correlated data"
+author: Ben Bolker
+date: today
+bibliography: corr_bootstrap.bib
+format:
+  html:
+    embed-resources: true
+---
+
+Bootstrapping, and other forms of sampling-based testing and evaluation such as permutation tests and cross-validation, are powerful tools, but like all statistical approaches they make assumptions --- in particular, the act of independently resampling assumes *independence* at some level. This independence need not be at thelevel of individual observations --- for example, the [Mantel test of correlation](https://en.wikipedia.org/wiki/Mantel_test) works by permuting the rows and columns of a matrix of distances, rather than individual observations (corresponding to an $\{x,y\}$ pair). While this is a potentially deep rabbit hole, this document **briefly** reviews some of the ways of doing bootstrapping for correlated data and explains why resampling is is difficult for models with correlation and non-Gaussian conditional distributions. 
+
+@wengerAssessing2011 is probably my favourite example of how modellers can go wrong by ignoring (spatial) dependence.
+
+## residual bootstrap
+
+Suppose that the conditional distribution of the data is Gaussian, i.e. that we can say $y_i = f(.) + \epsilon_i$, where $f(.)$ is some potentially very complicated model including correlation structure, and $\epsilon_i$ is an independent Gaussian deviate. (In fact, as long as we can separate the noise from the signal in this additive way, we don't even need $\epsilon_i$ to be Gaussian --- we just need it to be independent and identically distributed.) Then we can fit the model, find predicted values $\hat y_i$, find the residuals $r_i = y_i - \hat y_i$, take a bootstrap sample of the residuals (i.e. resample $r_i$ with replacement), and add the bootstrapped residuals to the predictions to get our bootstrapped data.
+
+Unfortunately this doesn't work for typical distributions used in GLMs such as Poisson, because (1) the residuals aren't additive and symmetric and (2) adding bootstrapped residuals to predicted values won't typically get us back to observations that are consistent with the original distribution (in particular, they won't be integers --- we might be able to overlook this, but it will certainly cause practical problems with some software platforms ...)
+
+## block bootstrap
+
+For spatially and/or temporally correlated data, we can choose blocks that are big enough so that observations in one block are approximately independent of observations in another block, then do the bootstrap sample (or cross-validation) at the level of blocks, not cases. You do have to pick the block size carefully --- big enough to ensure independence but small enough so that each block 'sees' a range of conditions [@robertsCrossvalidation2017].
+
+## cluster bootstrap
+
+If the data falls into clusters (such as the grouping variables of mixed models), then it makes sense to bootstrap at the level of clusters (@fieldBootstrapping2007a; @relugaBootstrapbased2024 also briefly review cluster bootstrap methods) although there are a variety of choices about exactly how to do it (e.g. randomized cluster bootstrap, two-stage bootstrap). This is straightforward if there is only a single level of clustering, or if the clusters are hierarchically nested.
+
+Wikipedia also [briefly reviews all of these different bootstrapping schemes](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Types_of_bootstrap_scheme).
+
+## crossed random effects
+
+However, suppose we have *crossed random effects*, i.e. 
+
+$$
+y_{ijk} \sim D(\alpha_i + \beta_j)
+$$
+where $D$ is some reasonable distribution and $\alpha_i$ and $\beta_j$ are random effects corresponding to two different grouping variables. In the simplest case, every combination of the $i$-blocks and $j$-blocks is sampled (*fully crossed*), but we may also have a *partially crossed* design where only a subset of the possible $\{i,j\}$ pairs is observed. In this case there's no simple way to resample $i$-blocks without mixing observations from different $j$-blocks, or *vice versa*.
+
+@mccullaghResampling2000 says:
+
+> For the two-way exchangeable array, no resampling scheme exists such that the bootstrap variance of $\bar Y^*$ consistently estimates the sampling variance of this statistic. Outside of the i.i.d. case, it appears that resampling is not a reliable method for obtaining a consistent variance estimate
+
+## References
