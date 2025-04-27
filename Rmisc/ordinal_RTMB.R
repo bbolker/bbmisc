@@ -83,11 +83,15 @@ glance <- function(x, ...) {
         mutate(across(logLik, c))
 }
 
-tibble::lst(fit_polr, fit_clm, fit_RTMB = ff) |>
-    purrr::map_dfr(glance, .id = "model") |>
-    select(model, AIC) |>
-    mutate(across(AIC, ~ . - min(.))) |>
-    tidyr::pivot_wider(names_from = model, values_from = AIC)
+cmp_models <- function(...) {
+    tibble::lst(...) |>
+        purrr::map_dfr(glance, .id = "model") |>
+        select(model, AIC) |>
+        mutate(across(AIC, ~ . - min(.))) |>
+        tidyr::pivot_wider(names_from = model, values_from = AIC)
+}
+
+cmp_models(fit_polr, fit_clm, fit_RTMB = ff)
 
 blksize <- length(rt$cnms$id)
 tmbdata_RE <- c(tmbdata, list(Z = Z, blksize = blksize))
@@ -117,7 +121,17 @@ ord_nll_re(par0_RE)
 ff_RE <- MakeADFun(ord_nll_re, par0_RE, silent = TRUE, random = "b")
 class(ff_RE) <- "TMB"
 ff_RE$fn()
-fit_RE <- with(ff_RE, nlminb(par, fn, gr))
-glance(ff_RE)
-glance(fit_clmm_RE)
+fit_RE_nlminb <- with(ff_RE, nlminb(par, fn, gr,
+                                    control = list(eval.max = 1e4, iter.max = 1e4)))
+## annoying that pars are stored internally ...
+ff_RE2 <- MakeADFun(ord_nll_re, par0_RE, silent = TRUE, random = "b")
+class(ff_RE2) <- "TMB"
+fit_RE_optim <- with(ff_RE2, optim(par, fn, gr, method = "BFGS"))
 
+## slight difference in AIC, but not too bad?
+cmp_models(fit_clmm_RE, fit_RTMB_RE = ff_RE, fit_RTMB_RE_optim = ff_RE2)
+
+tt1 <- tidy(fit_clmm_RE)
+tt2 <- tidy(ff_RE) |> filter(grepl("^beta", term))
+
+                      
