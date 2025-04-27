@@ -1,9 +1,26 @@
+## goal: experiment with ordinal models in RTMB, in particular to
+## fit complex-intercept models (sensu Scandola and Tidoni 2024) with
+## desired form
+
 library(ordinal)
+library(broom)
+library(broom.mixed)
+library(RTMB)
+library(reformulas)
+library(Matrix)
+library(purrr)
+library(dplyr)
+
 dd <- expand.grid(A=factor(0:1), B = factor(0:1), id = 1:300)
+## FIXME: simulate from a real model, rather than randomly?
 dd$y <- ordered(sample(1:4, size = nrow(dd), replace = TRUE))
 
-fit <- clmm(y ~ A*B + (A*B|id), data = dd,
-            control = clmm.control(trace = 1))
+## 7 seconds
+system.time(
+    fit_clmm_RE <- clmm(y ~ A*B + (A*B|id), data = dd)
+)
+
+
 
 try(clmm(y ~ A*B + (1|id/(A*B)), data = dd,
          control = clmm.control(trace = 1)))
@@ -17,17 +34,14 @@ try(clmm(y ~ A*B + (1|id/(A:B)), data = dd,
 
 dd$id_AB <- with(dd, paste0(id,A,B))
 
-fit2 <- clmm(y ~ A*B + (1|id) + (1|id_AB), data = dd,
-             control = clmm.control(trace = 1))
+system.time(
+    fit2 <- clmm(y ~ A*B + (1|id) + (1|id_AB), data = dd)
+)
 
-
-library(RTMB)
-library(reformulas)
-library(Matrix)
-ord_nll <- function(par) {
+ord_nll0 <- function(par) {
     getAll(par, tmbdata)
     nobs <- nrow(X)
-    theta <- cumsum(exp(beta0))  ## length (J-1)
+    theta <- cumsum(c(beta0[1], exp(beta0[-1])))  ## length (J-1)
     eta <- drop(X %*% beta)      ## length n
     ## plogis() gets in trouble because of RTMB magic
     ## sort out outer()?
@@ -36,8 +50,9 @@ ord_nll <- function(par) {
     -sum(logprob[cbind(y, 1:nobs)])
 }
 
-## would loops be better for TMB?
+## * would loops be better for TMB? this may be overvectorizing
 ## read stuff in ordinal vignette about parameterization of intercept
+## * if implementing this in glmmTMB, how are we going to organize eta vs theta?
 
 form <- y ~ A*B + ((A*B)|id)
 resp <- dd$y
@@ -52,11 +67,57 @@ par0 <- list(
     , beta = rep(0, ncol(X))
     ## ,b = rep(0, ncol(Z))
 )
-tmbdata <- tibble::lst(X, Z, y = dd$y)
-ord_nll(par0)
+tmbdata <- tibble::lst(X, y = dd$y)
+ord_nll0(par0)
 
-ff <- MakeADFun(ord_nll, par0, silent = TRUE)
+ff <- MakeADFun(ord_nll0, par0, silent = TRUE)
+class(ff) <- "TMB"
 ff$fn()
 
-MASS::polr(y~A*B, data = dd)
+fit_polr <-MASS::polr(y~A*B, data = dd)
+fit_clm <- ordinal::clm(y~A*B, data = dd)
 fit <- with(ff, nlminb(par, fn, gr))
+
+glance <- function(x, ...) {
+    broom::glance(x, ...) |>
+        mutate(across(logLik, c))
+}
+
+tibble::lst(fit_polr, fit_clm, fit_RTMB = ff) |>
+    purrr::map_dfr(glance, .id = "model") |>
+    select(model, AIC) |>
+    mutate(across(AIC, ~ . - min(.))) |>
+    tidyr::pivot_wider(names_from = model, values_from = AIC)
+
+blksize <- length(rt$cnms$id)
+tmbdata_RE <- c(tmbdata, list(Z = Z, blksize = blksize))
+par0_RE <- c(par0, list(vcpars = rep(0, blksize*(blksize+1)/2), b = rep(0, ncol(Z))))
+             
+## same as above, but with random effects
+ord_nll_re <- function(par) {
+    getAll(par, tmbdata_RE)
+    nobs <- nrow(X)
+    theta <- cumsum(c(beta0[1], exp(beta0[-1])))  ## length (J-1)
+    eta <- drop(X %*% beta + Z %*% b)      ## length n
+    ## plogis() gets in trouble because of RTMB magic
+    ## sort out outer()?
+    gamma0 <- 1/(1+exp(-(-1*outer(eta, theta, FUN = "-")))) ## n x J
+    logprob <- log(apply(cbind(0, gamma0, 1), 1, diff))
+    nll <- -sum(logprob[cbind(y, 1:nobs)])
+    ## random effects
+    us <- unstructured(blksize)
+    cc <- us$corr(vcpars[-(1:blksize)])
+    sdvec <- exp(vcpars[1:blksize])
+    ## note misleading error message in RTMB:::dscale
+    ## if (length(scale) != nc) stop("Vector 'scale' must be compatible with *rows* of 'x'")
+    nllpen <- -sum(dmvnorm(t(matrix(b, nrow = blksize)), Sigma = cc, scale = sdvec, log = TRUE))
+    nll + nllpen
+}
+ord_nll_re(par0_RE)
+ff_RE <- MakeADFun(ord_nll_re, par0_RE, silent = TRUE, random = "b")
+class(ff_RE) <- "TMB"
+ff_RE$fn()
+fit_RE <- with(ff_RE, nlminb(par, fn, gr))
+glance(ff_RE)
+glance(fit_clmm_RE)
+
