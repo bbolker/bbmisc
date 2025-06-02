@@ -149,6 +149,7 @@ fit3$par
 * use of `<-[` (see [here](https://groups.google.com/g/tmb-users/c/HlPqkfcCa1g)) etc.
 * not widely used yet; there will be holes
 * compare to: `bbmle` (no random effects, no autodiff); [NIMBLE](https://r-nimble.org/) (more restricted set of back-ends); Stan (see [tmbstan](https://CRAN.R-project.org/package=tmbstan)), JAGS, etc..
+* `[[`-indexing may be much faster than `[`-indexing: see [here](https://groups.google.com/g/tmb-users/c/rm2N5mH8U-8/m/l1sYZov3EAAJ) (and later messages in that thread)
 
 ## documentation and links
 
