@@ -437,10 +437,32 @@ mle2(Exposure~dcgeom(prob=plogis(mu),cens=Surv),
 ```
 **fixme**: use exponential instead of geometric distribution
 
+## pictures
+
+```{r}
+powerlogist_sim <- function(, beta = c(1,2)) {
+    mu <- with(data, 
+               mu <- plogis(beta[1]+beta[2]*x)^exposure
+               )
+    y <- rbinom(nrow(data), size = 1, prob = mu)
+    data$y <- y
+    return(data)
+
+    
+}
+```
+
+plogis(mu)^Exposure
+
+## Changelog
+
+* 2025-05-08: respect asymmetry of 
+
 ## To do
 
 * test glmer vs RTMB mixed-model case with simulations
 * try with chat data?
+* pictures of power-logistic vs cloglog as a function of linear predictor and exposure?
 * finish cloglog comparisons, coef plots, etc. (AIC ...)
 * benchmark?
 * WinBUGS/Stan/`tmbstan` solutions?
