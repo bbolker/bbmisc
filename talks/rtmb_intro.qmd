@@ -145,6 +145,7 @@ fit3$par
 * objective function **must be differentiable** with respect to parameters (no `if()`, `abs()`, `round()`, `min()`, `max()` depending on parameters)
 * have to handle prediction, tests, diagnostics, etc. etc. yourself
 * data handling (see [here](https://groups.google.com/g/tmb-users/c/sq3y5aTwvjo), [here](https://groups.google.com/g/tmb-users/c/YzSjsHyFYJ8)) (and very similar arguments from 2004 about [MLE fitting machinery taking a `data` argument](https://hypatia.math.ethz.ch/pipermail/r-devel/2004-June/029837.html)
+   * if you do something clever where you define your objective function in a different environment from where you call `MakeADFun`, you can use `assign(..., environment(objective_function))` to make sure that the objective function can see any objects it needs to know about ...
 * have to implement exotic probability distributions yourself
 * use of `<-[` (see [here](https://groups.google.com/g/tmb-users/c/HlPqkfcCa1g)) etc.
    * specifically, if you use the `c()` function, or if you use the `diag<-` function (which sets the diagonal of a matrix) or the `[<-` function (which assigns values within a matrix), you need to add e.g. `ADoverload("[<-")` to the beginning of your function
