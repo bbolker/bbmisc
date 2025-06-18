@@ -11,7 +11,7 @@ bibliography: brant.bib
 
 ## Introduction
 
-A very common situation in ecology (and elsewhere) is a binary-outcome survival model where individuals, each measured once, differ in their exposure, typically because they have been observed for different lengths of time (this is different from typical *survival analysis*, where we know either the exact moment that someone died, or that they were still alive when we stopped observing them). The classic statistical approach to this problem is to use a *complementary log-log* ("cloglog") link. The `cloglog` function is $C(\mu)=\log(-\log(1-\mu))$; its inverse is $\mu=C^{-1}(\eta) = 1-\exp(-\exp(\eta))$. Thus if we expect mortality $\mu_0$ over a period $\Delta t=1$ and the linear predictor $\eta=C^{-1}(\mu_0)$ then 
+A very common situation in ecology (and elsewhere) is a binary-outcome survival model where individuals, each measured once, differ in their exposure, typically because they have been observed for different lengths of time (this is different from typical *survival analysis*, where we know either the exact moment that someone died, or that they were still alive when we stopped observing them). The classic statistical approach to this problem is to use a *complementary log-log* ("cloglog") link [@heiseyABCsa]. The `cloglog` function is $C(\mu)=\log(-\log(1-\mu))$; its inverse is $\mu=C^{-1}(\eta) = 1-\exp(-\exp(\eta))$. Thus if we expect mortality $\mu_0$ over a period $\Delta t=1$ and the linear predictor $\eta=C^{-1}(\mu_0)$ then 
 $$
 C^{-1}(\eta+\log \Delta t)=(1-\exp(-\exp(\eta) \cdot \Delta t)).
 $$
@@ -28,7 +28,7 @@ probability) is called a
 The bottom line is that if we change the form of the dependence of survival on covariates from logistic to complementary log-log, we can sneak the exposure variable in via an offset.
 
 To use this approach in R, use `family=binomial(link="cloglog")` and add a term of the form `offset(log(A))` to the formula (some modeling functions take `offset` as a separate
-argument).
+argument). 
 
 If instead of using `log(A)` as an offset you allow it to be a *covariate* (predictor, independent variable, whatever you want to call it), that implies a linearly increasing or decreasing log-hazard → a hazard that is a power-law function of exposure → a [Weibull distribution](https://en.wikipedia.org/wiki/Weibull_distribution) for the distribution of survival times (when the coefficient is 1, i.e. if we use an offset, this reduces to an exponentially distributed survival time).
 
@@ -36,7 +36,31 @@ Suppose we don't want to do this, and instead want to stick with the logistic fo
 $$
 \mu = \left( \text{Logistic}(\eta) \right)^e,
 $$
-where $e$ is the exposure (typically, but not necessarily, an integer).  I will call this the *power-logistic link* approach; it is popular in analyses of nest survival [@shafferUnified2004b]. The code below explores both the complementary log-log and power-logistic approaches. In my opinion the complementary log-log approach seems **much more statistically coherent and computationally convenient** than the power-exponential (it can be used in any GLM-based framework that provides a cloglog link option for binomial models). I get e-mail about this document a few times a year, implying that people are still using the power-logistic approach. I would be interested in hearing arguments or explanations from biostatisticians or ecologists about why the power-logistic might be preferred: is it just historical, does it fit the data better, or does it have advantages I haven't thought of?
+where $e$ is the exposure (typically, but not necessarily, an integer).  I will call this the *power-logistic link* approach; it is popular in analyses of nest survival [@shafferUnified2004b]. The code below explores both the complementary log-log and power-logistic approaches. The complementary log-log approach is in some ways more computationally convenient than the power-exponential (it can be used in any GLM-based framework that provides a cloglog link option for binomial models).  However, the inverse-cloglog function increases extremely quickly (relative to the inverse-logit/logistic) for $x>0$:
+
+```{r curves, echo = FALSE, fig.width = 10}
+par(mfrow = c(1,2), las = 1, bty = "l")
+clogloginv <- make.link("cloglog")$linkinv
+curve(clogloginv, from = -3, to = 3,
+      ylab = "probability")
+curve(plogis(x), add = TRUE, col = 2)
+legend("bottomright",
+       c("cloglog", "logistic"),
+       lty = 1,
+       col = 1:2)
+abline(v=0,lty= 2)
+abline(h=0.5,lty= 2)
+##
+curve(qlogis(clogloginv(x)), from = -3, to = 3,
+      ylab = "log-odds")
+curve(qlogis(plogis(x)), add = TRUE, col = 2)
+abline(v=0,lty= 2)
+abline(h=0,lty= 2)
+```
+
+The fundamental difference between the power-logistic model and the cloglog/log-hazard models is in the effects of covariates on the *baseline* (i.e., per-unit-time) mortality probability. The exponential decrease in survival with time (or $\exp(-t^\gamma)$ for the [Weibull case](https://www.itl.nist.gov/div898/handbook/eda/section3/eda3668.htm) is a useful parsimonious model for time-dependence, but there's no intrinsic reason that effects of covariates on *daily* survival/mortality probabilities should also follow a hazard model ...
+
+I get e-mail about this document a few times a year, implying that people are still using the power-logistic approach. I would be interested in hearing arguments or explanations from biostatisticians or ecologists about why the power-logistic might be preferred: is it just historical, does it fit the data better, or does it have advantages I haven't thought of?
 
 - more here: difference from standard survival analysis (highly discretized/interval-censored; interested in covariates; maybe willing to use parametric models; maybe interested in density-dependent mortality? typically have one or more cross-sectional observations of a population, rather than a single longitudinal survey of a cohort)
 
@@ -195,6 +219,7 @@ nllfun <- function(par) {
     prob <- prob0^Exposure  ## overall probability
     REPORT(prob)            ## for extracting computed info
     ADREPORT(eta)
+    Surv <- OBS(Surv)       ## enable simulation from the model
     -sum(dbinom(Surv, prob, size = 1, log = TRUE))  ## compute negative log-likelihood
 }
 par0 <- list(beta = c(0,0))                        ## starting parameter values
@@ -439,20 +464,17 @@ mle2(Exposure~dcgeom(prob=plogis(mu),cens=Surv),
 
 ## pictures
 
-```{r}
-powerlogist_sim <- function(, beta = c(1,2)) {
+```{r incomplete-simfun}
+powerlogist_sim <- function(x, beta = c(1,2)) {
     mu <- with(data, 
                mu <- plogis(beta[1]+beta[2]*x)^exposure
                )
     y <- rbinom(nrow(data), size = 1, prob = mu)
     data$y <- y
     return(data)
-
-    
 }
 ```
 
-plogis(mu)^Exposure
 
 ## Changelog
 
