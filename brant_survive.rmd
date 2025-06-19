@@ -273,8 +273,8 @@ nllfun_RE <- function(par) {
   getAll(par, tmbdata_RE)
   ## must come *before* we try to use b ...
   nllpen <- -sum(dnorm(b, 0, exp(lognestSD), log = TRUE))
-  eta <- X %*% beta + Z %*% b  ## now with random (nest) effects included
-  prob0 <- plogis(eta)
+  eta <- drop(X %*% beta + Z %*% b)  ## now with random (nest) effects included
+  prob0 <- 1/(1+exp(-eta))  ## plogis(eta) makes simulation machinery unhappy?
   prob <- prob0^Exposure
   REPORT(prob)
   ADREPORT(eta)
@@ -295,7 +295,17 @@ class(tmbfun_RE) <- "TMB"
 tmbfit_RE <- with(tmbfun_RE, nlminb(par, fn, gr))
 ```
 
-Model fit:
+Easy to simulate from the model, either with existing parameters or with
+modified params:
+
+```{r sims}
+summary(tmbfun_RE$simulate()$prob)
+pp <- tmbfun_RE$env$last.par
+pp[1] <- -5  ## decrease intercept drastically
+summary(tmbfun_RE$simulate(par = pp)$prob)
+```
+
+Model comparison:
 
 ```{r tmbfit_RE}
 tt0 <- tidy(tmbfun_RE, conf.int = TRUE) |>
@@ -343,7 +353,7 @@ Is one or the other objectively better (in terms of AIC)?
 
 ```{r cloglog_REfit}
 m_glmer_cloglog <- update(m_glmer,
-                          . ~ . + offset(log(Exposure)),
+                          Surv ~ . + offset(log(Exposure)),
                           family = binomial(link = "cloglog"),
                           start = NULL,
                           control = glmerControl(optimizer = "bobyqa"))
@@ -354,17 +364,17 @@ m_glmmTMB_cloglog <- glmmTMB(
 ```
 
 ```{r compare_AICs}
-## make sure tmbfun_RE wasn't messed up by loglik surf evals
-with(tmbfun_RE$env, tmbfun_RE$fn(last.par.best[-random]))
 mod_list <- list(glmer_cloglog = m_glmer_cloglog,
                  glmmTMB_cloglog = m_glmmTMB_cloglog,
                  glmer_powlogit = m_glmer,
                  RTMB_powlogit = tmbfun_RE)
 purrr::map_dfr(mod_list, glance, .id = "model") |>
-    dplyr::select(c(model, logLik, AIC))
+  mutate(NLL = max(logLik) - logLik) |>
+  dplyr::select(model, NLL) |>
+  arrange(NLL)
 ```
 
-Looks like `glmmTMB` finds a slightly better solution than `glmer` ...
+Looks like `glmmTMB` finds a slightly better solution than `glmer` ... and cloglog is much better that power-logistic. Surprising that we can tell ... maybe not reliable for this small a data set?
 
 Compare predictions?
 
@@ -411,19 +421,6 @@ mle2(Exposure~dcgeom(prob=plogis(mu),cens=Surv),
 ```
 **fixme**: use exponential instead of geometric distribution
 
-## pictures
-
-```{r incomplete-simfun}
-powerlogist_sim <- function(x, beta = c(1,2)) {
-    mu <- with(data, 
-               mu <- plogis(beta[1]+beta[2]*x)^exposure
-               )
-    y <- rbinom(nrow(data), size = 1, prob = mu)
-    data$y <- y
-    return(data)
-}
-```
-
 
 ## Changelog
 
@@ -431,6 +428,7 @@ powerlogist_sim <- function(x, beta = c(1,2)) {
 
 ## To do
 
+* `loglog` link for modeling mortality? e.g. https://github.com/trobinj/trtools/blob/master/R/loglog.R (although it doesn't have the 'clamping' stuff that built-in `cloglog` has ...
 * test glmer vs RTMB mixed-model case with simulations
 * try with chat data?
 * pictures of power-logistic vs cloglog as a function of linear predictor and exposure?
