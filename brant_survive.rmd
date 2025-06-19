@@ -298,83 +298,17 @@ tmbfit_RE <- with(tmbfun_RE, nlminb(par, fn, gr))
 Model fit:
 
 ```{r tmbfit_RE}
-tmbfit_RE
-```
-
-¿ getting different answers from `glmer` and `RTMB`, what's going on?
-
-Plot likelihood profile of `lognestSD`:
-
-```{r tmbprofile}
-prof <- TMB::tmbprofile(tmbfun_RE, name = "lognestSD",
-                        ystep = 0.1,
-                        parm.range = c(-2, 2),
-                        trace = FALSE, ytol = 3)
-plot(prof, type = "b")
-```
-
-Try different starting values?
-
-```{r glmer2}
-m_glmer2 <- update(m_glmer,
-                  start=list(theta=exp(-0.97),
-                             fixef=c(1.8,1.4)))
-```
-
-Explore likelihood surfaces:
-
-```{r comp_liksurf, cache=TRUE}
-surf <- expand.grid(int = seq(1.2, 2, length.out = 31),
-            nh = seq(1.1, 1.9, length.out = 31),
-            logsd = seq(-120, 120, by = 16)/100)
-RTMB_nll <- apply(surf, 1, tmbfun_RE$fn)
-glmerfun <- getME(m_glmer, "devfun")
-## note parameter order is different for glmer (REs first);
-## SD, not log-SD scale
-glmer_nll <- apply(surf, 1, \(x)
-                   glmerfun(c(exp(x[3]), x[1:2]))/2)
-```
-
-```{r plot_liksurf, fig.width = 12, fig.height = 6}
-lmin <- min(c(RTMB_nll, glmer_nll))
-eps <- 1e-3
-surfx <- cbind(surf, RTMB_nll, glmer_nll) |>
-    mutate(across(c(RTMB_nll, glmer_nll), ~ . - lmin + eps))
-gg0 <- ggplot(surfx, aes(int, nh)) +
-    facet_wrap(~logsd, labeller = label_both) +
-    scale_x_continuous(expand = c(0,0)) +
-    scale_y_continuous(expand = c(0,0)) +
-    scale_fill_viridis_c(trans = "log10", limits = c(eps, 30), name = "Δneg log lik") +
-    theme(panel.spacing = grid::unit(0, "lines"))
-gg0_RTMB <- gg0 +
-    geom_raster(aes(fill=RTMB_nll)) +
-    geom_contour(aes(z=RTMB_nll)) +
-    theme(legend.position = "none") +
-    labs(title = "RTMB")
-gg0_glmer <- gg0 +
-    geom_raster(aes(fill=glmer_nll)) +
-    geom_contour(aes(z=glmer_nll)) +
-    labs(title = "glmer")
-gg0_RTMB + gg0_glmer
-```
-
-Is `glmer` somehow doing something wrong with the custom link function?
-
-Compare predictions ... (hard to compare with data: data are binary, differ in exposure ...)
-
-Weirdly, the two models give very similar minimum negative log-likelihoods ... is this a coincidence?
-
-Try a simulation exercise:
-
-```{r}
-set.seed(101)
-par00 <- round(2*tmbfit_RE$par)/2 ## 'rounded' (to nearest 0.5) versions of tmbfit_RE$par
-simfun <- function(par = par00) {
-  debug(tmbfun_RE$simulate)
-  tmbfun_RE$simulate(par00)
-##  simdata <- transform(dat2S, Surv = 
-}
-NULL
+tt0 <- tidy(tmbfun_RE, conf.int = TRUE) |>
+  dplyr::mutate(term = c(colnames(X), "lognestSD"),
+                model = "RTMB")
+tt1 <-tidy(m_glmer, conf.int = TRUE) |>
+  dplyr::mutate(term = ifelse(term == "sd__(Intercept)", "lognestSD", term),
+                estimate = ifelse(term == "lognestSD", log(estimate), estimate),
+                model = "glmer")
+tt_comb <- bind_rows(tt0, tt1) |> dplyr::select(model, term, estimate, lwr = conf.low, upr = conf.high)
+ggplot(tt_comb, aes(estimate, term, colour = model)) +
+  geom_pointrange(aes(xmin = lwr, xmax = upr),
+                  position = position_dodge(width = 0.1))
 ```
 
 ## downstream plotting
