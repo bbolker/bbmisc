@@ -270,15 +270,17 @@ We can use RTMB's built-in machinery to add a random effect.
 
 ```{r rtmb_RE}
 nllfun_RE <- function(par) {
-    getAll(par, tmbdata_RE)
-    eta <- X %*% beta + Z %*% b  ## now with random (nest) effects included
-    prob0 <- plogis(eta)
-    prob <- prob0^Exposure
-    REPORT(prob)
-    ADREPORT(eta)
-    nll <- -sum(dbinom(Surv, prob, size = 1, log = TRUE))
-    nllpen <- -sum(dnorm(b, 0, exp(log_nestSD), log = TRUE))
-    nll + nllpen
+  getAll(par, tmbdata_RE)
+  ## must come *before* we try to use b ...
+  nllpen <- -sum(dnorm(b, 0, exp(lognestSD), log = TRUE))
+  eta <- X %*% beta + Z %*% b  ## now with random (nest) effects included
+  prob0 <- plogis(eta)
+  prob <- prob0^Exposure
+  REPORT(prob)
+  ADREPORT(eta)
+  Surv <- OBS(Surv)
+  nll <- -sum(dbinom(Surv, prob, size = 1, log = TRUE))
+  nll + nllpen
 }
 Z <- Matrix::fac2sparse(dat2S$Nest.ID)
 tmbdata_RE <- c(tmbdata, list(Z=Z))
@@ -286,7 +288,7 @@ par0_RE <- list(
     ## beta=unname(tmbfit$par),
     beta = unname(fixef(m_glmer)),
     b = rep(0, ncol(Z)),
-    log_nestSD = 0)
+    lognestSD = 0)
 ## nllfun(par0_RE)
 tmbfun_RE <- MakeADFun(nllfun_RE, par0_RE, silent = TRUE, random = "b")
 class(tmbfun_RE) <- "TMB"
@@ -301,10 +303,10 @@ tmbfit_RE
 
 ¿ getting different answers from `glmer` and `RTMB`, what's going on?
 
-Plot likelihood profile of `log_nestSD`:
+Plot likelihood profile of `lognestSD`:
 
 ```{r tmbprofile}
-prof <- TMB::tmbprofile(tmbfun_RE, name = "log_nestSD",
+prof <- TMB::tmbprofile(tmbfun_RE, name = "lognestSD",
                         ystep = 0.1,
                         parm.range = c(-2, 2),
                         trace = FALSE, ytol = 3)
@@ -361,6 +363,18 @@ Is `glmer` somehow doing something wrong with the custom link function?
 Compare predictions ... (hard to compare with data: data are binary, differ in exposure ...)
 
 Weirdly, the two models give very similar minimum negative log-likelihoods ... is this a coincidence?
+
+Try a simulation exercise:
+
+```{r}
+set.seed(101)
+par00 <- round(2*tmbfit_RE$par)/2 ## 'rounded' (to nearest 0.5) versions of tmbfit_RE$par
+simfun <- function(par = par00) {
+  tmbfun_RE$simulate(par00)
+##  simdata <- transform(dat2S, Surv = 
+}
+NULL
+```
 
 ## downstream plotting
 

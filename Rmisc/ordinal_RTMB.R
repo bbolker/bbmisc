@@ -150,8 +150,6 @@ ord_nll_re_cs <- function(par) {
     cc <- matrix(plogis(logit_corr), nrow = blksize, ncol = blksize)
     sdval <- exp(vcpars[1])
     corrval <- plogis(vcpars[2])
-    ## note misleading error message in RTMB:::dscale
-    ## if (length(scale) != nc) stop("Vector 'scale' must be compatible with *rows* of 'x'")
     nllpen <- -sum(dmvnorm(t(matrix(b, nrow = blksize)), Sigma = cc, scale = sdval, log = TRUE))
     nll + nllpen
 }
