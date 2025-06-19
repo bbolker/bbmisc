@@ -282,7 +282,7 @@ nllfun_RE <- function(par) {
   nll <- -sum(dbinom(Surv, prob, size = 1, log = TRUE))
   nll + nllpen
 }
-Z <- Matrix::fac2sparse(dat2S$Nest.ID)
+Z <- t(Matrix::fac2sparse(dat2S$Nest.ID))
 tmbdata_RE <- c(tmbdata, list(Z=Z))
 par0_RE <- list(
     ## beta=unname(tmbfit$par),
@@ -370,6 +370,7 @@ Try a simulation exercise:
 set.seed(101)
 par00 <- round(2*tmbfit_RE$par)/2 ## 'rounded' (to nearest 0.5) versions of tmbfit_RE$par
 simfun <- function(par = par00) {
+  debug(tmbfun_RE$simulate)
   tmbfun_RE$simulate(par00)
 ##  simdata <- transform(dat2S, Surv = 
 }
