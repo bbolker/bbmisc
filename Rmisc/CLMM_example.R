@@ -5,19 +5,22 @@
 ## setwd("C:/Users/anmol/OneDrive/Documents/suicide stats 25/r SUICIDE")
 library(readxl)
 library(ordinal)
-library(bbmle) ## for AIC table
+library(bbmle) ## for AICtab()
 library(broom.mixed)
 library(parallel)
-library(dotwhisker)
 library(ggplot2); theme_set(theme_bw())
 library(dplyr)
 library(emmeans)
-library(marginaleffects)
+## library(dotwhisker) ## not used [raw ggplot instead]
+## library(marginaleffects) ## doesn't work yet ...
 
-dataset <- read_excel("SUICIDE STAT CLEANED FOR THESIS.xlsx")
+dataset <- NULL
+infn <- "SUICIDE STAT CLEANED FOR THESIS.xlsx"
+if (file.exists(infn)) {
+  dataset <- read_excel(infn)
+}
 
-## head(dataset)
-
+if (!is.null(dataset)) {
 dataset <- transform(dataset,
   RESP = factor(RESP, 
                 levels = 1:4,
@@ -37,9 +40,9 @@ dataset <- transform(dataset,
 dataQ1 <- subset(dataset, QUES == 1)
 dataQ2 <- subset(dataset, QUES == 2)
 dataQ3 <- subset(dataset, QUES == 3)
+}
 
 fn  <- "clmm_fits.rds"
-
 if (file.exists(fn)) {
   fits <- readRDS(fn)
 } else {
@@ -90,10 +93,12 @@ if (file.exists(fn)) {
   saveRDS(fits, file = fn)
 }
 
-## checking distribution/experimental design
-with(dataQ1, table(table(PB, LV, TB, RESPID)))  ## 2 observations for every combination
-## for example ...
-subset(dataQ1, LV ==1 & TB == 0 & PB == 1 & RESPID ==84)
+if (exists("dataQ1")) {
+  ## checking distribution/experimental design
+  with(dataQ1, table(table(PB, LV, TB, RESPID)))  ## 2 observations for every combination
+  ## for example ...
+  subset(dataQ1, LV ==1 & TB == 0 & PB == 1 & RESPID ==84)
+}
 
 ## both RE terms from the full model
 ##  are singular (determinant approx 0)
@@ -130,6 +135,7 @@ get_sds <- function(fit) {
 }
 print(get_sds(fCRI))
 ## ?? not sure why last two variances are identical ... ??
+## maybe the model is over-parameterized after all?
 
 ## would normally worry about scaling by 2SD, but all predictors are
 ##  categorical/binary
@@ -139,8 +145,34 @@ tt <- tidy(fCRI, effects = "fixed", conf.int = TRUE)  |>
   ## order effects by magnitude
   mutate(across(term, ~ reorder(factor(.), estimate)))
 
+## first two fits give non-pos-def Hessians, have to work harder
+## (move this fix upstream to the `tidy` method?)
+tfun <- function(x) {
+  npd <- inherits(try(vcov(x), silent = TRUE), "try-error")
+  if (npd) {
+    cc <- coef(x)
+    cc <- cc[!grepl("|", names(cc), fixed = TRUE)]
+    ret <- tibble(term = names(cc), estimate = cc,
+                  lwr = NA_real_, upr = NA_real_)
+    return(ret)
+  }
+  tidy(x, effects = "fixed", conf.int = TRUE)  |>
+                      filter(coef.type == "location") |>
+                      rename(lwr = "conf.low", upr = "conf.high")
+}
+tt_all <- purrr::map_dfr(fits, tfun, .id = "model") |>
+  mutate(across(term, ~ reorder(factor(.), estimate)),
+         across(model, forcats::fct_inorder))
+
+
+ggplot(tt_all, aes(estimate, term, color = model)) +
+  geom_pointrange(aes(xmin=lwr, xmax = upr),
+                  position = position_dodge(width = 0.3)) +
+  geom_vline(xintercept = 0, lty = 2)
+
 ## these are in units of log-odds
 
+## final model only
 ## could use dotwhisker::dwplot() but I like to tweak things a little bit more
 ggplot(tt, aes(estimate, term)) +
   geom_pointrange(aes(xmin=lwr, xmax = upr)) +
@@ -154,8 +186,10 @@ plot(emmeans(fCRI, ~PB*LV*TB))
 (em_PB <- emmeans(fCRI, ~PB))
 pairs(em_PB)
 
+
+
 ##  TODO:
 ##   * re-run for other questions, e.g.
 ##      fits_Q2 <- parLapply(cl, re_forms, fitfun, question = 2)
-##   * try out RTMB is faster?
+##   * try out RTMB?
 ##   * `marginaleffects` package: doesn't know about `ordinal` yet ...
