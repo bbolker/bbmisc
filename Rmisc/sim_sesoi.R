@@ -1,6 +1,7 @@
-## mostly trying to avoid tidyverse but ...
+<## mostly trying to avoid tidyverse but ...
 library(ggplot2); theme_set(theme_bw() + theme(panel.spacing=grid::unit(0, "lines")))
-                 
+source("sim_sesoi_funs.R")
+
 ## simulate a t-test-like comparison: what is the distribution of outcomes/
 ## probability of Dushoff outcomes
 ## https://dushoff.github.io/ResearchSandbox/clarStrength.Rout.pdf
@@ -15,41 +16,6 @@ tt$power ## 0.807
 ## classic power analysis? e.g. delta and sd must be exchangeable
 ## since one is a scale parameter?
 
-## two-group sim for equal-var t-test power/outcome calculation
-simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
-    if (!is.null(seed)) set.seed(seed)
-    x <- rnorm(2*n, mean = rep(c(0,delta), each =n), sd = sd)
-    tt <- t.test(x[1:n], x[-(1:n)], conf.level = conf.level, var.equal = TRUE)
-    with(tt, c(est = unname(-1*diff(estimate)),
-                        lwr = conf.int[1], upr = conf.int[2]))
-}    
-
-## how many cases should we distinguish?
-## (1) show the effect is small or large
-##    * care less about the sign if it's small?
-
-## true effect is positive, small/large
-## 
-levs <- c("large/clear sign",
-          "unclear magnitude/clear sign",
-          "small/clear sign",
-          "small/unclear sign",
-          "NOT (large and opposite est)",
-          "unclear")
-
-catfun <- function(x, s=1) {
-    lwr <- x[2]
-    upr <- x[3]
-    ## adjust for symmetry? ci <- ci*sign(m); m <- abs(m)
-    ## case-when?
-    if (lwr>s || upr<(-s)) return(levs[1])
-    if ((upr>s && lwr>0 && lwr<s) || (lwr<(-s) && upr<0 && upr>(-s))) return(levs[2])
-    if ((lwr>0 && upr<s) || (upr<0 && lwr>(-s))) return(levs[3])
-    if ((lwr>(-s) && lwr<0 && upr>0 && upr<s) ||
-        (upr<s   && upr>0 && lwr>0 && upr>(-s))) return(levs[4])
-    if ((lwr<0 && lwr>(-s) && upr>s) || (upr>0 && upr<s && lwr<(-s))) return(levs[5])
-    if (lwr<(-s) && upr>s) return(levs[6])
-}
 
 proptest <- function(x, s = 1) {
     lwr <- x[,2]
@@ -62,13 +28,23 @@ proptest <- function(x, s = 1) {
       upr_gt_negs = mean(upr>(-s)))
 }
 
-
 set.seed(101)
 system.time({
     ## using auto-simplify of replicate ...
     dd1 <- as.data.frame(t(replicate(50000, simfun(n=17))))
     dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
 })
+
+
+tabfun <- function(..., nsim = 1000) {
+  res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
+  dd1 <- as.data.frame(res)
+  dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
+  table(dd1$cat) |> prop.table()
+}
+set.seed(101)
+tabfun(n=17)
+tabfun(n=100)
 
 ## flip sign
 ## dd1 <- transform(dd1, lwr = sign(est)*lwr, upr = sign(est)*upr,

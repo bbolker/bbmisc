@@ -89,6 +89,9 @@ if (file.exists(fn)) {
   clusterExport(cl, c("dataset", "re_forms"))
   fits <- parLapply(cl, re_forms, fitfun)
 
+  ## for debugging: try a single fit
+  ## fitfun(re_forms[[5]])
+
   stopCluster(cl)
   saveRDS(fits, file = fn)
 }

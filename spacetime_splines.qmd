@@ -1,5 +1,7 @@
 ---
 title: "exploring space-time smooths"
+author: "Ben Bolker"
+date: today
 ---
 
 This exploration/brain-dump is meant to illustrate and explain different ways of setting up smooth terms for GAMs in situations where the observations are distributed in both space and time.
