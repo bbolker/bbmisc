@@ -2,6 +2,9 @@
 title: "reactions to Carrigan (2025) (thoughts on LLMs/GenAI)"
 author: Ben Bolker
 date: today
+format:
+  html:
+    embed-resources: true
 ---
 
 Carrigan, Mark. 2025. Generative AI for Academics. SAGE Publications Ltd.
@@ -17,11 +20,15 @@ Carrigan:
 * he strongly recommends trying stuff in both ChatGPT and Claude. He hasn't mentioned differences among tiers (free vs $$$). I have mostly been using McMaster's access to Microsoft Copilot, which is free for me (and presumably? slightly? more powerful than free tiers of other CAs?). At present I'm too much of a cheapskate to pay for monthly subscriptions, although I think I've seen people comment that there's a huge difference between free and paid tiers ...
 * so far he's focusing on how we can use CAs in our scholarship, rather than in pedagogy. I'm most interested in the pedagogical uses of CAs - specifically *not* focusing on adapting assessment to CAs, which is critically important but not as interesting as how and what we teach with/around CAs, questions like:
 
-* how do we prepare students for a future which will certainly contain some level of interaction with/dependence on CAs?
-* what are effective ways to teach students how to use CAs effectively and safely? in particular, how do we teach them the combination of critical thinking and subject-area knowledge that will allow them to judge the outputs of CAs?
-* what skills and knowledge are (1) irrelevant now that we have CAs; (2) important to do 'by hand'/unassisted at least enough to grasp underlying concepts, or to be able check CA output? {cf. "everyone should do statistical calculations such as ANOVA or linear regression by hand (or with only a calculator) a few times, then turn them over to statistical software ever after"}; (3) essential that humans continue to learn and do them. {cf simple arithmetic; long division; solving trigonometric and algebraic equations; map-reading and navigation}.
+   * how do we prepare students for a future which will certainly contain some level of interaction with/dependence on CAs?
+   * what are effective ways to teach students how to use CAs effectively and safely? in particular, how do we teach them the combination of critical thinking and subject-area knowledge that will allow them to judge the outputs of CAs?
+   * what skills and knowledge are (1) irrelevant now that we have CAs; (2) important to do 'by hand'/unassisted at least enough to grasp underlying concepts, or to be able check CA output? {cf. "everyone should do statistical calculations such as ANOVA or linear regression by hand (or with only a calculator) a few times, then turn them over to statistical software ever after"}; (3) essential that humans continue to learn and do them. {cf simple arithmetic; long division; solving trigonometric and algebraic equations; map-reading and navigation}.
 
-I find myself reacting strongly and negatively to his contention that the best way to interact with CAs is in an 'interlocutory' mode, i.e. conversing with them to clarify and expand our thoughts. I see that this could work in a Ouija-board like way - perhaps even better, since LLMs are high-dimensional pattern-matchers and replicators, so they could in principle 'find' ideas related to my own that haven't occurred to me? However, he also says that we should *not* expect to use CAs to automate routine work for us. But *this is exactly what I want CAs to do for me!* It reminds of a recent Bluesky post where somone joked about a company that says "we've now developed an AI that can sit on the patio and drink beer with your friends so that you can spend more time doing paperwork". Thinking over problems, by myself or with colleagues, is the fun part of my research work! I appreciate the message that we can't expect good performance from one-shot tasks - that maximizing the benefits of CA means spending time training them (where is the breakeven point between CA training time vs. continuing to do the work by hand?)
+I'm having a *strong negative reaction* to his contention that the best way to interact with CAs is in an 'interlocutory' mode, i.e. conversing with them to clarify and expand our thoughts. I see that this could work in a Ouija-board like way - perhaps even better, since LLMs are high-dimensional pattern-matchers and replicators, so they could in principle 'find' ideas related to my own that haven't occurred to me? However, he also says that we should *not* expect to use CAs to automate routine work for us. But *this is exactly what I want CAs to do for me!* It reminds of a recent [Bluesky post](https://bsky.app/profile/edmorrish.bsky.social/post/3luuxmf6usk2n):
+
+   > my new ai device will sit in a beer garden that backs onto a small river and drink three to five pints on a sunny late summer afternoon for you, leaving you free for more meetings and business calls (@edmorrish.bsky.social)
+
+Thinking over problems, by myself or with colleagues, is the fun part of my research work! I appreciate the message that we can't expect good performance from one-shot tasks - that maximizing the benefits of CA means spending time training them (where is the breakeven point between CA training time vs. continuing to do the work by hand?)
 
 Pedagogically, I am most worried that students will use CAs to short-circuit manual processes that will teach them something (that I think is) important, e.g.
 
@@ -30,7 +37,7 @@ Pedagogically, I am most worried that students will use CAs to short-circuit man
 
 If students use CA for these, will they avoid the thinking that is part of the process? Or are these indeed obsolete skills?
 
-Perhaps I'm just being reflexively old-fashioned, or puritanical.
+Maybe I'm just being reflexively old-fashioned, or puritanical.
 
 A friend (who is more negative about LLMs than I am) recently complained "I've tried ChatGPT a few times when I've gotten frustrated with web-searching, but it never does a good job". In my experience ChatGPT (and other CAs) are better as a *short-cut* to human-driven web-searching; that is, 10 minutes with a CA might get better results than an hour of searching, but if a skilled human researcher has failed to find useful results after an hour, then a CA is unlikely to do better ...
 
@@ -46,5 +53,6 @@ In my teaching, I would like CAs to:
 * generate test questions (multiple choice, short answer, essay) based on my course materials. Ideally they could be trained to develop sophisticated MC questions where the distractors illustrate specific conceptual confusions ...
 
 I'd love for students to be able to use CAs as tutors and writing coaches, but I'm worried that:
-    * CAs will give subtly misleading or wrong answers about the kinds of concepts that I'm trying to teach (multi-level selection, evolution of virulence)
-    * CAs will homogenize student writing - they may improve poor writing
+
+* CAs will give subtly misleading or wrong answers about the kinds of concepts that I'm trying to teach (multi-level selection, evolution of virulence)
+* CAs will homogenize student writing - they may improve poor writing
