@@ -14,13 +14,10 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
 
 ## should be able to do this much faster if we're sticking to equal-sample size, etc. etc. etc.?
 
-
 ## how many cases should we distinguish?
 ## (1) show the effect is small or large
 ##    * care less about the sign if it's small?
 
-## true effect is positive, small/large
-## 
 levs <- c("large/clear sign",
           "unclear magnitude/clear sign",
           "small/clear sign",
@@ -29,6 +26,8 @@ levs <- c("large/clear sign",
           "unclear")
 
 #' categorize outcomes
+#' @param x a 3-element vector with 'lower' and 'upper' as the second and third elements
+#' @param s sesoi (critical value distinguishing small/large effect sizes)
 catfun <- function(x, s=1) {
     lwr <- x[2]
     upr <- x[3]
@@ -43,6 +42,8 @@ catfun <- function(x, s=1) {
     if (lwr<(-s) && upr>s) return(levs[6])
 }
 
+#' compute fractions in each category
+#' @param x a matrix-like object with columns 2 and 3 equal to lower/upper CIs
 proptest <- function(x, s = 1) {
     lwr <- x[,2]
     upr <- x[,3]
@@ -54,3 +55,9 @@ proptest <- function(x, s = 1) {
       upr_gt_negs = mean(upr>(-s)))
 }
 
+tabfun <- function(..., nsim = 1000) {
+  res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
+  dd1 <- as.data.frame(res)
+  dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
+  table(dd1$cat) |> prop.table()
+}
