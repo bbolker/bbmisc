@@ -16,11 +16,9 @@ library(tidyverse)
 library(ggplot2); theme_set(theme_bw() + theme(panel.spacing=grid::unit(0, "lines")))
 
 
-scale_colour_discrete <- function(...) {
-  ## Okabe-Ito minus black and yellow
-  oi3 <- palette.colors(9)[-c(1, 5)]
-  scale_colour_manual(..., values = oi3)
-}
+## Okabe-Ito minus black and yellow
+oi3 <- palette.colors(9)[-c(1, 5)]
+out_scale <- scale_colour_manual(name = "outcome category",  values = oi3)
 source("sim_sesoi_funs.R")
 ```
 
@@ -112,7 +110,8 @@ gg1 <- ggplot(mmw, aes(n, value, colour = name)) +
   geom_line() +
   geom_point() +
   scale_x_log10() +
-  labs(y = "proportion", x = "sample size per group")
+  labs(y = "proportion", x = "sample size per group") +
+  out_scale
 print(gg1)
 ```
 
