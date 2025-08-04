@@ -2466,6 +2466,8 @@ NOT (large and opposite est)                      unclear
 </div>
 </div>
 <p>We confirm that we do get overall power, i.e. all outcomes with a clear sign, very close to the nominal value (0.808)</p>
+<section id="simulations-with-delta1-s1-varying-n" class="level3">
+<h3 class="anchored" data-anchor-id="simulations-with-delta1-s1-varying-n">Simulations with <span class="math inline">\(\delta=1\)</span>, <span class="math inline">\(s=1\)</span>, varying <span class="math inline">\(n\)</span></h3>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -2519,6 +2521,10 @@ NOT (large and opposite est)                      unclear
                       0.0000                       0.0000 </code></pre>
 </div>
 </div>
+</section>
+<section id="simulations-with-delta1.5-s1-varying-n" class="level3">
+<h3 class="anchored" data-anchor-id="simulations-with-delta1.5-s1-varying-n">Simulations with <span class="math inline">\(\delta=1.5\)</span>, <span class="math inline">\(s=1\)</span>, varying <span class="math inline">\(n\)</span></h3>
+<p>What if we make the true effect size greater than the SESOI?</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -2544,13 +2550,14 @@ NOT (large and opposite est)                      unclear
 </div>
 </div>
 </div>
+</section>
 <section id="next-steps" class="level2">
 <h2 class="anchored" data-anchor-id="next-steps">next steps</h2>
 <ul>
 <li>Shiny app?</li>
-<li>add ‘total power’ to plots?</li>
+<li>add ‘total power’ (i.e. sum of all ‘clear sign’ outcomes) to plots?</li>
 <li>other examples?</li>
-<li>it would be elegant and computationally efficient to figure out the analytical results for this (i.e., probably in terms of non-central <span class="math inline">\(\chi^2\)</span> distributions - <span class="citation" data-cites="owenSpecial1965">Owen (<a href="#ref-owenSpecial1965" role="doc-biblioref">1965</a>)</span> or <span class="citation" data-cites="juliousSample2004">Julious (<a href="#ref-juliousSample2004" role="doc-biblioref">2004</a>)</span> seem like useful starting points), although 10,000 simulations take only about 1.4 seconds (and could possibly be sped up a bit as well by eliminating overhead)</li>
+<li>it would be elegant and computationally efficient to figure out the analytical results for this (i.e., probably in terms of non-central <span class="math inline">\(\chi^2\)</span> distributions - <span class="citation" data-cites="owenSpecial1965">Owen (<a href="#ref-owenSpecial1965" role="doc-biblioref">1965</a>)</span> or <span class="citation" data-cites="juliousSample2004">Julious (<a href="#ref-juliousSample2004" role="doc-biblioref">2004</a>)</span> seem like useful starting points), although 10,000 simulations take only about 1.39 seconds (and could possibly be sped up a bit as well by eliminating overhead)</li>
 <li>change ‘sign’ to ‘positive’ in plots? (JD assumes a positive effect so the first plot can be labeled more clearly; maybe this is worth carrying forward)</li>
 </ul>
 </section>
