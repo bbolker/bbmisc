@@ -43,6 +43,8 @@ Reading your own prose out loud is a good way to proofread and find awkward phra
 
     A similar example from evolutionary biology: "species X has larger female-biased sexual size dimorphism" → "species X has larger females relative to males" or "females are larger in species X"
 * Avoid constructions of the type "A and B have effects C and D, respectively" &mdash; you save a few words this way but the reader has to work harder to associate A with C and B with D
+* Using possessives appropriately can make your prose punchier (e.g., use "hosts' ability to ..." instead of "the ability of hosts to ...")
+* Avoid [misplaced modifiers](https://penultimateword.com/editing-blogs/accidental-comedy-in-grammar-dangling-and-misplaced-modifiers/)[^5]
 
 ## Punctuation
 
@@ -57,7 +59,7 @@ Reading your own prose out loud is a good way to proofread and find awkward phra
 
 Always spell-check. Spell-checking won't catch everything, and you may have to skip over a lot of technical vocabulary that's not in the dictionary, but there's no excuse for not doing it.
 
-Everyone overuses their favorite kinds of punctuation, words, or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary. I sometimes get carried away with em-dashes or semicolons.)[^5]
+Everyone overuses their favorite kinds of punctuation, words, or turns of phrase. Learn what yours are, and use your revision process to thin them out. (For example, I deleted many instances of the word "usually" in this document, keeping only the ones I thought were really necessary. I sometimes get carried away with em-dashes or semicolons.)[^6]
 
 If you are using [BibTeX](http://www.bibtex.org/), check for capitalization! Most journal styles automatically set titles in all lower-case, so you have to protect any words that should be Capitalized or CAPITALIZED with curly brackets {} (some reference managers automatically {protect} {every} {word} {in} {the} {title}, but I prefer that only necessary words are protected).
 
@@ -69,7 +71,7 @@ I prefer author-date style citation. It is less compact than using numbered refe
 
 Use a bibliographic citation manager. I prefer [Zotero](https://www.zotero.org/) because it is free, powerful, and convenient, but you can use anything that works for you and your co-authors. Using a citation manager means you can keep track of everything you've read whether or not you use it in your paper; any modern citation manager + document preparation system will make the process of switching reference formats nearly painless.
 
-When citing scholarly work that is available online (e.g. a peer-reviewed journal article or conference proceedings, or an article in a preprint archive), give the full citation information, not just the URL or DOI (*digital object identifier*); it's more formal, and readers who are familiar with the literature in your area will be able to know what you're citing without having to click through a link. Do include the URL or DOI in the citation, for convenience. Use the DOI in place of the URL of the publisher's web site wherever possible. 
+When citing scholarly work that is available online (e.g. a peer-reviewed journal article or conference proceedings, or an article in a preprint archive), give the full citation information, not just the URL or DOI (*digital object identifier*); it's more formal, and readers who are familiar with the literature in your area will be able to know what you're citing without having to click through a link. Do include the DOI in the citation if one is available; don't include both the DOI and the URL. URLs that link to the publisher's web site are often unreliable in the long term; URLS that include the DOI, such as `http://www.aimspress.com/article/doi/10.3934/mbe.2024321`, are redundant with the DOI itself.
 
 Information that is only available on a standalone web site should provide information about the date when you accessed it but you don't need to do this with journal articles or other information that has a DOI; such sources are assumed to be stable.
 
@@ -87,12 +89,13 @@ Information that is only available on a standalone web site should provide infor
 - avoid contractions ("don't", "won't") in formal writing. 
 - "creatures": this word connotes things that were created, which you might want to avoid in scientific writing. Just use "organisms" (or something general enough for your taxon of choice)
 - "unique", "complex", "dynamic", "nonlinear", "intricate": are you using those words to denote something specific, or are you arm-waving about how cool and interesting your subject is?
- 
+- "delve" (see [this paper discussing words that are especially favoured by LLMs like ChatGPT](https://arxiv.org/html/2412.11385v1) ...)
+
 ## Organization
 
 * I often write the introduction last, and almost always write the abstract last.
 * I hate writing formal outlines, but it works for  some people. I sometimes write a first draft and *then* write an outline by reducing the draft I wrote to a skeleton of bullet points, rearranging the information I put in the first draft into a better order.
-* If you find yourself using vague connectors like "furthermore", "additionally", "moroever", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
+* If you find yourself using vague connectors like "furthermore", "additionally", "moreover", or "in terms of", or if the topic sentences of your paragraphs are vague, you should think more carefully about *why* you are introducing particular facts in a particular order. Can you use more specific language to bring the reader along to the next piece of information?
 * If you find yourself using phrases like "as mentioned earlier" or "as we have already discussed" frequently, it suggests that you might need to restructure your paper so that you don't have to repeat information
 * If each section in a literature review covers a single reference source you probably need to synthesize more, with each section covering several related references that cover the same topic. Otherwise your paper may be repetitive (because multiple references are likely to cover similar topics) and feel list-y.
 * Your introduction should include only the key information necessary to interest the reader in your topic and motivate them to read the rest of the paper. This information can include some brief background and context, but more in-depth discussion of the context and comparison to other work should wait until the discussion.
@@ -109,17 +112,19 @@ I'm sure that I have violated some of my own rules while writing this document.
 
 ---
 
-Last updated 2023-11-25
+Last updated 2024-04-10
 
 [^1]: I've titled the document "peeves" in recognition of the fact that opinions about language and writing are necessarily subjective; the linguists at Language Log, who are also referred to elsewhere in this document, call [prescriptivist](https://dictionary.cambridge.org/dictionary/english/prescriptivist) opinions about language ["peeves"](https://languagelog.ldc.upenn.edu/nll/?p=3144)
 
 [^2]: the folks at Language Log, a blog by linguists, are [snarky](https://languagelog.ldc.upenn.edu/nll/?cat=54) about people who criticize the use of the passive voice when what they mean is "language that obscures agency"
 
-[^3]: My mother, Joan Bolker, wrote a book on [*Writing Your Dissertation in Fifteen Minutes a Day*](https://www.amazon.ca/Writing-Your-Dissertation-Fifteen-Minutes/dp/080504891X), edited an anthology of essays about writing called [*The Writer's Home Companion*](https://www.amazon.ca/Writers-Home-Companion-Anthology-Writing/dp/0805048936), and gave advice for medical researchers and writers in [*Writing Medicine*](https://www.lulu.com/en/ca/shop/joan-bolker/writing-medicine/paperback/product-1jz9mq6d.html?page=1&pageSize=4). All are highly recommended, but they focus on the *process* of writing rather than on mechanics like word choice and structure.)
+[^3]: My mother, Joan Bolker, wrote a book on [*Writing Your Dissertation in Fifteen Minutes a Day*](https://www.amazon.ca/Writing-Your-Dissertation-Fifteen-Minutes/dp/080504891X), edited an anthology of essays about writing called [*The Writer's Home Companion*](https://www.amazon.ca/Writers-Home-Companion-Anthology-Writing/dp/0805048936), and gave advice for medical researchers and writers in [*Writing Medicine*](https://www.lulu.com/en/ca/shop/joan-bolker/writing-medicine/paperback/product-1jz9mq6d.html?page=1&pageSize=4). All are highly recommended, but they focus on the *process* of writing rather than on mechanics like word choice and structure.
 
 [^4]: This advice contradicts the previous advice about agency, attributing ideas to particular actors. "A foolish consistency is the hobgoblin of little minds" (Emerson: [Wikipedia points out that this is a misuse of the original quotation](https://en.wikipedia.org/wiki/Wikipedia:Emerson_and_Wilde_on_consistency), but I like it anyway.) Or: "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)" [Whitman, *Song of Myself*](https://poets.org/poem/song-myself-51)
 
-[^5]: I also like footnotes, but they're rarely used, and rarely a good idea, in scientific writing. (They're common in the humanties.)
+[^5]: this example from a student paper: "When delving into the complex life cycles of the lamprey, female adult lampreys will lay thousands of eggs" is *sort of* a misplaced modifier, but an odd one. I think it's actually a vague connector gone wrong, i.e. the author meant something like "Now let's delve into the complex life cycle of the lamprey. Female adult lampreys will ..."
+ 
+[^6]: I also like footnotes, but they're rarely used, and rarely a good idea, in scientific writing. (They're common in the humanities.)
 
 
 

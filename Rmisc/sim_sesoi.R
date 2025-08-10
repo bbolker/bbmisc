@@ -1,9 +1,51 @@
 ## mostly trying to avoid tidyverse but ...
+library(tidyverse)
 library(ggplot2); theme_set(theme_bw() + theme(panel.spacing=grid::unit(0, "lines")))
-                 
+source("sim_sesoi_funs.R")
+
 ## simulate a t-test-like comparison: what is the distribution of outcomes/
 ## probability of Dushoff outcomes
 ## https://dushoff.github.io/ResearchSandbox/clarStrength.Rout.pdf
+
+## slightly  modified version of https://github.com/dushoff/ResearchSandbox/blob/main/clarStrength.R
+## cutoff = 1 is fixed for now
+largeEffect=1.3; smallEffect=0.5; tinyEffect = 0.1; smallVar = 0.2; medVar = 0.4; largeVar = 0.7; hugeVar = 1.2
+span = 2
+vget = Vectorize(get)
+vr <- (
+	read.table(header=TRUE, strip.white=TRUE, sep=":", text="
+		pic : val : unc : atext : ntext
+		PL : largeEffect : smallVar : Clearly large|and positive : different
+		PU : largeEffect : largeVar : Clearly positive,|maybe large : different
+		PS : smallEffect : smallVar : Clearly positive|and not large : different
+		US : tinyEffect : medVar : Maybe positive,|clearly small : different
+		UU : smallEffect : largeVar : Not both (large|and negative) : different
+		nopower : tinyEffect : hugeVar : Should have|done a power|analysis first : different
+	")
+)
+
+vf <- (vr
+	|> mutate(NULL
+		, pic = factor(pic, levels=rev(pic))
+		, val = vget(val)
+		, unc = vget(unc)
+		, lwr = val-unc
+		, upr = val+unc
+		, atext = gsub('\\|', '\n', atext)
+	)
+)
+
+print(ggplot(vf)
+	+ aes(val, pic)
+	+ geom_pointrange(aes(xmin=lwr, xmax=upr))
+	+ geom_vline(xintercept=c(0, -1, 1), lty = c(1, 2, 2))
+	+ scale_x_continuous(limits=c(-span, span)
+		, breaks = -1:1
+		, labels = c("cutoff\n(SESOI)", 0 , "cutoff\n(SESOI)")
+	)
+	+ scale_y_discrete(labels=rev(vf$atext))
+  + labs(x = "", y = "")
+)
 
 ## start by determing required n to get 80% power for a SESOI of 1 with SD 1
 pp <- power.t.test(delta = 1, sd = 1, power = 0.8)
@@ -15,54 +57,48 @@ tt$power ## 0.807
 ## classic power analysis? e.g. delta and sd must be exchangeable
 ## since one is a scale parameter?
 
-## two-group sim for equal-var t-test power/outcome calculation
-simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
-    if (!is.null(seed)) set.seed(seed)
-    x <- rnorm(2*n, mean = rep(c(0,delta), each =n), sd = sd)
-    tt <- t.test(x[1:n], x[-(1:n)], conf.level = conf.level, var.equal = TRUE)
-    with(tt, c(est = unname(-1*diff(estimate)),
-                        lwr = conf.int[1], upr = conf.int[2]))
-}    
-
-levs <- c("large/clear sign",
-          "unclear magnitude/clear sign",
-          "small/clear sign",
-          "small/unclear sign",
-          "NOT (large and opposite est)",
-          "unclear")
-
-catfun <- function(x, s=1) {
-    lwr <- x[2]
-    upr <- x[3]
-    ## adjust for symmetry? ci <- ci*sign(m); m <- abs(m)
-    ## case-when?
-    if (lwr>s || upr<(-s)) return(levs[1])
-    if ((upr>s && lwr>0 && lwr<s) || (lwr<(-s) && upr<0 && upr>(-s))) return(levs[2])
-    if ((lwr>0 && upr<s) || (upr<0 && lwr>(-s))) return(levs[3])
-    if ((lwr>(-s) && lwr<0 && upr>0 && upr<s) ||
-        (upr<s   && upr>0 && lwr>0 && upr>(-s))) return(levs[4])
-    if ((lwr<0 && lwr>(-s) && upr>s) || (upr>0 && upr<s && lwr<(-s))) return(levs[5])
-    if (lwr<(-s) && upr>s) return(levs[6])
-}
-
-proptest <- function(x, s = 1) {
-    lwr <- x[,2]
-    upr <- x[,3]
-    c(lwr_gt_0 = mean(lwr>0),
-      lwr_gt_s = mean(lwr>s),
-      lwr_gt_negs = mean(lwr>(-s)),
-      upr_gt_0 = mean(upr>0),
-      upr_gt_s = mean(upr>s),
-      upr_gt_negs = mean(upr>(-s)))
-}
-
-
 set.seed(101)
 system.time({
     ## using auto-simplify of replicate ...
     dd1 <- as.data.frame(t(replicate(50000, simfun(n=17))))
     dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
 })
+## about 6 seconds
+
+## power matches
+set.seed(101)
+tt0 <- tabfun(n=17, nsim =  10000)
+stopifnot(all.equal(sum(tt0[1:3]), tt$power, tolerance = 2e-3))
+
+
+tt1 <- tabfun(n=5, nsim =  10000)
+tt2 <- tabfun(n=100, nsim =  10000)
+
+set.seed(101)
+nvec <- c(5:10, (2:9)*10, 100, 200)
+mm <- lapply(nvec, tabfun, nsim = 10000) |> do.call(what = rbind)
+## sigh, tidyverse
+mmw <- (mm
+  |> as.data.frame()
+  |> dplyr:: mutate(n = nvec, .before = 1)
+  |> tidyr::pivot_longer(col = -n)
+  |> dplyr::mutate(name = factor(name, levels = levs))
+)
+
+## if the true effect size (1) is equal to the SESOI (1) then everything converges
+##  to a narrow window around the SESOI: mostly "unclear magnitude/clear sign"
+##  but always clear sign
+gg1 <- ggplot(mmw, aes(n, value, colour = name)) + geom_line() + geom_point() + scale_x_log10()
+print(gg1)
+
+mm2 <- lapply(nvec, tabfun, nsim = 10000, delta = 1.5) |> do.call(what = rbind)
+mmw2 <- (mm2
+  |> as.data.frame()
+  |> dplyr:: mutate(n = nvec, .before = 1)
+  |> tidyr::pivot_longer(col = -n)
+  |> dplyr::mutate(name = factor(name, levels = levs))
+)
+gg1 %+% mmw2
 
 ## flip sign
 ## dd1 <- transform(dd1, lwr = sign(est)*lwr, upr = sign(est)*upr,
@@ -70,7 +106,6 @@ system.time({
 ## ordering for caterpillar plot
 ## alternately could arrange() and then fct_inorder
 dd1$n <- reorder(factor(seq(nrow(dd1))), dd1$est)
-
 
 print(gg0 <- ggplot(dd1, aes(n, est))
       + geom_pointrange(aes(colour = cat, ymin = lwr, ymax = upr),

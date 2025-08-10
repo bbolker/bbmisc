@@ -5,8 +5,10 @@
    * Carpenter blog post
    * Cromwell's Rule
 * neutral priors
-   * lower/upper bound rule (where did I see this already?)
-   * accessory glands paper
-   * powexp stuff
-   * https://vasishth.github.io/bayescogsci/book/ch-priors.html
+   * lower/upper bound rule (where did I see this already?), powexp stuff
+   * mention accessory glands paper as example?
+   * https://bruno.nicenboim.me/bayescogsci/ch-priors.html
    * choosing *scales*
+
+See https://github.com/bbolker/bbmisc/blob/master/bayes/priors.rmd
+

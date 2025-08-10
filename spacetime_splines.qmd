@@ -1,0 +1,26 @@
+---
+title: "exploring space-time smooths"
+author: "Ben Bolker"
+date: today
+---
+
+This exploration/brain-dump is meant to illustrate and explain different ways of setting up smooth terms for GAMs in situations where the observations are distributed in both space and time.
+
+For simplicity and concreteness, I'll use an example of data taken at even intervals on a 1D spatial transect with 10 locations, at 10 evenly spaced time points -- so the data form a 10x10 grid in space-time coordinates. Furthermore, I'll take the simple example of exponential correlation functions in space and time, but with different scale parameters --- $\rho_x = 0.5$ and $\rho_t = 0.25$. (I'm not actually going to try to estimate anything, so I don't need to worry about whether the grain, extent, or total number of observations are actually adequate for estimation from this kind of data.)
+
+An exponentially decaying (space/time) autocorrelation function corresponds to either (1) an Ornstein-Uhlenbeck process (in continuous space/time) with rate parameter $-\log\rho$ or scale, (2)
+
+$\rho = \exp(-1/s) \to s = -1/\log \rho$
+
+## two separate smooths
+
+## thin-plate spline
+
+## AR1 x AR1 separable
+
+## AR1 x AR1 tensor-product
+
+
+## notes/dump
+
+Is there a space-time smooth [here](https://www.bioss.ac.uk/case-studies/estimating-effect-size-variation-across-zone-influence)?

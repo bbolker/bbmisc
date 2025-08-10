@@ -12,3 +12,5 @@ figure
 *_beamer-tikzDictionary
 *.o
 *.so
+target.mk
+*.Rout.pdf
