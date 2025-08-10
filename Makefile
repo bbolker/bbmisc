@@ -18,6 +18,9 @@ peak_I_simple.html: peak_I_simple.rmd
 
 peak_reduction.Rout: peak_reduction.R
 
+sim_sesoi.Rout: Rmisc/sim_sesoi.R
+	$(pipeR)
+
 ######################################################################
 
 ## Spline stuff 2022 Nov 07 (Mon)
