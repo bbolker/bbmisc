@@ -5,9 +5,6 @@ current: target
 
 ######################################################################
 
-%.html: %.qmd
-	quarto render $<
-
 ## Content
 
 rmdfiles = $(wildcard *.rmd)
@@ -25,7 +22,11 @@ peak_reduction.Rout: peak_reduction.R
 
 ## Clarity simulations
 
-Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd
+Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
+
+Ignore += sim_sesoi.html
+sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
+	$(qr)
 
 ######################################################################
 
@@ -35,6 +36,10 @@ Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd
 Sources += Rmisc/spline_quantiles.R
 Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 	$(pipeR)
+
+######################################################################
+
+qr = quarto render $<
 
 ######################################################################
 

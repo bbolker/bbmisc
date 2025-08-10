@@ -90,12 +90,12 @@ print(tt0)
 
 We confirm that we do get overall power, i.e. all outcomes with a clear sign, very close to the nominal value (`r round(pow1_sim, 3)`)
 
-### Simulations with $\delta=1$, $s=1$, varying $n$
+### Simulations with $\delta=2/3$, $s=1$, varying $n$
 
 ```{r sim1, cache=TRUE}
 set.seed(101)
 nvec <- c(5:10, (2:9)*10, 100, 200)
-mm <- lapply(nvec, tabfun, nsim = 10000) |> do.call(what = rbind)
+mm <- lapply(nvec, tabfun, delta=2/3, nsim = 10000) |> do.call(what = rbind)
 ```
 
 ```{r sim1_sum}
