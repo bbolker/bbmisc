@@ -21,8 +21,11 @@ peak_I_simple.html: peak_I_simple.rmd
 
 peak_reduction.Rout: peak_reduction.R
 
-sim_sesoi.Rout: Rmisc/sim_sesoi.R
-	$(pipeR)
+######################################################################
+
+## Clarity simulations
+
+Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd
 
 ######################################################################
 
@@ -96,6 +99,7 @@ makestuff/Makefile:
 
 -include makestuff/pipeR.mk
 
+-include makestuff/gitbranch.mk
 -include makestuff/git.mk
 -include makestuff/visual.mk
 -include makestuff/projdir.mk
