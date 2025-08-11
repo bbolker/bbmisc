@@ -1,0 +1,58 @@
+---
+title: "general thesis comments"
+author: Ben Bolker
+date: "`r format(Sys.time(), '%d %B %Y')`"
+bibliography: ./thesis_notes.bib
+format:
+  html:
+    embed-resources: true
+---
+
+When I send a marked-up version of a PDF, the notations are some mix of typographical, stylistic, etc. suggestions and notes to myself. Use what's useful, ask me for clarification if you want, ignore anything else.
+
+## graphics
+
+* use larger text sizes in your figures (@wilkeFundamentals2019 has an entire chapter titled "use larger axis labels")
+* consider colourblind-safe palettes (see @wilkeFundamentals2019 §19.3)
+* if possible use some kind of rasterization (e.g. convert PDFs to PNG) to reduce the size of large figures. 
+
+## presentation of statistical results
+
+* it's almost never useful to show the absolute values of information-theoretic measures (AIC, BIC, etc.) or log-likelihoods; instead, show the differences from the best-fit model in a category (e.g. ΔAIC = AIC_i - min(AIC))
+* strongly consider converting large tables of results to figures [@gelmanWhy2011;@gelmanLet2002] (note that one of these refs was published on April Fools' day ...) For example, [this code](tab_to_fig/tab_to_fig.R), with [this data file](tab_to_fig/tab.csv), converts this table:
+
+```{r img1, echo = FALSE, fig_width="100px"}
+knitr::include_graphics("./tab_to_fig/tab.png")
+```
+
+into this figure:
+
+![](./tab_to_fig/fig.png)
+
+## BibTeX/LaTeX issues
+
+### LaTeX
+
+* check for open-quotes: LateX needs double-back-single-quotes rather than " to start a double-quoted section
+* check for missing references, either in your LaTeX log or by searching for ? in your document (typically you don't use to many question marks in scholarly writing, so this should work OK)
+
+### BibTeX
+
+* proper nouns and capitalized acronyms must be {}-protected in BibTeX code
+* it's nice to typeset species names in italics
+* I prefer that journal titles be all-proper, i.e. *Journal of Chemical Physics* rather than *Journal of chemical physics*
+* Published (conference/journal article) references are preferable to ArXiv references for the same document
+
+## language peeves
+
+I have many preferences about language and style, see [here](https://bbolker.github.io/bbmisc/peeves.html) for a fairly complete list
+
+In particular:
+
+* "and" splices: "and" is often used to connect clauses that are only loosely connected: "Ducks are large and when they are approached by humans they make noise". These passages can be stronger if they are split into separate sentences ("Ducks are large. When they are approached by humans they make noise.") or separated with a semicolon ("Ducks are large; when they are approached by humans they make noise.")
+* avoid vague qualifiers: "quite", "very", "extremely". Could you omit them without changing the meaning of your sentence? (also "significantly", if not in a statistical context)
+* I had it beaten into me in high school that "this" should never be used without an antecedent ("Ducks are bigger in the tropics. This means that ...") "This" what? Although I no longer believe it's a hard-and-fast rule, include an antecedent whenever you can ("This enlargement means that ..."); it will make your writing clearer.
+- avoid "utili[sz]e" (use "use" instead)
+- horn-blowing: "importantly", "interestingly". Ideally, your writing will be spare enough that you don't need to emphasize particular results.
+- Ditto for "Note that" and "Notably".
+- "unique", "complex", "dynamic", "nonlinear", "intricate": are you using those words to denote something specific, or are you arm-waving about how cool and interesting your subject is?
