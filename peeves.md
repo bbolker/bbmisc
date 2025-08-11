@@ -81,7 +81,7 @@ Information that is only available on a standalone web site should provide infor
 - "comprehend" ("understand")
 - "a multitude of" could be "many"
 - "hypothesize" (Can be useful if you are laying out a formal hypothesis, but why not just "think" or "suggest"?). "It has been hypothesized that" is both passive and (IMO) unnecessarily formal. ("Schmoo et al. (2024) hypothesized that" is OK, but "proposed" or "suggested" could be good, less jargony alternatives)
-- vague qualifiers: "quite", "very", "extremely". Could you omit them without changing the meaning of your sentence?
+- vague qualifiers: "quite", "very", "extremely". Could you omit them without changing the meaning of your sentence? (also "significantly", if not in a statistical context)
 - horn-blowing: "importantly", "interestingly". Ideally, your writing will be spare enough that you don't need to emphasize particular results.
 - Ditto for "Note that" and "Notably".
 - "incredibly" (this is admittedly a peeve/niche opinion, but I can't help reading this word with some of its etymological connotation of "unbelievably"; in any case, it's more informal than I like for scientific writing)
