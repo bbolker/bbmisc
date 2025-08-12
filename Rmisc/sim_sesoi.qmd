@@ -151,4 +151,10 @@ print(direct.label(gg1 %+% mmw2, "top.bumptwice"))
 * it would be elegant and computationally efficient to figure out the analytical results for this (i.e., probably in terms of non-central $\chi^2$ distributions - @owenSpecial1965 or @juliousSample2004 seem like useful starting points), although 10,000 simulations take only about `r round(t0[["elapsed"]], 2)` seconds (and could possibly be sped up a bit as well by eliminating overhead)
 * change 'sign' to 'positive' in plots? (JD assumes a positive effect so the first plot can be labeled more clearly; maybe this is worth carrying forward)
 
+## session info
+
+```{r si}
+sessionInfo()
+```
+
 ## references
