@@ -18,12 +18,12 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
 ## (1) show the effect is small or large
 ##    * care less about the sign if it's small?
 
-levs <- c("large/positive",
-          "unclear/positive",
-          "small/positive",
-          "small/unclear",
-          "NOT (large and negative)",
-          "What")
+levs <- c("large/clear sign",
+          "unclear magnitude/clear sign",
+          "small/clear sign",
+          "small/unclear sign",
+          "NOT (large and opposite est)",
+          "unclear")
 
 #' categorize outcomes
 #' @param x a 3-element vector with 'lower' and 'upper' as the second and third elements
@@ -55,7 +55,7 @@ proptest <- function(x, s = 1) {
       upr_gt_negs = mean(upr>(-s)))
 }
 
-tabfun <- function(..., nsim = 1000) {
+tabfun <- function(..., nsim = 10) {
   res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
   dd1 <- as.data.frame(res)
   dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)

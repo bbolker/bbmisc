@@ -25,6 +25,7 @@ peak_reduction.Rout: peak_reduction.R
 Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
+Sources += sim_sesoi.md
 Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
 	$(qr)
 
