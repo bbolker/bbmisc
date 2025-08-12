@@ -18,12 +18,12 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
 ## (1) show the effect is small or large
 ##    * care less about the sign if it's small?
 
-levs <- c("large/clear sign",
-          "unclear magnitude/clear sign",
-          "small/clear sign",
-          "small/unclear sign",
-          "NOT (large and opposite est)",
-          "unclear")
+levs <- c("large/positive",
+          "unclear/positive",
+          "small/positive",
+          "small/unclear",
+          "NOT (large and negative)",
+          "What")
 
 #' categorize outcomes
 #' @param x a 3-element vector with 'lower' and 'upper' as the second and third elements

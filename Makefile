@@ -22,10 +22,10 @@ peak_reduction.Rout: peak_reduction.R
 
 ## Clarity simulations
 
+Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
-Ignore += sim_sesoi.html
-sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
+Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
 	$(qr)
 
 ######################################################################
