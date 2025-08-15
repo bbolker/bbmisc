@@ -91,23 +91,15 @@ print(tt0)
 
 We confirm that we do get overall power, i.e. all outcomes with a clear sign, very close to the nominal value (`r round(pow1_sim, 3)`)
 
-### Simulations with $\delta=2/3$, $s=1$, varying $n$
+### Simulations with $\delta=0.5$, $s=1$, varying $n$
 
-```{r sim1, cache=TRUE}
+```{r sim1, cache=FALSE}
 set.seed(101)
 nvec <- c(5:10, (2:9)*10, 100, 200)
-mm <- lapply(nvec, tabfun, delta=2/3, nsim = 10000) |> do.call(what = rbind)
+mm <- lapply(nvec, tabfun, delta=0.5, nsim = 10000) |> do.call(what = rbind)
 ```
 
 ```{r sim1_sum}
-f_widen <- function(x) {
-  (x 
-    |> as.data.frame()
-    |> dplyr::mutate(n = nvec, .before = 1)
-    |> tidyr::pivot_longer(col = -n)
-    |> dplyr::mutate(name = factor(name, levels = levs))
-  )
-}
 mmw <- f_widen(mm)
 ```
 
@@ -135,7 +127,7 @@ drop(tail(mm,1))
 
 What if we make the true effect size greater than the SESOI?
 
-```{r sim2, cache=TRUE}
+```{r sim2, cache=FALSE}
 mm2 <- lapply(nvec, tabfun, nsim = 10000, delta = 1.5) |> do.call(what = rbind)
 ```
 ```{r sim2_plot, fig.width = 8}
