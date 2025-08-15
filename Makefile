@@ -29,6 +29,13 @@ Sources += sim_sesoi.md
 Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
 	$(qr)
 
+## This is how you put things into a pipeR pipeline without touching them.
+sim_sesoi_funs.Rout: Rmisc/sim_sesoi_funs.R
+	$(wrapR)
+
+claritySims.Rout: Rmisc/claritySims.R sim_sesoi_funs.rda Rmisc/sim_sesoi_funs.R
+	$(pipeR)
+
 ######################################################################
 
 ## Spline stuff 2022 Nov 07 (Mon)
@@ -107,6 +114,7 @@ makestuff/Makefile:
 -include makestuff/os.mk
 
 -include makestuff/pipeR.mk
+-include makestuff/rmd.mk
 
 -include makestuff/gitbranch.mk
 -include makestuff/git.mk
