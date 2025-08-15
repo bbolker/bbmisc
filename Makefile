@@ -43,6 +43,9 @@ docs/%.html: %.html
 %.html: %.[Rr]md
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
 
+## https://bbolker.github.io/bbmisc/brant_survive.html
+## brant_survive.html: brant_survive.rmd
+
 %.html: %.md
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
 
