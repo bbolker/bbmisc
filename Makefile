@@ -5,6 +5,9 @@ current: target
 
 ######################################################################
 
+%.html: %.qmd
+	quarto render $<
+
 ## Content
 
 rmdfiles = $(wildcard *.rmd)
