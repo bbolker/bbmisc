@@ -5,9 +5,6 @@ current: target
 
 ######################################################################
 
-%.html: %.qmd
-	quarto render $<
-
 ## Content
 
 rmdfiles = $(wildcard *.rmd)
@@ -23,12 +20,27 @@ peak_reduction.Rout: peak_reduction.R
 
 ######################################################################
 
+## Clarity simulations
+
+Ignore += Rmisc/*.html
+Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
+
+Sources += sim_sesoi.md
+Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
+	$(qr)
+
+######################################################################
+
 ## Spline stuff 2022 Nov 07 (Mon)
 
 ## git diff dca3b2c0 -- Rmisc/spline_quantiles.R
 Sources += Rmisc/spline_quantiles.R
 Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 	$(pipeR)
+
+######################################################################
+
+qr = quarto render $<
 
 ######################################################################
 
@@ -96,6 +108,7 @@ makestuff/Makefile:
 
 -include makestuff/pipeR.mk
 
+-include makestuff/gitbranch.mk
 -include makestuff/git.mk
 -include makestuff/visual.mk
 -include makestuff/projdir.mk

@@ -12,6 +12,15 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
                         lwr = conf.int[1], upr = conf.int[2]))
 }    
 
+f_widen <- function(x) {
+  (x 
+    |> as.data.frame()
+    |> dplyr::mutate(n = nvec, .before = 1)
+    |> tidyr::pivot_longer(col = -n)
+    |> dplyr::mutate(name = factor(name, levels = levs))
+  )
+}
+
 ## should be able to do this much faster if we're sticking to equal-sample size, etc. etc. etc.?
 
 ## how many cases should we distinguish?
@@ -55,7 +64,7 @@ proptest <- function(x, s = 1) {
       upr_gt_negs = mean(upr>(-s)))
 }
 
-tabfun <- function(..., nsim = 1000) {
+tabfun <- function(..., nsim = 10) {
   res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
   dd1 <- as.data.frame(res)
   dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
