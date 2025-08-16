@@ -14,12 +14,6 @@ bibliography: sesoi.bib
 ```{r setup, message = FALSE}
 library(tidyverse)
 library(ggplot2); theme_set(theme_bw() + theme(panel.spacing=grid::unit(0, "lines")))
-library(directlabels)
-
-
-## Okabe-Ito minus black and yellow
-oi3 <- palette.colors(9)[-c(1, 5)]
-out_scale <- scale_colour_manual(name = "outcome category",  values = oi3)
 source("sim_sesoi_funs.R")
 ```
 
@@ -91,48 +85,29 @@ print(tt0)
 
 We confirm that we do get overall power, i.e. all outcomes with a clear sign, very close to the nominal value (`r round(pow1_sim, 3)`)
 
-### Simulations with $\delta=0.5$, $s=1$, varying $n$
-
-```{r sim1, cache=FALSE}
-set.seed(101)
-nvec <- c(5:10, (2:9)*10, 100, 200)
-mm <- lapply(nvec, tabfun, delta=0.5, nsim = 10000) |> do.call(what = rbind)
-```
-
-```{r sim1_sum}
-mmw <- f_widen(mm)
-```
-
-```{r sim1_plot, fig.width = 8}
-gg1 <- ggplot(mmw, aes(n, value, colour = name)) +
-  geom_line() +
-  geom_point() +
-  scale_x_log10() +
-  labs(y = "proportion", x = "sample size per group") +
-  out_scale
-## see https://tdhock.github.io/directlabels/docs/index.html
-##  for direct labeling choices
-print(direct.label(gg1, "top.bumptwice"))
-```
-
 If the true effect size ($\delta = 1$) is equal to the cutoff/SESOI ($s=1$) then everything converges
 to a narrow window around the SESOI: mostly "unclear magnitude/clear sign"
 but always a clear sign. Indeed, we can see that for $n=100$ we have converged (for 95% CI/$\alpha = 0.05$) to all "clear sign" (i.e. power $\approx$ 100%) with 95% in the "unclear magnitude" category and 2.5% in "clearly small" or "clearly large".
 
 ```{r mm_tail}
-drop(tail(mm,1))
+tt1 <- tabfun(n=200, nsim = 10000)
+print(tt1)
+```
+
+### Simulations with $\delta=0.5$, $s=1$, varying $n$
+
+```{r sim1-plot, fig.width = 8}
+sim1 <- readRDS("sim_sesoi_batch1.rds")
+printfun(f_lengthen(sim1))
 ```
 
 ### Simulations with $\delta=1.5$, $s=1$, varying $n$
 
 What if we make the true effect size greater than the SESOI?
 
-```{r sim2, cache=FALSE}
-mm2 <- lapply(nvec, tabfun, nsim = 10000, delta = 1.5) |> do.call(what = rbind)
-```
-```{r sim2_plot, fig.width = 8}
-mmw2 <- f_widen(mm2)
-print(direct.label(gg1 %+% mmw2, "top.bumptwice"))
+```{r sim2-plot, fig.width = 8}
+sim2 <- readRDS("sim_sesoi_batch2.rds")
+printfun(f_lengthen(mm2))
 ```
 
 ## next steps
