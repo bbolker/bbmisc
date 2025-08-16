@@ -26,8 +26,14 @@ Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
 Sources += sim_sesoi.md
-Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
+Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R Rmisc/sim_sesoi_batch1.rds Rmisc/sim_sesoi_batch2.rds
 	$(qr)
+
+Rmisc/sim_sesoi_batch1.rds: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
+	$(pipeR)
+
+Rmisc/sim_sesoi_batch2.rds: Rmisc/sim_sesoi_batch2.R Rmisc/sim_sesoi_funs.R
+	$(pipeR)
 
 ######################################################################
 

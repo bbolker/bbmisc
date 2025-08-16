@@ -8,11 +8,12 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
     if (!is.null(seed)) set.seed(seed)
     x <- rnorm(2*n, mean = rep(c(0,delta), each =n), sd = sd)
     tt <- t.test(x[1:n], x[-(1:n)], conf.level = conf.level, var.equal = TRUE)
-    with(tt, c(est = unname(-1*diff(estimate)),
-                        lwr = conf.int[1], upr = conf.int[2]))
+    res <- with(tt, c(est = unname(-1*diff(estimate)),
+                      lwr = conf.int[1], upr = conf.int[2]))
+    return(res)
 }    
 
-f_widen <- function(x) {
+f_lengthen <- function(x) {
   (x 
     |> as.data.frame()
     |> dplyr::mutate(n = nvec, .before = 1)
@@ -68,5 +69,24 @@ tabfun <- function(..., nsim = 10) {
   res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
   dd1 <- as.data.frame(res)
   dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
-  table(dd1$cat) |> prop.table()
+  res <- table(dd1$cat) |> prop.table()
+  return(res)
+}
+
+## Okabe-Ito minus black and yellow
+oi3 <- palette.colors(9)[-c(1, 5)]
+out_scale <- scale_colour_manual(name = "outcome category",  values = oi3)
+
+printfun <- function(x) {
+  stopifnot(require("ggplot2"))
+  stopifnot(require("directlabels"))
+  gg0 <- ggplot(x, aes(n, value, colour = name)) +
+    geom_line() +
+    geom_point() +
+    scale_x_log10() +
+    labs(y = "proportion", x = "sample size per group") +
+    out_scale
+  ## see https://tdhock.github.io/directlabels/docs/index.html
+  ##  for direct labeling choices
+  direct.label(gg0, "top.bumptwice")
 }
