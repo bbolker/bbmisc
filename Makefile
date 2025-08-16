@@ -33,7 +33,8 @@ Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R
 sim_sesoi_funs.Rout: Rmisc/sim_sesoi_funs.R
 	$(wrapR)
 
-claritySims.Rout: Rmisc/claritySims.R sim_sesoi_funs.rda Rmisc/sim_sesoi_funs.R
+## claritySims.md
+claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.R
 	$(pipeR)
 
 ######################################################################
