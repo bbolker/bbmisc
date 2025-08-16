@@ -96,17 +96,10 @@ print(tt1)
 
 ### Simulations with $\delta=0.5$, $s=1$, varying $n$
 
-```{r sim1, cache=FALSE}
-set.seed(101)
-nvec <- c(5:10, (2:9)*10, 100, 200)
-sim1 <- lapply(nvec, tabfun, delta=0.5, nsim = 10000) |> do.call(what = rbind)
-```
-
 ```{r sim1-plot, fig.width = 8}
 sim1 <- readRDS("sim_sesoi_batch1.rds")
-printfun(f_widen(sim1))
+printfun(f_lengthen(sim1))
 ```
-
 
 ### Simulations with $\delta=1.5$, $s=1$, varying $n$
 
