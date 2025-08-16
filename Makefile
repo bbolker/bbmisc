@@ -22,6 +22,8 @@ peak_reduction.Rout: peak_reduction.R
 
 ## Clarity simulations
 
+autopipeR = defined
+
 Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
@@ -34,8 +36,9 @@ sim_sesoi_funs.Rout: Rmisc/sim_sesoi_funs.R
 	$(wrapR)
 
 ## claritySims.md
-claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.R
-claritySims.Rout: Rmisc/claritySims.R sim_sesoi_funs.rda Rmisc/sim_sesoi_funs.R
+## claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.R
+claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.rda
+	$(pipeR)
 
 ## Rmisc/sim_sesoi_batch1.rds: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
 Rmisc/sim_sesoi_batch1.Rout: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
