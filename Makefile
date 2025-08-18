@@ -31,20 +31,29 @@ Sources += sim_sesoi.md
 Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R Rmisc/sim_sesoi_batch1.rds Rmisc/sim_sesoi_batch2.rds
 	$(qr)
 
-## This is how you put things into a pipeR pipeline without touching them.
-sim_sesoi_funs.Rout: Rmisc/sim_sesoi_funs.R
-	$(wrapR)
-
 ## claritySims.md
 ## claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.R
 claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.rda
 	$(pipeR)
 
+######################################################################
+
+## This is how you put things into a pipeR pipeline without touching them.
+sim_sesoi_funs.Rout: Rmisc/sim_sesoi_funs.R
+	$(wrapR)
+
 ## Rmisc/sim_sesoi_batch1.rds: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
-Rmisc/sim_sesoi_batch1.Rout: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
+Rmisc/sim_sesoi_batch1.Rout: Rmisc/sim_sesoi_batch1.R sim_sesoi_funs.rda
 	$(pipeR)
 
 Rmisc/sim_sesoi_batch2.rds: Rmisc/sim_sesoi_batch2.R Rmisc/sim_sesoi_funs.R
+	$(pipeR)
+
+######################################################################
+
+## Why does JD not understand non-central t?
+
+noncent.Rout: Rmisc/noncent.R
 	$(pipeR)
 
 ######################################################################
