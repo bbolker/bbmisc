@@ -76,6 +76,8 @@ tabfun <- function(..., nsim = 10) {
 ## Okabe-Ito minus black and yellow
 oi3 <- palette.colors(9)[-c(1, 5)]
 out_scale <- ggplot2::scale_colour_manual(name = "outcome category",  values = oi3)
+## oi3 <- palette.colors(9)[-c(1, 5)]
+## out_scale <- scale_colour_manual(name = "outcome category",  values = oi3)
 
 printfun <- function(x) {
   stopifnot(require("ggplot2"))
