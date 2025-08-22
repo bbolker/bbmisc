@@ -14,3 +14,4 @@ figure
 *.so
 target.mk
 *.Rout.pdf
+*.Rout

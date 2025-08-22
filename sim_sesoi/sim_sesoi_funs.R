@@ -11,7 +11,20 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
     res <- with(tt, c(est = unname(-1*diff(estimate)),
                       lwr = conf.int[1], upr = conf.int[2]))
     return(res)
-}    
+}
+
+## I don't see what's wrong with this but it's giving CIs that are slightly
+##  too wide, compared to simfun() [at least for small n]
+simfun2 <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL,
+                    nsim = 1000) {
+  nu <- 2*(n-1)
+  ## difference between groups
+  mu <- rnorm(nsim, mean = -delta, sd = sd/sqrt(2*n))
+  ## pooled SD
+  s <- rchisq(nsim, df = nu)/nu*sd*sqrt(2/n)
+  qq <- qt((1-conf.level)/2, df = nu, lower.tail = FALSE)
+  cbind(est = mu, lwr = mu - qq*s, upr = mu + qq*s)
+}
 
 f_lengthen <- function(x) {
   (x 
@@ -73,13 +86,12 @@ tabfun <- function(..., nsim = 10) {
   return(res)
 }
 
-## Okabe-Ito minus black and yellow
-oi3 <- palette.colors(9)[-c(1, 5)]
-out_scale <- ggplot2::scale_colour_manual(name = "outcome category",  values = oi3)
-## oi3 <- palette.colors(9)[-c(1, 5)]
-## out_scale <- scale_colour_manual(name = "outcome category",  values = oi3)
 
 printfun <- function(x) {
+  ## Okabe-Ito minus black and yellow
+  oi3 <- palette.colors(9)[-c(1, 5)]
+  out_scale <- ggplot2::scale_colour_manual(name = "outcome category",
+                                            values = oi3)
   stopifnot(require("ggplot2"))
   stopifnot(require("directlabels"))
   gg0 <- ggplot(x, aes(n, value, colour = name)) +

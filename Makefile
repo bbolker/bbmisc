@@ -31,7 +31,6 @@ Sources += sim_sesoi.md
 sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.R sim_sesoi/sim_sesoi_batch1.Rout sim_sesoi/sim_sesoi_batch2.Rout
 	$(qr)
 
-
 ## This is how you put things into a pipeR pipeline without touching them.
 sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
 	$(wrapR)
@@ -39,24 +38,16 @@ sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
 ## sim_sesoi/sim_sesoi_batch1.rds: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.R
 sim_sesoi/sim_sesoi_batch1.Rout: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.rda
 
-## claritySims.md
-## claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.R
-claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.rda
-	$(pipeR)
-
-
-
-
-## This is how you put things into a pipeR pipeline without touching them.
-sim_sesoi_funs.Rout: Rmisc/sim_sesoi_funs.R
-	$(wrapR)
-
-## Rmisc/sim_sesoi_batch1.rds: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
-Rmisc/sim_sesoi_batch1.Rout: Rmisc/sim_sesoi_batch1.R sim_sesoi_funs.rda
->>>>>>> ce48a73b2b11e8dde854dd74d963cab63a6c2eab
+## sim_sesoi/sim_sesoi_batch1.rds: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.R
+sim_sesoi/sim_sesoi_batch1.Rout: sim_sesoi/sim_sesoi_batch1.R sim_sesoi_funs.rda
 	$(pipeR)
 
 sim_sesoi/sim_sesoi_batch2.Rout: sim_sesoi/sim_sesoi_batch2.R sim_sesoi/sim_sesoi_funs.R
+	$(pipeR)
+
+## claritySims.md
+## claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.R
+claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.rda
 	$(pipeR)
 
 ######################################################################
