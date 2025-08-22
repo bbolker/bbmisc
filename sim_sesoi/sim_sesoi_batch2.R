@@ -1,6 +1,6 @@
-source("sim_sesoi_funs.R")
+source("Rmisc/sim_sesoi_funs.R")
 set.seed(101)
 nvec <- c(5:10, (2:9)*10, 100, 200)
 sim1 <- lapply(nvec, tabfun, delta=1.5, nsim = 10000) |> do.call(what = rbind)
 attr(sim1, "pars") <- c(delta = 1.5, s = 1)
-saveRDS(sim1, "sim_sesoi_batch2.rds")
+saveRDS(sim1, "Rmisc/sim_sesoi_batch2.rds")

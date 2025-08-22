@@ -28,23 +28,23 @@ Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
 Sources += sim_sesoi.md
-Rmisc/sim_sesoi.html: Rmisc/sim_sesoi.qmd Rmisc/sim_sesoi_funs.R Rmisc/sim_sesoi_batch1.Rout Rmisc/sim_sesoi_batch2.Rout
+sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.R sim_sesoi/sim_sesoi_batch1.Rout sim_sesoi/sim_sesoi_batch2.Rout
 	$(qr)
 
 ## This is how you put things into a pipeR pipeline without touching them.
-sim_sesoi_funs.Rout: Rmisc/sim_sesoi_funs.R
+sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
 	$(wrapR)
 
 ## claritySims.md
-## claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.R
-claritySims.Rout: Rmisc/claritySims.R Rmisc/clarityFuns.rda
+## claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.R
+claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.rda
 	$(pipeR)
 
-## Rmisc/sim_sesoi_batch1.rds: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
-Rmisc/sim_sesoi_batch1.Rout: Rmisc/sim_sesoi_batch1.R Rmisc/sim_sesoi_funs.R
+## sim_sesoi/sim_sesoi_batch1.rds: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.R
+sim_sesoi/sim_sesoi_batch1.Rout: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.R
 	$(pipeR)
 
-Rmisc/sim_sesoi_batch2.Rout: Rmisc/sim_sesoi_batch2.R Rmisc/sim_sesoi_funs.R
+sim_sesoi/sim_sesoi_batch2.Rout: sim_sesoi/sim_sesoi_batch2.R sim_sesoi/sim_sesoi_funs.R
 	$(pipeR)
 
 ######################################################################
