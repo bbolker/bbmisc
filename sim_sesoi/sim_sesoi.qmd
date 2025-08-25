@@ -9,7 +9,7 @@ format:
 bibliography: sesoi.bib    
 ---
 
-(Source code is in [this directory](https://github.com/bbolker/bbmisc/tree/master/Rmisc))
+(Source code is in [this directory](https://github.com/bbolker/bbmisc/tree/master/sim_sesoi))
 
 ```{r setup, message = FALSE}
 library(tidyverse)
@@ -96,7 +96,8 @@ print(tt1)
 
 ### Simulations with $\delta=0.5$, $s=1$, varying $n$
 
-```{r sim1-plot, fig.width = 8}
+```{r sim1-plot, fig.width = 8, message = FALSE}
+## suppress directlabels loading msg ...
 ## FIXME: improve piping
 nvec <- c(5:10, (2:9)*10, 100, 200)
 sim1 <- readRDS("sim_sesoi_batch1.rds")
