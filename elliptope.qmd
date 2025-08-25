@@ -105,6 +105,11 @@ The red line shows the compound symmetric case ($r_1=r_2=r_3$), the ball is the 
 <!-- https://github.com/quarto-dev/quarto-cli/issues/141 -->
 Or with `sympy`:
 
+```{r}
+library(reticulate)
+py_require("sympy")
+```
+
 ```{python sympy}
 from sympy import *
 var('rho1 rho2 rho3');
@@ -328,6 +333,17 @@ ggplot(det_dat, aes(x = log10(det + mindet/10), fill = sim)) +
     geom_vline(xintercept = log10(mindet/10), lty = 2)
 ```
 
+```{r}
+det_comb <- transform(det_dat,
+                     detcat = cut(log10(det + mindet/10),
+                                  breaks = c(-Inf, -20, -14, -3, Inf),
+                                  labels = c("zero", "small", "medium", "large"))) |>
+  bind_cols(purrr::map_dfr(sim_list, get_cor, .id = "sim2")) |>
+  as_tibble()
+with(det_comb, plot3d(r1, r2, r3, col = as.numeric(detcat)+1))
+saveRDS(det_comb, file = "det_comb.rds")
+```
+
 ## 4x4 case
 
 ```{python sympy-4d}
@@ -355,7 +371,9 @@ show(ee)
 
 ## higher-dimensional elliptopes
 
-```{r}
+Trying to figure out which sets of vertices are faces/edges (going up to dim 7 below is memory-hungry ...)
+
+```{r higher-dim, eval = FALSE}
 get_verts <- function(n, retval = c("n", "df"), verbose = FALSE) {
     retval <- match.arg(retval)
     n_el <- n*(n-1)/2

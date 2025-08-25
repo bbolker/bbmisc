@@ -97,6 +97,8 @@ print(tt1)
 ### Simulations with $\delta=0.5$, $s=1$, varying $n$
 
 ```{r sim1-plot, fig.width = 8}
+## FIXME: improve piping
+nvec <- c(5:10, (2:9)*10, 100, 200)
 sim1 <- readRDS("sim_sesoi_batch1.rds")
 printfun(f_lengthen(sim1))
 ```
@@ -107,7 +109,7 @@ What if we make the true effect size greater than the SESOI?
 
 ```{r sim2-plot, fig.width = 8}
 sim2 <- readRDS("sim_sesoi_batch2.rds")
-printfun(f_lengthen(mm2))
+printfun(f_lengthen(sim2))
 ```
 
 ## next steps
