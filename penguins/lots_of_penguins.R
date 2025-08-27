@@ -56,4 +56,4 @@ gg0 <- ggplot(dd, aes(Beak.Width, Beak.Depth, color = Species, shape = genus)) +
 gg0 + geom_encircle(aes(fill=Species), alpha = 0.1, expand=0.01) + geom_dl(method="smart.grid", aes(label=shortname)) +
   guides(color="none", fill="none")
 
-ggsave("penguin_traits.pdf", width=8, height=6)
+ggsave("penguin_traits.pdf", width=10, height=8)
