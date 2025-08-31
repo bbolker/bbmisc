@@ -48,6 +48,15 @@ levs <- c("large/clear sign",
           "NOT (large and opposite est)",
           "unclear")
 
+## Dushoff level names
+levs <- c("Clearly large\nand positive",
+          "Clearly positive,\nmaybe large", 
+          "Clearly positive\nand not large",
+          "Maybe positive,\nclearly small", 
+          "Not both (large\nand negative)",
+          "Should have\ndone a power\nanalysis first"
+)
+
 #' categorize outcomes
 #' @param x a 3-element vector with 'lower' and 'upper' as the second and third elements
 #' @param s sesoi (critical value distinguishing small/large effect sizes)

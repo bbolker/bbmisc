@@ -19,7 +19,18 @@ source("sim_sesoi_funs.R")
 
 Simulate a $t$-test-like comparison: what is the distribution of outcomes?
 
-We are classifying outcomes in the following way (from [here](https://dushoff.github.io/ResearchSandbox/clarStrength.Rout.pdf)/[here](https://github.com/dushoff/ResearchSandbox/blob/main/clarStrength.R):
+The relevant parameters:
+
+| param    | default | meaning |
+|----------|---------|
+| $s$ | 1 | SESOI ("smallest effect size of interest") |
+| $\delta$ | 1  |unscaled effect size (difference between means) |
+| $\sigma$ | 1 | SESOI ("smallest effect size of interest") |
+| $\alpha$ |  0.05 | critical $p$-value |
+| n |   | sample size per group |
+
+
+We are classifying outcomes in the following way (from [here](https://dushoff.github.io/ResearchSandbox/clarStrength.Rout.pdf)/[here](https://github.com/dushoff/ResearchSandbox/blob/main/clarStrength.R)):
 
 ```{r dushoff_effects}
 largeEffect=1.3; smallEffect=0.5; tinyEffect = 0.1; smallVar = 0.2; medVar = 0.4; largeVar = 0.7; hugeVar = 1.2
