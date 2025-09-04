@@ -27,7 +27,7 @@ autopipeR = defined
 Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
-Sources += sim_sesoi.md
+## Sources += sim_sesoi.md ## Moved by Bolker
 sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.R sim_sesoi/sim_sesoi_batch1.Rout sim_sesoi/sim_sesoi_batch2.Rout
 	$(qr)
 
