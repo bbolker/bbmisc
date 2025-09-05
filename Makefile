@@ -22,6 +22,9 @@ peak_reduction.Rout: peak_reduction.R
 
 ## Clarity simulations
 
+Sources += sim_sesoi/*.R sim_sesoi/*.qmd sim_sesoi/*_notes.md
+Ignore += sim_sesoi/*.html
+
 autopipeR = defined
 
 Ignore += Rmisc/*.html
