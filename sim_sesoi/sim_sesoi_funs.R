@@ -20,7 +20,7 @@ simfun_fast <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL,
   if (!is.null(seed)) set.seed(seed)
   nu <- 2*(n-1)
   ## difference between groups
-  mu <- rnorm(nsim, mean = -delta, sd = sd/sqrt(2*n))
+  mu <- rnorm(nsim, mean = -delta, sd = sd*sqrt(2/n))
   ## pooled SD
   s <- sqrt(rchisq(nsim, df = nu)/nu)*sd*sqrt(2/n)
   qq <- qt((1-conf.level)/2, df = nu, lower.tail = FALSE)
@@ -88,8 +88,8 @@ proptest <- function(x, s = 1) {
       upr_gt_negs = mean(upr>(-s)))
 }
 
-## leave fast=FALSE as default until fast version is fixed
-tabfun <- function(..., nsim = 10, fast = FALSE) {
+#' tabulate simulations falling into each category
+tabfun <- function(..., nsim = 10, fast = TRUE) {
   sf <- if (fast) {
     res <- simfun_fast(nsim = nsim, ...)
   } else {
