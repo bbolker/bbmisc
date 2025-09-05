@@ -98,7 +98,7 @@ We confirm that we do get overall power, i.e. all outcomes with a clear sign, ve
 
 If the true effect size ($\delta = 1$) is equal to the cutoff/SESOI ($s=1$) then everything converges
 to a narrow window around the SESOI: mostly "unclear magnitude/clear sign"
-but always a clear sign. Indeed, we can see that for $n=100$ we have converged (for 95% CI/$\alpha = 0.05$) to all "clear sign" (i.e. power $\approx$ 100%) with 95% in the "unclear magnitude" category and 2.5% in "clearly small" or "clearly large".
+but always a clear sign. Indeed, we can see that for $n=100$ we have converged (for 95% CI/$\alpha = 0.05$) to all "clear sign" (i.e. power $\approx$ 100%) with 95% in the "unclear magnitude" category and 2.5% each in "clearly small" or "clearly large".
 
 ```{r mm_tail}
 tt1 <- tabfun(n=200, nsim = 10000)
@@ -108,11 +108,10 @@ print(tt1)
 ### Simulations with $\delta=0.5$, $s=1$, varying $n$
 
 ```{r sim1-plot, fig.width = 8, message = FALSE}
-## suppress directlabels loading msg ...
-## FIXME: improve piping
+set.seed(101)
 nvec <- c(5:10, (2:9)*10, 100, 200)
-sim1 <- readRDS("sim_sesoi_batch1.rds")
-printfun(f_lengthen(sim1))
+sim1 <- lapply(nvec, tabfun, delta=0.5, nsim = 10000) |> do.call(what = rbind)
+plotfun(f_lengthen(sim1))
 ```
 
 ### Simulations with $\delta=1.5$, $s=1$, varying $n$
@@ -120,8 +119,9 @@ printfun(f_lengthen(sim1))
 What if we make the true effect size greater than the SESOI?
 
 ```{r sim2-plot, fig.width = 8}
-sim2 <- readRDS("sim_sesoi_batch2.rds")
-printfun(f_lengthen(sim2))
+sim2 <- lapply(nvec, tabfun, delta=1.5, nsim = 10000) |> do.call(what = rbind)
+attr(sim2, "pars") <- c(delta = 1.5, s = 1)
+plotfun(f_lengthen(sim2))
 ```
 
 ## next steps

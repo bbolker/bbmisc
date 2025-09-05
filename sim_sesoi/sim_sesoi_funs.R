@@ -102,7 +102,7 @@ tabfun <- function(..., nsim = 10, fast = TRUE) {
 }
 
 
-printfun <- function(x) {
+plotfun <- function(x, expand = 0.05) {
   ## Okabe-Ito minus black and yellow
   oi3 <- palette.colors(9)[-c(1, 5)]
   out_scale <- ggplot2::scale_colour_manual(name = "outcome category",
@@ -114,7 +114,8 @@ printfun <- function(x) {
     geom_point() +
     scale_x_log10() +
     labs(y = "proportion", x = "sample size per group") +
-    out_scale
+    out_scale +
+    expand_limits(y = 1 + expand)  ## make room for labels
   ## see https://tdhock.github.io/directlabels/docs/index.html
   ##  for direct labeling choices
   direct.label(gg0, "top.bumptwice")
