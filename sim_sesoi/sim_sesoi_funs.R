@@ -21,7 +21,7 @@ simfun2 <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL,
   ## difference between groups
   mu <- rnorm(nsim, mean = -delta, sd = sd/sqrt(2*n))
   ## pooled SD
-  s <- rchisq(nsim, df = nu)/nu*sd*sqrt(2/n)
+  s <- sqrt(rchisq(nsim, df = nu)/nu)*sd*sqrt(2/n)
   qq <- qt((1-conf.level)/2, df = nu, lower.tail = FALSE)
   cbind(est = mu, lwr = mu - qq*s, upr = mu + qq*s)
 }

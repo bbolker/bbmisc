@@ -1,13 +1,17 @@
-source("sim_sesoi/sim_sesoi_funs.R")
+## source("sim_sesoi/sim_sesoi_funs.R")
+library(shellpipes)
+
+loadEnvironments()
+
 
 set.seed(101)
 nsim <- 1e5
-res <- lapply(seq.int(nsim), function(i) simfun(delta=0, sd = 1, n = 2)) |> do.call(what=rbind)
+system.time(res <- lapply(seq.int(nsim), function(i) simfun(delta=0, sd = 1, n = 2)) |> do.call(what=rbind))
 colMeans(res)
-res2 <- simfun2(delta=0, sd = 1, n = 2, nsim = nsim)
+
+system.time(res2 <- simfun2(delta=0, sd = 1, n = 2, nsim = nsim))
 colMeans(res2)
 colMeans(res2)/colMeans(res)
-
 
 ## with n = 2, delta =0,  sd = 1
 ## res2:

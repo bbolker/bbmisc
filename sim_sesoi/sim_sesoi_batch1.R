@@ -9,4 +9,4 @@ set.seed(101)
 nvec <- c(5:10, (2:9)*10, 100, 200)
 sim1 <- lapply(nvec, tabfun, delta=0.5, nsim = 10000) |> do.call(what = rbind)
 
-saveEnvironment()
+rdsSave(sim1)
