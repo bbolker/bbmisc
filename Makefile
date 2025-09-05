@@ -35,6 +35,8 @@ sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.R sim
 sim_sesoi/sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
 	$(wrapR)
 
+sim_sesoi/simfun2_test.Rout: sim_sesoi/simfun2_test.R sim_sesoi/sim_sesoi_funs.rda
+
 ## sim_sesoi/sim_sesoi_batch1.rds: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.R
 sim_sesoi/sim_sesoi_batch1.Rout: sim_sesoi/sim_sesoi_batch1.R sim_sesoi_funs.rda
 	$(pipeR)
