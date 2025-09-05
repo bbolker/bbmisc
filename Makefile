@@ -27,16 +27,13 @@ autopipeR = defined
 Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
-## Sources += sim_sesoi.md ## Moved by Bolker
-sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.R sim_sesoi/sim_sesoi_batch1.Rout sim_sesoi/sim_sesoi_batch2.Rout
+## Sources += sim_sesoi.md ## Moved by Bolker 
+sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.R sim_sesoi/sim_sesoi_batch1.rds sim_sesoi/sim_sesoi_batch2.rds
 	$(qr)
 
 ## This is how you put things into a pipeR pipeline without touching them.
-sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
+sim_sesoi/sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
 	$(wrapR)
-
-## sim_sesoi/sim_sesoi_batch1.rds: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.R
-sim_sesoi/sim_sesoi_batch1.Rout: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.rda
 
 ## sim_sesoi/sim_sesoi_batch1.rds: sim_sesoi/sim_sesoi_batch1.R sim_sesoi/sim_sesoi_funs.R
 sim_sesoi/sim_sesoi_batch1.Rout: sim_sesoi/sim_sesoi_batch1.R sim_sesoi_funs.rda
