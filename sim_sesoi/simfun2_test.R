@@ -9,7 +9,7 @@ nsim <- 1e5
 system.time(res <- lapply(seq.int(nsim), function(i) simfun(delta=0, sd = 1, n = 2)) |> do.call(what=rbind))
 colMeans(res)
 
-system.time(res2 <- simfun2(delta=0, sd = 1, n = 2, nsim = nsim))
+system.time(res2 <- simfun_fast(delta=0, sd = 1, n = 2, nsim = nsim))
 colMeans(res2)
 colMeans(res2)/colMeans(res)
 

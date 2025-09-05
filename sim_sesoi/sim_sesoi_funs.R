@@ -13,10 +13,11 @@ simfun <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL) {
     return(res)
 }
 
-## I don't see what's wrong with this but it's giving CIs that are slightly
-##  too wide, compared to simfun() [at least for small n]
-simfun2 <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL,
-                    nsim = 1000) {
+#' faster version of simfun
+#' @inheritParams simfun
+simfun_fast <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL,
+                        nsim = 1000) {
+  if (!is.null(seed)) set.seed(seed)
   nu <- 2*(n-1)
   ## difference between groups
   mu <- rnorm(nsim, mean = -delta, sd = sd/sqrt(2*n))
@@ -87,8 +88,12 @@ proptest <- function(x, s = 1) {
       upr_gt_negs = mean(upr>(-s)))
 }
 
-tabfun <- function(..., nsim = 10) {
-  res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
+tabfun <- function(..., nsim = 10, fast = TRUE) {
+  sf <- if (fast) {
+    res <- simfun_fast(nsim = nsim, ...)
+  } else {
+    res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
+  }
   dd1 <- as.data.frame(res)
   dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
   res <- table(dd1$cat) |> prop.table()
