@@ -88,7 +88,8 @@ proptest <- function(x, s = 1) {
       upr_gt_negs = mean(upr>(-s)))
 }
 
-tabfun <- function(..., nsim = 10, fast = TRUE) {
+## leave fast=FALSE as default until fast version is fixed
+tabfun <- function(..., nsim = 10, fast = FALSE) {
   sf <- if (fast) {
     res <- simfun_fast(nsim = nsim, ...)
   } else {

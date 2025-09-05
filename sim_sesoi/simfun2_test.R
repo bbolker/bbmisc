@@ -1,5 +1,7 @@
 ## source("sim_sesoi/sim_sesoi_funs.R")
 library(shellpipes)
+library(dplyr)
+library(tidyr)
 
 loadEnvironments()
 
@@ -12,6 +14,21 @@ colMeans(res)
 system.time(res2 <- simfun_fast(delta=0, sd = 1, n = 2, nsim = nsim))
 colMeans(res2)
 colMeans(res2)/colMeans(res)
+
+tt0 <- tabfun(n=17, nsim =  10000, fast = FALSE)
+tt1 <- tabfun(n=17, nsim =  10000, fast = TRUE)
+cbind(tt0, tt1)
+
+res0 <- lapply(seq.int(10000), function(i) simfun(n=17)) |> do.call(what=rbind)
+res1 <- simfun_fast(nsim = 10000, n=17)
+
+comb <- list(slow = res0, fast = res1) |>
+  purrr::map(as.data.frame) |>
+  purrr::map_dfr(pivot_longer, cols = everything(), .id = "method")
+
+ggplot(comb, aes(x=value, fill=method)) +
+  geom_density(alpha=0.5) +
+  facet_wrap(~name, scales = "free")
 
 ## with n = 2, delta =0,  sd = 1
 ## res2:
