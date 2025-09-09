@@ -102,21 +102,28 @@ tabfun <- function(..., nsim = 10, fast = TRUE) {
 }
 
 
-plotfun <- function(x, expand = 0.05) {
+oi3 <- palette.colors(9)[-c(1, 5)]
+out_scale <- ggplot2::scale_colour_manual(name = "outcome category",
+                                          values = oi3)
+
+plotfun <- function(x, expand = 0.05, stack = FALSE) {
   ## Okabe-Ito minus black and yellow
-  oi3 <- palette.colors(9)[-c(1, 5)]
-  out_scale <- ggplot2::scale_colour_manual(name = "outcome category",
-                                            values = oi3)
   stopifnot(require("ggplot2"))
   stopifnot(require("directlabels"))
-  gg0 <- ggplot(x, aes(n, value, colour = name)) +
-    geom_line() +
-    geom_point() +
+  gg0 <- ggplot(x, aes(n, value)) +
     scale_x_log10() +
     labs(y = "proportion", x = "sample size per group") +
     out_scale +
     expand_limits(y = 1 + expand)  ## make room for labels
-  ## see https://tdhock.github.io/directlabels/docs/index.html
-  ##  for direct labeling choices
-  direct.label(gg0, "top.bumptwice")
+  if (!stack) {
+    gg1 <- gg0 +
+      geom_line(aes(colour = name)) +
+      geom_point(aes(colour = name))
+    ## see https://tdhock.github.io/directlabels/docs/index.html
+    ##  for direct labeling choices
+    direct.label(gg1, "top.bumptwice")
+  } else {
+    gg0 + geom_area(aes(fill = name), position = "stack",
+                    colour = NA)
+  }
 }

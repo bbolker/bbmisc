@@ -31,14 +31,14 @@ Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
 ## Sources += sim_sesoi.md ## Moved by Bolker 
-sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.R 
+sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.Rout 
 	$(qr)
 
 ## This is how you put things into a pipeR pipeline without touching them.
 sim_sesoi/sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
 	$(wrapR)
 
-sim_sesoi/simfun2_test.Rout: sim_sesoi/simfun2_test.R sim_sesoi/sim_sesoi_funs.rda
+sim_sesoi/simfun2_test.Rout: sim_sesoi/simfun2_test.R sim_sesoi/sim_sesoi_funs.Rout
 
 ## claritySims.md
 ## claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.R

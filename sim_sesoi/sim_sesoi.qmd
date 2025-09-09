@@ -22,12 +22,12 @@ Simulate a $t$-test-like comparison: what is the distribution of outcomes?
 The relevant parameters:
 
 | param    | default | meaning |
-|----------|---------|
+|----------|---------|---------|
 | $s$ | 1 | SESOI ("smallest effect size of interest") |
 | $\delta$ | 1  |unscaled effect size (difference between means) |
 | $\sigma$ | 1 | SESOI ("smallest effect size of interest") |
 | $\alpha$ |  0.05 | critical $p$-value |
-| n |   | sample size per group |
+| $n$ |   | sample size per group |
 
 
 We are classifying outcomes in the following way (from [here](https://dushoff.github.io/ResearchSandbox/clarStrength.Rout.pdf)/[here](https://github.com/dushoff/ResearchSandbox/blob/main/clarStrength.R)):
@@ -49,7 +49,7 @@ vr <- (
 )
 vf <- (vr
 	|> mutate(NULL
-		, pic = factor(pic, levels=rev(pic))
+		, pic = factor(pic, levels=pic)
 		, val = vget(val)
 		, unc = vget(unc)
 		, lwr = val-unc
@@ -59,15 +59,18 @@ vf <- (vr
 )
 print(ggplot(vf)
 	+ aes(val, pic)
-	+ geom_pointrange(aes(xmin=lwr, xmax=upr))
-    + theme(panel.grid.minor.x = element_blank())  ## delete vertical grid lines
+	+ geom_pointrange(aes(xmin=lwr, xmax=upr, col = pic))
+     ## delete vertical grid lines
+    + theme(panel.grid.minor.x = element_blank(),
+            legend.position = "none") 
 	+ geom_vline(xintercept=c(0, -1, 1), lty = c(1, 2, 2))
 	+ scale_x_continuous(limits=c(-span, span)
 		, breaks = -1:1
 		, labels = c("cutoff\n(SESOI)", 0 , "cutoff\n(SESOI)")
 	)
-	+ scale_y_discrete(labels=rev(vf$atext))
-  + labs(x = "", y = "")
+	+ scale_y_discrete(limits = rev, labels=rev(vf$atext))
+    + labs(x = "", y = "")
+    + out_scale
 )
 ```
 
@@ -114,6 +117,14 @@ sim1 <- lapply(nvec, tabfun, delta=0.5, nsim = 10000) |> do.call(what = rbind)
 plotfun(f_lengthen(sim1))
 ```
 
+Alternatively:
+
+```{r sim1-plot-stack, fig.width = 8, message = FALSE}
+plotfun(f_lengthen(sim1), stack = TRUE)
+```
+
+(have to work out how to do direct labeling ... see [here](https://stackoverflow.com/questions/10393956/add-direct-labels-to-ggplot2-geom-area-chart) ? set 'expand' to zero so coloured regions fill the whole plot area ...
+
 ### Simulations with $\delta=1.5$, $s=1$, varying $n$
 
 What if we make the true effect size greater than the SESOI?
@@ -122,6 +133,10 @@ What if we make the true effect size greater than the SESOI?
 sim2 <- lapply(nvec, tabfun, delta=1.5, nsim = 10000) |> do.call(what = rbind)
 attr(sim2, "pars") <- c(delta = 1.5, s = 1)
 plotfun(f_lengthen(sim2))
+```
+
+```{r sim2-plot-2, fig.width = 8}
+plotfun(f_lengthen(sim2), stack = TRUE)
 ```
 
 ## next steps
