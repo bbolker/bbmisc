@@ -27,7 +27,7 @@ simfun_fast <- function(n, delta=1, sd=1, conf.level = 0.95, seed = NULL,
   cbind(est = mu, lwr = mu - qq*s, upr = mu + qq*s)
 }
 
-f_lengthen <- function(x) {
+f_lengthen <- function(x, nvec) {
   (x 
     |> as.data.frame()
     |> dplyr::mutate(n = nvec, .before = 1)
@@ -89,14 +89,14 @@ proptest <- function(x, s = 1) {
 }
 
 #' tabulate simulations falling into each category
-tabfun <- function(..., nsim = 10, fast = TRUE) {
+tabfun <- function(..., s = 1, nsim = 10, fast = TRUE) {
   sf <- if (fast) {
     res <- simfun_fast(nsim = nsim, ...)
   } else {
     res <- lapply(seq.int(nsim), function(i) simfun(...)) |> do.call(what=rbind)
   }
   dd1 <- as.data.frame(res)
-  dd1$cat <- apply(dd1, 1, catfun) |> factor(levels = levs)
+  dd1$cat <- apply(dd1, 1, catfun, s=s) |> factor(levels = levs)
   res <- table(dd1$cat) |> prop.table()
   return(res)
 }
@@ -115,7 +115,7 @@ plotfun <- function(x, expand = 0.05, stack = FALSE) {
     labs(y = "proportion", x = "sample size per group") +
     out_scale +
     expand_limits(y = 1 + expand)  ## make room for labels
-  if (!stack) {
+  ret <- if (!stack) {
     gg1 <- gg0 +
       geom_line(aes(colour = name)) +
       geom_point(aes(colour = name))
@@ -126,4 +126,5 @@ plotfun <- function(x, expand = 0.05, stack = FALSE) {
     gg0 + geom_area(aes(fill = name), position = "stack",
                     colour = NA)
   }
+  ret
 }
