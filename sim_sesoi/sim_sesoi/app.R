@@ -29,7 +29,10 @@ ui <- fluidPage(
                 value = "20"),
       textInput("nsim",
                 "simulations per n",
-                value = "10000")
+                value = "10000"),
+      radioButtons("plot_type",
+                  "plot type",
+                  choices = c("line", "stack"))
     ) ## sidebarPanel
    ,
     # Show a plot of the generated distribution
@@ -85,9 +88,11 @@ server <- function(input, output) {
     return(simdf)
   })
 
+  stack_plot <- reactive({input$plot_type == "stack"})
+
   # Render the plot initially and when redo button is pressed
   output$powerPlot <- renderPlot({
-    plotfun(sim_data())
+    plotfun(sim_data(), stack = stack_plot())
   })
   
   # Optional: Update plot when redo button is pressed

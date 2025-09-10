@@ -113,18 +113,23 @@ plotfun <- function(x, expand = 0.05, stack = FALSE) {
   gg0 <- ggplot(x, aes(n, value)) +
     scale_x_log10() +
     labs(y = "proportion", x = "sample size per group") +
-    out_scale +
-    expand_limits(y = 1 + expand)  ## make room for labels
+    out_scale
   ret <- if (!stack) {
     gg1 <- gg0 +
       geom_line(aes(colour = name)) +
-      geom_point(aes(colour = name))
+      geom_point(aes(colour = name))  +
+      expand_limits(y = 1 + expand)  ## make room for labels
     ## see https://tdhock.github.io/directlabels/docs/index.html
     ##  for direct labeling choices
     direct.label(gg1, "top.bumptwice")
   } else {
-    gg0 + geom_area(aes(fill = name), position = "stack",
-                    colour = NA)
+    ## suppress 'scale for x is already present'
+    suppressMessages(
+      gg0 + geom_area(aes(fill = name), position = "stack",
+                      colour = NA) +
+        scale_x_continuous(expand = c(0,0)) +
+        scale_y_continuous(expand = c(0,0))
+    )
   }
   ret
 }

@@ -30,6 +30,9 @@ autopipeR = defined
 Ignore += Rmisc/*.html
 Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
 
+shiny_sesoi:
+	Rscript --vanilla sim_sesoi/sim_sesoi/app.R
+
 ## Sources += sim_sesoi.md ## Moved by Bolker 
 sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.Rout 
 	$(qr)
