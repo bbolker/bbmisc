@@ -33,8 +33,9 @@ into this figure:
 
 ### LaTeX
 
-* check for open-quotes: LateX needs double-back-single-quotes rather than " to start a double-quoted section
+* check for open-quotes: LaTeX needs double-back-single-quotes rather than " to start a double-quoted section
 * check for missing references, either in your LaTeX log or by searching for ? in your document (typically you don't use to many question marks in scholarly writing, so this should work OK)
+* unless you intend to start a new paragraph, don't follow a display equation with a blank line -- LaTeX will think you want a new paragraph and indent the next line. For readability, you can include a line consisting only of a comment character `%`.
 
 ### BibTeX
 
