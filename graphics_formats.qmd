@@ -1,0 +1,32 @@
+---
+title: "some stuff about graphics formats"
+author: Ben Bolker
+date: today
+---
+
+For people in stats/math/data science who might be drawing pictures, especially for those working in R.
+
+## Vector vs raster formats
+
+Vector formats describe graphics in terms of features ("blue rectangle with coordinates A, B, C, D"; "arrow from X to Y"; "letter 'Q' at position Z"), while raster formats specify colours in each cell of a rectangular table. *In general* vector formats are preferable because they can be rendered at arbitrarily fine resolution without needing to expand the file size (some exceptions listed below). To make a figure in a raster format more detailed, you have to increase the dimensions of the rectangular grid.
+
+## Vector formats
+
+* **PDF** (Portable Document Format): designed for documents, as the name size. Probably the most common vector format these days. Works almost everywhere, although not optimal for rendering within a web page. *Mostly* 'portable', although you can occasionally run into trouble with non-embedded fonts (i.e. if you have specified a font for letters in your image, have not included it within the PDF to save space, and the font isn't available on the viewer's system).
+* **SVG** (Scalable vector graphics): designed for vector-graphics figures. Less common/portable than PDF, but better for editing. Best format if you want to draw graphics in R and export them for manual fine-tuning in a drawing program (e.g. Adobe Illustrator, Inkscape, PowerPoint). In general the objects in your plot will be recognized as objects in the drawing program (although you may have to "ungroup").
+* **TikZ**: this is a weird image language built inside of TeX. The big advantage here is that if you put a TikZ-format image inside a (La)TeX document it will be rendered with the same fonts etc. as your main document. Use the [tikzDevice package](https://CRAN.R-project.org/package=tikzDevice) to export graphics from R in this format. See the [tikz web page](https://tikz.net/) for examples of the crazy things you can do in this format.
+
+## Raster formats
+
+* **PNG** (Portable network graphics): best overall format for raster images. Supports transparency. Uses a [compression algorithm](https://www.libpng.org/pub/png/spec/1.2/PNG-Compression.html) that looks for redundant information in sliding windows of pixels: this means that typically you can increase the resolution of rectangular objects in your image while barely increasing the file size. Well-supported in web browsers, etc.
+* **TIFF**: an older and (IMO) very clunky raster format. Often requested by journals for final versions of images (I don't know why).
+* **JPG**: this format is designed for *photographic* images, not line/area drawings. It will work OK, but its compression doesn't work well for line drawings. At high compression or high magnification you'll see speckly compression artifacts around sharp features (such as the edges of letters in text).
+* **GIF**: an older graphics format. Sometimes used because it is relatively easy to embed multiple images in a single file as an animation.
+
+## When to use raster instead of vector formats
+
+* if you are plotting a graph with a huge number of overlapping features (e.g. a million points), vector formats will waste a lot of space plotting features on top of each other. In this case using a reasonably high-resolution raster format instead may work well.
+* In many cases you can embed a raster image *inside* a vector-format file (e.g. one of the features is "a raster of dimensions (h,w) at position (x,y)"
+   * in base R, `image(..., useRaster = TRUE)` will use raster graphics rather than drawing every rectangle separately.
+   * in ggplot2, `geom_raster()` plots a raster (of course) (in contrast to `geom_tile()`)
+* the amazing [ggrastr package](https://CRAN.R-project.org/package=ggrastr) can rasterize a specific layer in your ggplot, leaving the other layers as vector information
