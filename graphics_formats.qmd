@@ -7,7 +7,7 @@ format:
 date: today
 ---
 
-For people in stats/math/data science who might be drawing pictures, especially for those working in R.
+For people in stats/math/data science who might be drawing plots and diagrams, especially for those working in R.
 
 ## Vector vs raster formats
 
