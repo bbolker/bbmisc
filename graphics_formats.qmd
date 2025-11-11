@@ -1,6 +1,9 @@
 ---
 title: "some stuff about graphics formats"
 author: Ben Bolker
+format:
+  html:
+    embed-resources: true
 date: today
 ---
 
@@ -30,3 +33,4 @@ Vector formats describe graphics in terms of features ("blue rectangle with coor
    * in base R, `image(..., useRaster = TRUE)` will use raster graphics rather than drawing every rectangle separately.
    * in ggplot2, `geom_raster()` plots a raster (of course) (in contrast to `geom_tile()`)
 * the amazing [ggrastr package](https://CRAN.R-project.org/package=ggrastr) can rasterize a specific layer in your ggplot, leaving the other layers as vector information
+
