@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ben Bolker">
-<meta name="dcterms.date" content="2025-11-11">
+<meta name="dcterms.date" content="2026-01-15">
 
 <title>some stuff about graphics formats</title>
 <style>
@@ -2162,7 +2162,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 11, 2025</p>
+      <p class="date">January 15, 2026</p>
     </div>
   </div>
   
@@ -2183,16 +2183,16 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="vector-formats">Vector formats</h2>
 <ul>
 <li><strong>PDF</strong> (Portable Document Format): designed for documents, as the name size. Probably the most common vector format these days. Works almost everywhere, although not optimal for rendering within a web page. <em>Mostly</em> ‘portable’, although you can occasionally run into trouble with non-embedded fonts (i.e. if you have specified a font for letters in your image, have not included it within the PDF to save space, and the font isn’t available on the viewer’s system).</li>
-<li><strong>SVG</strong> (Scalable vector graphics): designed for vector-graphics figures. Less common/portable than PDF, but better for editing. Best format if you want to draw graphics in R and export them for manual fine-tuning in a drawing program (e.g. Adobe Illustrator, Inkscape, PowerPoint). In general the objects in your plot will be recognized as objects in the drawing program (although you may have to “ungroup”).</li>
-<li><strong>TikZ</strong>: this is a weird image language built inside of TeX. The big advantage here is that if you put a TikZ-format image inside a (La)TeX document it will be rendered with the same fonts etc. as your main document. Use the <a href="https://CRAN.R-project.org/package=tikzDevice">tikzDevice package</a> to export graphics from R in this format. See the <a href="https://tikz.net/">tikz web page</a> for examples of the crazy things you can do in this format.</li>
+<li><strong>SVG</strong> (Scalable vector graphics): designed for vector-graphics figures. Less common/portable than PDF, but better for editing. Best format if you want to draw graphics in R and export them for manual fine-tuning in a drawing program (e.g. Adobe Illustrator, Inkscape, PowerPoint). In general the objects in your plot will be recognized as objects in the drawing program (although you may have to “ungroup”). Some web browsers might know what to do with it.</li>
+<li><strong>TikZ</strong>: this is a weird image language built inside of TeX. The big advantage here is that if you put a TikZ-format image inside a (La)TeX document it will be rendered with the same fonts etc. as your main document (and be able to include any strange math symbols you’re using). Use the <a href="https://CRAN.R-project.org/package=tikzDevice">tikzDevice package</a> to export graphics from R in this format. See the <a href="https://tikz.net/">tikz web page</a> for examples of the crazy things you can do in this format.</li>
 </ul>
 </section>
 <section id="raster-formats" class="level2">
 <h2 class="anchored" data-anchor-id="raster-formats">Raster formats</h2>
 <ul>
-<li><strong>PNG</strong> (Portable network graphics): best overall format for raster images. Supports transparency. Uses a <a href="https://www.libpng.org/pub/png/spec/1.2/PNG-Compression.html">compression algorithm</a> that looks for redundant information in sliding windows of pixels: this means that typically you can increase the resolution of rectangular objects in your image while barely increasing the file size. Well-supported in web browsers, etc.</li>
+<li><strong>PNG</strong> (Portable network graphics): best overall format for raster images. OK for plots and diagrams, best for serving plots/diagrams on the web (where vector formats are less convenient). Supports transparency. Uses a <a href="https://www.libpng.org/pub/png/spec/1.2/PNG-Compression.html">compression algorithm</a> that looks for redundant information in sliding windows of pixels: this means that typically you can increase the resolution of rectangular objects in your image while barely increasing the file size. Well-supported in web browsers, etc.</li>
+<li><strong>JPG</strong>: this format is designed for <em>photographic</em> images, not line/area drawings. <em>You should generally use PNG instead for plots, charts, and line drawings.</em> JPG will work OK, but its compression algorithm works poorly for line drawings. At high compression or high magnification you’ll see speckly compression artifacts around sharp features (such as the edges of letters in text).</li>
 <li><strong>TIFF</strong>: an older and (IMO) very clunky raster format. Often requested by journals for final versions of images (I don’t know why).</li>
-<li><strong>JPG</strong>: this format is designed for <em>photographic</em> images, not line/area drawings. It will work OK, but its compression doesn’t work well for line drawings. At high compression or high magnification you’ll see speckly compression artifacts around sharp features (such as the edges of letters in text).</li>
 <li><strong>GIF</strong>: an older graphics format. Sometimes used because it is relatively easy to embed multiple images in a single file as an animation.</li>
 </ul>
 </section>
@@ -2200,12 +2200,12 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="when-to-use-raster-instead-of-vector-formats">When to use raster instead of vector formats</h2>
 <ul>
 <li>if you are plotting a graph with a huge number of overlapping features (e.g. a million points), vector formats will waste a lot of space plotting features on top of each other. In this case using a reasonably high-resolution raster format instead may work well.</li>
-<li>In many cases you can embed a raster image <em>inside</em> a vector-format file (e.g. one of the features is “a raster of dimensions (h,w) at position (x,y)”
+<li>You can sometimes embed a raster image <em>inside</em> a vector-format file (e.g. one of the features is “a raster of dimensions (h,w) at position (x,y)”)
 <ul>
 <li>in base R, <code>image(..., useRaster = TRUE)</code> will use raster graphics rather than drawing every rectangle separately.</li>
 <li>in ggplot2, <code>geom_raster()</code> plots a raster (of course) (in contrast to <code>geom_tile()</code>)</li>
 </ul></li>
-<li>the amazing <a href="https://CRAN.R-project.org/package=ggrastr">ggrastr package</a> can rasterize a specific layer in your ggplot, leaving the other layers as vector information</li>
+<li>the amazing <a href="https://CRAN.R-project.org/package=ggrastr">ggrastr package</a> will rasterize (a) specific layer(s) in your ggplot, leaving the other layers in vector format (e.g., you can condense your 10 million overlapping points into a raster while leaving the grid lines, axes labels, etc. in vector format)</li>
 </ul>
 </section>
 
