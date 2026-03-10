@@ -114,13 +114,13 @@ print(tt1)
 set.seed(101)
 nvec <- c(5:10, (2:9)*10, 100, 200)
 sim1 <- lapply(nvec, tabfun, delta=0.5, nsim = 10000) |> do.call(what = rbind)
-plotfun(f_lengthen(sim1))
+plotfun(f_lengthen(sim1, nvec))
 ```
 
 Alternatively:
 
 ```{r sim1-plot-stack, fig.width = 8, message = FALSE}
-plotfun(f_lengthen(sim1), stack = TRUE)
+plotfun(f_lengthen(sim1, nvec), stack = TRUE)
 ```
 
 (have to work out how to do direct labeling ... see [here](https://stackoverflow.com/questions/10393956/add-direct-labels-to-ggplot2-geom-area-chart) ? set 'expand' to zero so coloured regions fill the whole plot area ...
@@ -132,11 +132,11 @@ What if we make the true effect size greater than the SESOI?
 ```{r sim2-plot, fig.width = 8}
 sim2 <- lapply(nvec, tabfun, delta=1.5, nsim = 10000) |> do.call(what = rbind)
 attr(sim2, "pars") <- c(delta = 1.5, s = 1)
-plotfun(f_lengthen(sim2))
+plotfun(f_lengthen(sim2, nvec))
 ```
 
 ```{r sim2-plot-2, fig.width = 8}
-plotfun(f_lengthen(sim2), stack = TRUE)
+plotfun(f_lengthen(sim2, nvec), stack = TRUE)
 ```
 
 ## next steps

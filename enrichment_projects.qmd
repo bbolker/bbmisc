@@ -1,0 +1,58 @@
+---
+title: "ISCI 2A18 enrichment project topics (math)"
+date: today
+from: markdown+autolink_bare_uris
+format:
+  html:
+    embed-resources: true
+---
+
+## subexponential growth of epidemics
+
+Explore the degree to which initial epidemic curves seem to follow power-law (sub-exponential), rather than exponential trajectories (inspired by Australian AIDS data from Dobson and Barnett). This project would involve (1) learning about epidemic models; (2) reading some of the papers by Chowell, Viboud and others on dynamical models and theories for why subexponential growth might occur; (3) assembling data on a wide variety of epidemic curves and characterizing their qualitative growth type (statistical modeling).
+
+Chowell, Gerardo, and Cécile Viboud. 2016. “Is It Growing Exponentially Fast? – Impact of Assuming Exponential Growth for Characterizing and Forecasting Epidemics with Initial near-Exponential Growth Dynamics.” Infectious Disease Modelling 1 (1): 71–78. https://doi.org/10.1016/j.idm.2016.07.004.
+
+## animal movement and potential surfaces
+
+Observing animal movement (using various tracking/telemetric technologies) gives us valuable information about their behaviour, habitat preferences, etc.. Some researchers have suggested that animal movement (and other movement trajectories, like the movement of a soccer ball in a World Cup match) could be modeled by supposing that the animals are moving according to a (hypothetical) potential function that quantifies the strength of their attraction to or repulsion from various features in the environment (food, human disturbance, etc.). The first task in this project (besides reading and understanding papers) would be to try to replicate some of the analyses from (particularly) Preisler et al 2013.
+
+
+Brillinger, D. R. 2007. “A Potential Function Approach to the Flow of
+Play in Soccer.” J. Quantitative Analysis in Sports 3.
+DOI:10.2202/1559-0410.1048
+
+Brillinger, David R., Brent S. Stewart, Charles L. Littnan, and others.
+2008. “Three Months Journeying of a Hawaiian Monk Seal.” In Probability
+and Statistics: Essays in Honor of David A. Freedman. Institute of
+Mathematical Statistics.
+http://projecteuclid.org.libaccess.lib.mcmaster.ca/euclid.imsc/1207580087.
+
+Preisler, Haiganoush K., Alan A. Ager, Bruce K. Johnson, and John G.
+Kie. 2004. “Modeling Animal Movements Using Stochastic Differential
+Equations.” Environmetrics 15 (7): 643–57. https://doi.org/10.1002/env.636.
+
+Preisler, Haiganoush K., Alan A. Ager, and Michael J. Wisdom. 2013.
+“Analyzing Animal Movement Patterns Using Potential Functions.”
+Ecosphere 4 (3): art32. https://doi.org/10.1890/ES12-00286.1.
+
+## rounded tetrahedra
+
+Explore the family of rounded triangular and tetrahedral shapes, e.g. 
+
+* [Meissner tetrahedra](https://en.wikipedia.org/wiki/Reuleaux_tetrahedron#Meissner_bodies);
+* [Reuleaux tetrahedra](https://en.wikipedia.org/wiki/Reuleaux_tetrahedron);
+* power transformations of the tetrahedron (i.e., taking the points of a tetrahedron and squaring them leads to a circle, so presumably raising them to a power $1 < \alpha <  2$ would lead to some kind of rounded tetrahedron?);
+* the rotor shape of a [Wankel engine](https://en.wikipedia.org/wiki/Wankel_engine), based on a *peritrotrochoid curve*; does this shape generalize to 3D?
+
+Maybe some 3D printing work here?
+
+Ansdale, Richard Franz, and D. J. Lockley. 1969. The Wankel RC Engine; Design and Performance. [1st American ed.]. A.S. Barnes.
+
+“Peritrochoid Curve & Wankel Engine.” n.d. Mechanical Drafting Services -Solidworks. Accessed November 16, 2024. https://mechdrafting.net/en/portfolio-item/peritrochoid-curve 
+
+## epidemic momentum
+
+Learn enough about [Hamiltonian mechanics](https://en.wikipedia.org/wiki/Hamiltonian_mechanics) to think about the newly derived concept of *epidemic momentum* and the expression for the Hamiltonian of a Susceptible-Infected-Recovered (SIR) ODE model stated in endnote 2 [E2] of Earn and Parsons (2025). What does the concept of epidemic momentum, and the corresponding Hamiltonian, tell us about the analogues of potential and kinetic energy in an SIR system?
+
+Earn, David J. D., and Todd L. Parsons. 2025. “Epidemic Momentum.” arXiv:2511.01939. Preprint, arXiv, November 2. https://doi.org/10.48550/arXiv.2511.01939.
