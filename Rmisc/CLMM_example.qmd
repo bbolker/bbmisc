@@ -1,0 +1,310 @@
+---
+title: "analyzing vignettes with a mixed ordinal model"
+date: today
+author: "Ben Bolker"
+bibliography: clmm_sing.bib
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+    embed-resources: true
+---
+
+## Options
+
+```{r opts}
+focal_question <- 1
+fn  <- "clmm_fits_Q1.rds"
+ncores <- 12
+```
+
+```{r pkgs, message = FALSE}
+library(readxl)
+library(ordinal)
+library(broom.mixed)
+library(parallel)
+library(ggplot2); theme_set(theme_bw())
+library(dplyr)  ## mutate/filter/etc.
+library(purrr)
+library(emmeans)
+## library(dotwhisker) ## not used [raw ggplot instead]
+## library(marginaleffects) ## doesn't work for clmm() models yet ...
+```
+
+Read and transform data:
+
+```{r read-data}
+## dataset <- read_excel("C:/Users/Anmol/Documents/suicide stats 25/r SUICIDE/Suicide Study 24 25 FINAL.xlsx")
+infn <- "SUICIDE STAT CLEANED FOR THESIS.xlsx"
+if (file.exists(infn)) {
+  dataset <- read_excel(infn)
+}
+#making sure the file is not empty
+if (!is.null(dataset)) {
+  dataset <- transform(dataset,
+                       RESP = factor(RESP, 
+                                     levels = 1:4,
+                                     labels = c("Strongly Disagree", "Disagree", "Agree", "Strongly Agree"),
+                                     ordered = TRUE),
+  TB = factor(TB),
+  PB = factor(PB),
+  LV = factor(LV),
+  ## construct interactions by hand, clmm() can't handle these
+  PB_LV_TB = interaction(PB, LV, TB), #main eff
+  RESPID_PB_LV_TB = interaction(RESPID, PB, LV, TB),
+  DE_PB_LV_TB = interaction(DE, PB, LV, TB)
+  )
+}
+```
+
+Fit all of the models (or recover the saved fits from a file). 
+
+- the fully crossed maximal model [@barrRandom2013], including variation of three-way interaction and all lower-order terms across both `RESPID` and `DE`
+- drop three-way interactions (only main effects and two-way interactions)
+- main effect varying only
+- `CRI`: "complex random interactions" *sensu* @scandolaReliabilityFeasibilityLinear2024
+- `CRI_minus`: intercept-only for `DE`, CRI for `RESPID`; this is based on using `isSingular(., collapse=FALSE)` (as defined below) to see which particular terms of the model above were singular
+
+```{r fit-models}
+if (file.exists(fn)) {
+  fits <- readRDS(fn)
+} else {
+  
+  ## we only have 4 jobs to run (so far), but each one is multi-threaded, so
+  ##   need more cores in cluster ... ???
+  ##
+  ## i have 12 codes
+  cl <- makeCluster(min(ncores, detectCores()-1))
+
+  ## all possible (so far) choices for random effect terms
+  re_forms <- c(
+    ## fully crossed (maximal model)
+    full = "(PB*LV*TB|RESPID) + (PB*LV*TB|DE)",
+    ## two-way interactions among factors
+    ##  (only reduces from 8x8 to 7x7 covariance matrix)
+    twoway = "((PB+LV+TB)^2|RESPID) + ((PB+LV+TB)^2|DE)", #incl this cuz if we r looking at 3 way, we must incl all the lower order ones
+    ## main effects only
+    maineff = "(PB+LV+TB|RESPID) + (PB+LV+TB|DE)",
+    ## complex random intercepts à la Scandola and Tidoni
+    ## (need to spell these out, clmm can't expand in-place)
+    CRI = "(1|RESPID) + (1|RESPID_PB_LV_TB) + (1|DE) + (1|DE_PB_LV_TB)",
+    CRI_minus = "(1|RESPID) + (1|DE) + (1|DE_PB_LV_TB)"
+  )
+
+  fitfun <- function(re_form, question = 1) { #change question based on the q analyzing (1-3)
+    ## add fixed effects (full three-way interaction) to specified RE
+    form <- reformulate(c("PB*LV*TB", re_form), response = "RESP") #reformulate creates a formula from a character vector
+    dd <- subset(dataset, QUES == question)
+    t1 <- system.time(
+      fit <- clmm(form, #form = formula
+                  data = dd,
+                  ## 'trace' gives noisy output (but disappears if run in parallel)
+                  control = clmm.control(trace = 1,
+                                         iter.max = 1000, eval.max = 1000)
+                  )
+    )
+    attr(fit, "time") <- t1
+    fit
+  }
+
+  ## fit everything in parallel - have to load packages and export data
+  invisible(clusterEvalQ(cl, library(ordinal)))
+  clusterExport(cl, c("dataset", "re_forms"))
+  fits <- parLapply(cl, re_forms, fitfun)
+
+  stopCluster(cl)
+  saveRDS(fits, file = fn)
+}
+```
+
+```{r}
+if (exists("dd")) {
+  dataQ <- subset(dd, question == focal_question)
+  ## checking distribution/experimental design
+  with(dataQ, table(table(PB, LV, TB, RESPID)))  ## 2 observations for every combination (because we had one that was parent vs partner)
+  ## for example ...
+  subset(dataQ, LV ==1 & TB == 0 & PB == 1 & RESPID ==84)
+}
+```
+
+Both RE terms from the full model are singular (determinant approx 0)
+
+```{r}
+sapply(VarCorr(fits[["full"]]), det)
+```
+
+Check if any of the RE terms is singular (zero variance etc.: see [GLMM FAQ](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#singular-fits), [lme4 documentation](https://lme4.r-universe.dev/lme4/doc/manual.html#isSingular))
+
+```{r sing-vals-funs}
+isSingular <- function(x, tol = 1e-8, collapse = TRUE) {
+  dets <- vapply(VarCorr(x), det, FUN.VALUE = numeric(1))
+  sing <- dets < tol
+  if (!collapse) sing else any(sing)
+}
+get_time <- function(x, w = "elapsed") {
+  attr(x, "time")[[w]]
+}
+
+AICtab <- purrr::map_dfr(fits,
+                         function(x) {
+                           tibble(AIC = AIC(x),
+                                  sing = isSingular(x))
+                         },
+                         .id = "model") |>
+  mutate(delta_AIC = AIC-min(AIC), .after = "model") |>
+  select(-AIC) |>
+  arrange(delta_AIC)
+```
+
+```{r print-aictab}
+knitr::kable(AICtab, digits=1)
+```
+
+Choosing RE (random effects) on the basis of minimum AIC is reasonable ... e.g. @batesParsimonious2015, @matuschekBalancing2017, @moritzrole2023a
+
+Timings (in seconds):
+```{r times}
+sapply(fits, get_time, "sys.self")  
+```
+
+Proceed with simplest (lowest-AIC, non-singular) model:
+
+```{r}
+fCRI <- fits[["CRI_minus"]]
+```
+
+```{r eval=FALSE, include = FALSE}
+get_sds <- function(fit) {
+  sapply(VarCorr(fit), attr, "stddev")
+}
+print(get_sds(fCRI))
+```
+
+<!-- I'm not sure why last two variances are identical - that may be because of balanced experimental design or ??
+-->
+
+Would normally worry about scaling by 2SD to draw coefficient plots [@gelmanScaling2008; @schielzethSimple2010], but all predictors are categorical/binary, so should be comparable:
+
+```{r fit-funs}
+## first two fits give non-pos-def Hessians, have to work harder
+## (move this fix upstream to the `tidy` method?)
+tfun <- function(x, alpha = 0.05) {
+  npd <- inherits(try(vcov(x), silent = TRUE), "try-error")
+  if (npd) {
+    ## do tidying by hand, using `Matrix::nearPD` to force positive definite
+    ##  Hessian/allow SE computation
+    vv <- Matrix::nearPD(x$Hessian)$mat
+    se <- sqrt(diag(solve(vv)))
+    cc <- coef(x)
+    ## | indicates intercepts, ST are variances
+    omitfun <- function(x) {
+      x[!grepl("(ST|\\|)", names(x))]
+    }
+    cc <- omitfun(cc)
+    se <- omitfun(se)
+    qq <- qnorm(1-alpha/2)
+    ret <- tibble(term = names(cc),
+                  estimate = cc,
+                  std.error = se,
+                  statistic = cc/se,
+                  p.value = 2*pnorm(-abs(statistic)),
+                  lwr = cc - qq*se, upr = cc + qq*se,
+                  )
+  } else {
+    ret <- tidy(x, effects = "fixed", conf.int = TRUE)  |>
+      filter(coef.type == "location") |>
+      rename(lwr = "conf.low", upr = "conf.high")
+  }
+  ret
+}
+```
+
+```{r sum-fits}
+reorder_fun <- function(x) {
+  x <- mutate(x, across(term, ~ reorder(factor(.), estimate)))
+  if ("model" %in% names(x)) {
+    x <- mutate(x, across(model, forcats::fct_inorder))
+  }
+  x
+}
+tt_all <- purrr::map_dfr(fits, tfun, .id = "model") |> reorder_fun()
+tt <- tfun(fCRI) |> reorder_fun()
+```
+
+```{r plot-gg-all, message=FALSE}
+gg_all <- ggplot(tt_all, aes(estimate, term, color = model)) +
+  geom_pointrange(aes(xmin=lwr, xmax = upr),
+                  position = position_dodge(width = 0.3)) +
+  geom_vline(xintercept = 0, lty = 2)
+
+print(gg_all)
+ggsave(gg_all, file = "param_comparison.pdf")
+```
+
+These are in units of log-odds.
+
+Final model only (could use `dotwhisker::dwplot()` but I like to tweak things a little bit more)
+
+```{r final-model-coefplot}
+gg_final <- ggplot(tt, aes(estimate, term)) +
+  geom_pointrange(aes(xmin=lwr, xmax = upr)) +
+  geom_vline(xintercept = 0, lty = 2)
+print(gg_final)
+```
+
+Note for interpretation purposes that these effects are using *treatment contrasts* (see below)
+
+Can look at expected marginal means, for every level:
+
+```{r emmeans}
+plot(emmeans(fCRI, ~PB*LV*TB))
+```
+
+or for one particular main effect
+
+```{r emmeans-PB}
+(em_PB <- emmeans(fCRI, ~PB))
+pairs(em_PB)
+```
+
+Refit with sum-to-zero contrasts. This doesn't change the model, but it changes the interpretation of the lower-level terms (main effects and two-way interactions). These are now the *average* effects across levels rather than effect at the baseline level. For example, in the previous (default, treatment contrasts) model, the `PB` effect was the effect of `PB` at the baseline levels of the other variables (`TB=0`, `DE=0`). In the model below, it is the average of the effect across the combinations of other variables. Normally we could use `emmeans` to do this without fitting the model, but because we are fitting a specialized random effects models,  we need to refit.
+
+```{r fit-zero-sum}
+clist <- rep("contr.sum", 3) |> setNames(c("TB", "LV", "PB")) |> as.list()
+## have to do some fancy stuff because the model was fitted within a function,
+## the objects we need to re-fit the model are no longer visible ...
+form <- formula(fCRI)
+dd <- subset(dataset, QUES == focal_question)
+fCRI2 <- update(fCRI,
+                contrasts = clist,
+                control = clmm.control()  ## turn off tracing etc.
+                )
+tt2 <- tfun(fCRI2) |>  reorder_fun()
+suppressWarnings(gg_zerocontrasts <- gg_final %+% tt2)
+```
+
+We get a fairly different set of parameters (this means the *interpretation*
+is different under these contrasts -- the overall model itself is the same)
+have to decide which interpretation is actually the most meaningful for this
+example ...
+
+Coefficient plot:
+
+```{r zero-contrast-plot}
+print(gg_zerocontrasts)
+```
+
+```{r coefmat}
+tt2 |>
+  rename("p-value" = "p.value") |>
+  select(-c(term, lwr, upr)) |>
+  as.data.frame() |>  ## convert to data frame before setting rownames
+  `rownames<-`(tt2$term) |>
+  printCoefmat(digits = 2)
+```
+
+Estimates and confidence intervals:
+
+```{r}
+tt2 |> select(term, estimate, lwr, upr) |> knitr::kable(digits=3)
+```
