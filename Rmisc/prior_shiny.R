@@ -96,9 +96,9 @@ run_shiny <- function(ranges,
 }
 
 ## FIXME: generalize all of this
-## source("tpc_funs.R") ## prior_ranges, tpc_prob
-## prior_ranges <- c(prior_ranges, list(C=c(1,1)))
-## run_shiny(ranges = prior_ranges, curve_fun = \(x, p) tpc_prob(pars = p, Tvec = x))
+source("tpc_funs.R") ## prior_ranges, tpc_prob
+prior_ranges <- c(prior_ranges, list(C=c(1,1)))
+run_shiny(ranges = prior_ranges, curve_fun = \(x, p) tpc_prob(pars = p, Tvec = x))
 
 ## Example from McElreath 2d ed. Figure 4.5
 
