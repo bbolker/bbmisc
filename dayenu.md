@@ -1,6 +1,6 @@
 ## Updating the Haggadah
 
-Here it is – another Passover, another year, another time to reflect and another frantic not-quite-enough-time-allotted-before-the-Seder to do it in, like not having enough time to prepare for class but finally, after years, beginning to accept that the discussion will go OK anyway. I'm sure the discussion will be fine, with all these overeducated and opinionated people to join in it: but what do I think we need to add to the Haggadah this year?
+Here it is – another Passover, another year, another time to reflect and another frantic not-quite-enough-time-allotted-before-the-Seder to do it in, like not having enough time to prepare for class but finally, after years, beginning to accept that the Seder will go OK anyway. I'm sure the discussion will be fine, with all these opinionated and overeducated  people to join in: but what do I think we need to add to the Haggadah this year?
 
 Really things don’t change: there is the French proverb (plus ça change, plus c'est la même), and I'm sure there’s a Yiddish one too. I don't think human nature changes, nor the possibilities for human hope and despair, nor the kindness or cruelty with which we treat our nearer and farther neighbors. Sure, things happened this year in our own lives and in our families' lives that we can celebrate, or can only celebrate surviving, and sure there is plenty to mourn and celebrate in our country and in the world: that's for the class to discuss. 
 
