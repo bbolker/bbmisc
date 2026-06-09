@@ -1,5 +1,8 @@
 ---
 title: "development tools we should be using more"
+format:
+  html:
+    embed-resources: true
 ---
 
 ## auto-formatters/linters
