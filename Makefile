@@ -105,6 +105,9 @@ docs/%.html: %.html
 %.pdf: %.tex
 	pdflatex --interaction=nonstopmode $*
 
+docs/%.html: %.html
+	mv $< $@
+
 clean:
 	rm -f *.log *.aux *.md *.out *.nav *.snm *.toc *.vrb texput.log *~
 
