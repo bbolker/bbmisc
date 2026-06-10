@@ -13,7 +13,7 @@ I still format inconsistently (part of this is based on some emacs configuration
 
 ## environment preservation
 
-There are a bunch of tools for this: `renv`, [uvr](https://nbafrank.github.io/uvr/), Docker ... like the auto-formatters, part of the problem is the degree of opinionatedness/how much these tools impose themselves on all users of a system (I've had some hassles with `renv` ...)
+There are a bunch of tools for this: `renv`, [uvr](https://nbafrank.github.io/uvr/), Docker ... like the auto-formatters, part of the problem is the degree of opinionatedness/how much these tools impose themselves on all users of a system (I've had some hassles with `renv` ...) Consider https://github.com/ropensci/rix as well? (heavier - includes R versions and system dependencies as well; works on Linux/MacOS, and Windows with WSL2)
 
 ## 
 
