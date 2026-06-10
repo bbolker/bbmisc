@@ -19,6 +19,7 @@ peak_I_simple.html: peak_I_simple.rmd
 
 peak_reduction.Rout: peak_reduction.R
 
+Ignore += *.html
 Ignore += tools.md
 tools.md: tools.qmd
 	quarto render $< --to gfm -o $@
