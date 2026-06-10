@@ -1,4 +1,5 @@
 ## This is bbmisc
+## https://bolker.github.io/bbmisc/federated.html
 
 current: target
 -include target.mk
@@ -17,6 +18,10 @@ peak_I.html: peak_I.rmd
 peak_I_simple.html: peak_I_simple.rmd
 
 peak_reduction.Rout: peak_reduction.R
+
+Ignore += tools.md
+tools.md: tools.qmd
+	quarto render $< --to gfm -o $@
 
 ######################################################################
 
