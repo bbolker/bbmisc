@@ -1,5 +1,5 @@
 ## This is bbmisc
-## https://bolker.github.io/bbmisc/federated.html
+## https://bbolker.github.io/bbmisc/federated.html
 
 current: target
 -include target.mk
