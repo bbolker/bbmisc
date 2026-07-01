@@ -127,5 +127,8 @@ tile <- image_montage(
   bg        = "white"
 )
 
-image_write(tile, "penguin_mosaic.png", format = "png")
-message("Written to penguin_mosaic.png")
+## Written as JPEG (not PNG): source tiles are already lossy JPEGs, so PNG's
+## lossless compression buys nothing but bloats the file well past tidytuesday's
+## ~976.56 KB (Bluesky) image size limit; quality 90 keeps it comfortably under.
+image_write(tile, "penguin_mosaic.jpg", format = "jpeg", quality = 90)
+message("Written to penguin_mosaic.jpg")

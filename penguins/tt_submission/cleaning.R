@@ -56,20 +56,20 @@ metadata <- slice(metadata, my_rows) |> select(-Source)
 write.csv(metadata, file = "metadata.csv", row.names = FALSE)
 
 # Resolve Spheniscidae to an OTT ID
-sphen <- tnrs_match_names("Spheniscidae")
+sphen <- rotl::tnrs_match_names("Spheniscidae")
 
-# Pull the full synthetic subtree for all penguins
-tree <- tol_subtree(ott_id = ott_id(sphen), label_format = "name")
+## Pull the full synthetic subtree for all penguins
+## (don't care about singleton-node warning)
+tree <- suppressWarnings(rotl::tol_subtree(ott_id = ott_id(sphen), label_format = "name"))
 
 ## OTL represents some extant species at subspecies level (trinomials like
 ## Pygoscelis_papua_papua). Collapse to binomials then drop duplicate tips
 ## so each species appears once.
-binomials <- sub("^([A-Za-z]+_[A-Za-z]+)_.*$", "\\1", tree$tip.label)
-tree <- drop.tip(tree, tree$tip.label[duplicated(binomials)])
-tree$tip.label <- sub("^([A-Za-z]+_[A-Za-z]+)_.*$", "\\1", tree$tip.label)
+tree$tip.label <- sub("^([[:alpha:]]+_[[:alpha:]]+)_.*", "\\1", tree$tip.label)
+tree <- ape::drop.tip(tree, tree$tip.label[duplicated(tree$tip.label)])
 
-penguin_tree <- keep.tip(tree, tree$tip.label[tree$tip.label %in% gsub(" ", "_", levels(many_penguins$species))])
-write.tree(penguin_tree, "penguin.nwk")
+penguin_tree <- ape::keep.tip(tree, tree$tip.label[tree$tip.label %in% gsub(" ", "_", levels(many_penguins$species))])
+ape::write.tree(penguin_tree, "penguin.nwk")
 
 ## data from Subramian et al 2013
 # Download manually via web browser

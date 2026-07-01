@@ -7,7 +7,7 @@ data_source:
   url: "https://opentraits.org/datasets/avonet.html"
 images:
 # Please include at least one image, and up to three images
-- file: "penguin_mosaic.png"
+- file: "penguin_mosaic.jpg"
   alt: >
     A montage of the 18 penguin species included in the data set, arranged alphabetically from A. forsteri (top left) to S. mendiculus (bottom right). The images vary; most show a single individual in a terrestrial habitat, but some show multiple individuals or family groups, or show birds at sea.
 - file: "gg_penguin_phylo.png"
