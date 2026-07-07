@@ -262,3 +262,34 @@ plot.mathgen_df <- function(x, method = c("igraph", "graphviz-dot", "visNetwork"
         "graphviz-dot" = mathgen_plot_dot(edges, vertices, root, direction, main),
         "visNetwork" = mathgen_plot_visnetwork(edges, vertices, root, direction, main))
 }
+
+#' Print a mathgen_df object
+#'
+#' A brief summary of the tree returned by [mathgen_traverse()],
+#' [get_advisors()], or [get_students()]: the number of nodes
+#' (individuals) and edges (advisor -> student relationships), whether
+#' it's an advisor or student graph, and the earliest/latest recorded
+#' degree years (NAs excluded).
+#'
+#' @param x a "mathgen_df" object
+#' @param ... ignored
+#' @return `x`, invisibly
+#' @export
+#' @noRd
+print.mathgen_df <- function(x, ...) {
+    vertices <- attr(x, "vertices")
+    direction <- attr(x, "direction")
+    label <- if (identical(direction, "students")) "student graph" else "advisor graph"
+
+    cat(sprintf("<mathgen_df> %s: %d nodes, %d edges\n",
+                label, nrow(vertices), nrow(x)))
+
+    years <- vertices$year[!is.na(vertices$year)]
+    if (length(years) > 0) {
+        cat(sprintf("Degree years: %d-%d\n", min(years), max(years)))
+    } else {
+        cat("Degree years: none recorded\n")
+    }
+
+    invisible(x)
+}
