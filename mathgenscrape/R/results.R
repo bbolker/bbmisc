@@ -116,8 +116,13 @@ mathgen_parse_results <- function(resp, label, quiet) {
                            stringsAsFactors = FALSE, row.names = NULL))
     }
 
+    ## A zero-record search still renders an empty `<table>` element (no
+    ## `<tr>`s at all) rather than omitting the table entirely, so an
+    ## `is.na(tbl_node)` check alone doesn't catch it -- html_table() would
+    ## then return a 0x0 tibble and blow up downstream (e.g. `tbl$X1` is
+    ## NULL, which strsplit() rejects with "non-character argument").
     tbl_node <- rvest::html_element(main, "table")
-    if (is.na(tbl_node)) {
+    if (is.na(tbl_node) || length(rvest::html_elements(tbl_node, "tr")) == 0) {
         if (!quiet) {
             msg <- trimws(rvest::html_text(rvest::html_element(main, "p")))
             message(sprintf("no matches found for %s (%s)", label, msg))
