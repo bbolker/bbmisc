@@ -9,9 +9,11 @@ date: today
 
 For people in stats/math/data science who might be drawing plots and diagrams, especially for those working in R.
 
+Claus Wilke also has a useful chapter in his data visualization book, [here](https://clauswilke.com/dataviz/image-file-formats.html), that discusses raster vs vector, lossy vs lossless compression, and conversion.
+
 ## Vector vs raster formats
 
-Vector formats describe graphics in terms of features ("blue rectangle with coordinates A, B, C, D"; "arrow from X to Y"; "letter 'Q' at position Z"), while raster formats specify colours in each cell of a rectangular table. *In general* vector formats are preferable because they can be rendered at arbitrarily fine resolution without needing to expand the file size (some exceptions listed below). To make a figure in a raster format more detailed, you have to increase the dimensions of the rectangular grid.
+Vector formats describe graphics in terms of features ("blue rectangle with coordinates A, B, C, D"; "arrow from X to Y"; "letter 'Q' at position Z"), while raster (sometimes also called "bitmap") formats specify colours in each cell of a rectangular table. *In general* vector formats are preferable because they can be rendered at arbitrarily fine resolution without needing to expand the file size (some exceptions listed below). To make a figure in a raster format more detailed, you have to increase the dimensions of the rectangular grid.
 
 ## Vector formats
 

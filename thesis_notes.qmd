@@ -1,7 +1,7 @@
 ---
 title: "general thesis comments"
 author: Ben Bolker
-date: "`r format(Sys.time(), '%d %B %Y')`"
+date: today
 bibliography: ./thesis_notes.bib
 format:
   html:
@@ -29,6 +29,13 @@ knitr::include_graphics("./tab_to_fig/tab.png")
 into this figure:
 
 ![](./tab_to_fig/fig.png)
+
+## References
+
+* it's OK to cite preprints if that is the only available form of a paper, but the published version is better if one exists
+
+(see also reference stuff in [peeves](https://bbolker.github.io/bbmisc/peeves.html))
+
 
 ## BibTeX/LaTeX issues
 
