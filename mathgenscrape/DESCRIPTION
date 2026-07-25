@@ -1,0 +1,21 @@
+Package: mathgenscrape
+Title: Scrape the Mathematics Genealogy Project
+Version: 0.0.1
+Authors@R: person("Ben", "Bolker", email = "bbolker@gmail.com", role = c("aut", "cre"))
+Description: Tools for querying the Mathematics Genealogy Project
+    (<https://genealogy.math.ndsu.nodak.edu/>) by name or by advanced
+    search fields, and for recursively tracing a mathematician's advisor
+    (ancestor) or student (descendant) tree into an edge list suitable
+    for graph analysis (e.g. with 'igraph').
+Depends: R (>= 4.1.0)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+Imports:
+    httr,
+    rvest
+Suggests:
+    igraph,
+    visNetwork
+Config/roxygen2/version: 8.0.0
