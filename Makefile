@@ -10,6 +10,7 @@ current: target
 rmdfiles = $(wildcard *.rmd)
 rmdh = $(rmdfiles:%.rmd=%.html)
 
+Sources += .gitignore
 Sources += $(rmdfiles)
 Ignore += $(rmdh)
 
