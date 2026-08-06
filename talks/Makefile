@@ -4,3 +4,6 @@
 %.html: %.qmd
 	quarto render $<
 
+../docs/%.html: %.html
+	mv $< $@
+

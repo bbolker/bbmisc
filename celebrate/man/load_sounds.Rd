@@ -12,4 +12,3 @@ load_sounds(sound_files = getOption("celebrate.sounds"))
 \description{
 Load sound files
 }
-

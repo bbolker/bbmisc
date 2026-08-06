@@ -356,13 +356,16 @@ display: none;
 <ol start="0" style="list-style-type: decimal">
 <li>If you don’t have ‘development tools’ (compilers etc.) installed, do
 that first. You can try the instructions <a href="https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain">here</a>
-or <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain">here</a></li>
+or <a href="https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain">here</a>.</li>
 <li>Install <code>rstan</code>
-(<code>install.packages(&quot;rstan&quot;)</code>)</li>
-<li>Install <code>cmdstanr</code> From <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>:</li>
+(<code>install.packages(&quot;rstan&quot;)</code>).</li>
+<li>Install <code>cmdstanr</code>.</li>
 </ol>
+<p>From <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>:</p>
 <pre class="r"><code>while (!require(&quot;cmdstanr&quot;)) {
-    install.packages(&quot;cmdstanr&quot;, repos = c(&quot;https://mc-stan.org/r-packages/&quot;, getOption(&quot;repos&quot;, &quot;https://cloud.r-project.org&quot;)))
+    install.packages(&quot;cmdstanr&quot;, 
+            repos = c(&quot;https://mc-stan.org/r-packages/&quot;, 
+                  getOption(&quot;repos&quot;, &quot;https://cloud.r-project.org&quot;)))
 }
 check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)</code></pre>
 <ol start="3" style="list-style-type: decimal">
@@ -385,12 +388,12 @@ if (length(pkgs)&gt;0) install.packages(pkgs)</code></pre>
 <p>These examples were generated using the following package
 versions:</p>
 <pre class="r"><code>sapply(sort(c(orig_pkgs, &quot;cmdstanr&quot;, &quot;rstan&quot;)), \(x) as.character(packageVersion(x)))</code></pre>
-<pre><code>##    bayesplot   bayestestR         brms  broom.mixed     cmdstanr      cowplot 
-##     &quot;1.10.0&quot;     &quot;0.13.1&quot;     &quot;2.20.4&quot;    &quot;0.2.9.5&quot; &quot;0.6.1.9000&quot;      &quot;1.1.3&quot; 
-##        dplyr      ggrastr         lme4    posterior        purrr        rstan 
-##      &quot;1.1.2&quot;      &quot;1.0.2&quot;   &quot;1.1.35.1&quot;      &quot;1.5.0&quot;      &quot;1.0.1&quot;     &quot;2.32.6&quot; 
-##          see    tidybayes 
-##      &quot;0.8.2&quot;      &quot;3.0.6&quot;</code></pre>
+<pre><code>##   bayesplot  bayestestR        brms broom.mixed    cmdstanr     cowplot 
+##    &quot;1.10.0&quot;    &quot;0.13.1&quot;    &quot;2.20.4&quot;   &quot;0.2.9.5&quot;     &quot;0.7.1&quot;     &quot;1.1.3&quot; 
+##       dplyr     ggrastr        lme4   posterior       purrr       rstan 
+##     &quot;1.1.2&quot;     &quot;1.0.2&quot;  &quot;1.1.35.1&quot;     &quot;1.5.0&quot;     &quot;1.0.1&quot;    &quot;2.32.6&quot; 
+##         see   tidybayes 
+##     &quot;0.8.2&quot;     &quot;3.0.6&quot;</code></pre>
 <pre class="r"><code>cmdstanr::cmdstan_version()</code></pre>
 <pre><code>## [1] &quot;2.33.1&quot;</code></pre>
 

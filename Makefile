@@ -1,4 +1,5 @@
 ## This is bbmisc
+## https://bbolker.github.io/bbmisc/federated.html
 
 current: target
 -include target.mk
@@ -19,6 +20,48 @@ peak_I_simple.html: peak_I_simple.rmd
 
 peak_reduction.Rout: peak_reduction.R
 
+Ignore += *.html
+Ignore += tools.md
+tools.md: tools.qmd
+	quarto render $< --to gfm -o $@
+
+######################################################################
+
+## Clarity simulations
+
+Sources += sim_sesoi/*.R sim_sesoi/*.qmd sim_sesoi/*_notes.md
+Ignore += sim_sesoi/*.html
+
+autopipeR = defined
+
+Ignore += Rmisc/*.html
+Sources += $(wildcard Rmisc/*.*md Rmisc/*.R)
+
+shiny_sesoi:
+	Rscript --vanilla sim_sesoi/sim_sesoi/app.R
+
+## Sources += sim_sesoi.md ## Moved by Bolker 
+sim_sesoi/sim_sesoi.html: sim_sesoi/sim_sesoi.qmd sim_sesoi/sim_sesoi_funs.Rout 
+	$(qr)
+
+## This is how you put things into a pipeR pipeline without touching them.
+sim_sesoi/sim_sesoi_funs.Rout: sim_sesoi/sim_sesoi_funs.R
+	$(wrapR)
+
+sim_sesoi/simfun2_test.Rout: sim_sesoi/simfun2_test.R sim_sesoi/sim_sesoi_funs.Rout
+
+## claritySims.md
+## claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.R
+claritySims.Rout: sim_sesoi/claritySims.R sim_sesoi/clarityFuns.rda
+	$(pipeR)
+
+######################################################################
+
+## Why does JD not understand non-central t?
+
+noncent.Rout: Rmisc/noncent.R
+	$(pipeR)
+
 ######################################################################
 
 ## Spline stuff 2022 Nov 07 (Mon)
@@ -30,16 +73,26 @@ Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 
 ######################################################################
 
+qr = quarto render $<
+
+######################################################################
+
 ## Rules from Bolker
 
 %.html: %.qmd
 	quarto render $<
+
+docs/%.html: %.html
+	mv $< docs/$<
 
 %.pdf: %.pdf
 	quarto render $< --to pdf
 
 %.html: %.[Rr]md
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
+
+## https://bbolker.github.io/bbmisc/brant_survive.html
+## brant_survive.html: brant_survive.rmd
 
 %.html: %.md
 	Rscript -e "library(\"rmarkdown\"); render(\"$<\")"
@@ -58,6 +111,9 @@ Rmisc/spline_quantiles.Rout: Rmisc/spline_quantiles.R
 
 %.pdf: %.tex
 	pdflatex --interaction=nonstopmode $*
+
+docs/%.html: %.html
+	mv $< $@
 
 clean:
 	rm -f *.log *.aux *.md *.out *.nav *.snm *.toc *.vrb texput.log *~
@@ -87,7 +143,9 @@ makestuff/Makefile:
 -include makestuff/os.mk
 
 -include makestuff/pipeR.mk
+-include makestuff/rmd.mk
 
+-include makestuff/gitbranch.mk
 -include makestuff/git.mk
 -include makestuff/visual.mk
 -include makestuff/projdir.mk

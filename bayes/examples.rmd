@@ -21,17 +21,29 @@ library(pander)
 library(emdbook)
 ```
 
-# Simplified Bayes workflow
+# Intro
+
+## Simplified Bayes workflow
 
 1. Decide on model specification; journal it, along with justifications
 2. Decide on priors, including prior predictive simulations
-4. Data exploration (graphical)
-5. Fit model
-6. MCMC diagnostics
-7. Model diagnostics, including comparing posterior predictive sims to data
-8. Interpret/predict/etc.
+3. Data exploration (graphical)
+4. Fit model
+5. MCMC diagnostics
+6. Model diagnostics, including comparing posterior predictive sims to data, check sensitivity to priors (?)
+7. Interpret/predict/etc.
 
-# Examples
+
+# Packages
+
+## Packages
+
+* `MCMCglmm`: old, stable
+* `rstanarm`: newer, pre-compiled, better (but harder to understand) priors
+* `brms`: newer, requires compilation, very flexible
+* `rjags`/JAGS: older, roll-your-own
+
+# Example
 
 ## 'sleepstudy' data
 
@@ -52,7 +64,6 @@ library(see)
 options(ggplot2.discrete.colour= scale_color_okabeito)
 library(ggrastr)
 library(cowplot)
-
 ```
 
 ```{r limits, include = FALSE}
@@ -89,14 +100,13 @@ form1 <- Reaction ~ 1 + Days + (1 + Days|Subject)
 
 ### prior predictive simulation
 
-`brms` has a convenience function `get_prior()` that lays out the parameters/priors that need to be set,
-and their default values ...
+`brms` has a convenience function `get_prior()` that displays the parameters/priors that need to be set, along with their default values.
 
 ```{r get_prior, R.options = list(width = 10000)}
 get_prior(form1, sleepstudy)
 ```
 
-[Info on brms default priors](https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7): Intercept is Student $t$ with 3 df, mean equal to observed mean (median??), SD equal to (rescaled) MAD. RE SDs are the same but *half*-$t$ (see `lb = 0` column), mode at 0.
+[Info on brms default priors](https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7): Intercept is Student $t$ with 3 df, mean equal to observed median of the response variable, SD equal to (rescaled) *mean absolute deviation*. RE SDs are the same but *half*-$t$ (see `lb = 0` column), mode at 0.
 
 Constraining intercept and slope to 'reasonable' values:
 
@@ -236,17 +246,19 @@ $\hat R$ (`Rhat`), ESS look OK. @vehtariRankNormalization2021a recommend an $\ha
 
 ## trace plots
 
-`regex_pars` specifies a **regular expression** for deciding which parameters to show
+Trace plots should look like white noise (see tweet in previous set of notes); no obvious trends, no 'slow' variation. (`regex_pars` specifies a **regular expression** for deciding which parameters to show.)
 
 ```{r traceplot}
 mcmc_trace(b_reg, regex_pars= "b_|sd_")
 ```
 
-@vehtariRankNormalization2021a recommend *rank-histograms* instead: chains should have similar rank distributions
+Skewed posteriors can make trace plots look 'spiky': to avoid this could look at transformed (e.g. log) posterior distributions. @vehtariRankNormalization2021a recommend *rank-histograms* instead: chains should have similar rank distributions
 
 ```{r rankhistplot}
 mcmc_rank_overlay(b_reg, regex_pars= "b_|sd_")
 ```
+
+Everything looks OK, on to interpretation etc.
 
 ## look at results
 
@@ -256,7 +268,7 @@ summary(b_reg)
 
 Plot results. `broom.mixed::tidy()` will get what you need - complicated code below is to get everything lined up nicely.
 
-```{r proc_models, cache = TRUE}
+```{r proc_models, cache=TRUE}
 brms_modlist <- list(brms_default = b_default, brms_reg = b_reg, brms_reg2 = b_reg2)
 res_bayes <- (brms_modlist
     |> purrr::map_dfr(~ tidy(., conf.int = TRUE), .id = "model")
@@ -276,11 +288,12 @@ res <- (bind_rows(res_lmer, res_bayes)
 )
 ```
 
-```{r plot_models}
+```{r plot_models, warning=FALSE}
+## getting a mysterious `scale_name` deprecation warning ... ?
 ggplot(res, aes(estimate, term, colour = model, shape = model)) +
     geom_pointrange(aes(xmin = conf.low, xmax = conf.high),
                     position = position_dodge(width = 0.5)) +
-    facet_wrap(~ facet, scale = "free",ncol = 1) +
+    facet_wrap(~ facet, scales = "free", ncol = 1) +
     guides(colour = guide_legend(reverse=TRUE),
            shape = guide_legend(reverse=TRUE))
 ```
@@ -367,6 +380,8 @@ ranefs |>
 ```
 
 ```{r check_ranefs, eval = FALSE}
+## these are some methods for testing sensitivity to the prior
+## that I do **not** recommend ...
 check_prior(b_reg)
 try(check_prior(b_reg2)) ## ugh
 debug(bayestestR:::.check_prior)

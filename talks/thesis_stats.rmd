@@ -40,6 +40,9 @@ img {
 </style>
 
 ```{r setup,echo=FALSE,message=FALSE}
+## for (i in 1:10) {
+##     warning(sprintf("this is warning number %d", i))
+## }
 library("ggplot2"); theme_set(theme_classic())
 library("reshape2")
 library("ggExtra")
@@ -66,7 +69,7 @@ th_clean <-
 ![](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
 
 
-# experimental design
+<!-- # experimental design -->
 
 ## the most important thing {.build}
 

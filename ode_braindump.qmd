@@ -1,0 +1,97 @@
+---
+title: "tools for calibrating ODE models"
+bibliography: ode_braindump.bib
+format:
+  html:
+    embed-resources: true
+date: today
+---
+
+# Overview
+
+* Researchers interested in fitting parameters for dynamical systems would often use straightforward *trajectory matching* approaches [@Bolker2008] with systems of ordinary differential equations (ODEs) [@earnFitting2024]. This is often challenging. 
+
+* Researchers are often ambitious, trying to fit fairly high-dimensional ODE systems to small, noisy data sets.
+* Sets of ODEs are often [weakly identified](https://stats.stackexchange.com/questions/324014/what-is-a-weakly-identified-parameterization).
+* Default methods for general-purpose nonlinear optimizers, such as MATLAB's [fmincon](https://www.mathworks.com/help/optim/ug/fmincon.html) or R's [optim](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/optim.html), use finite-difference approximations to compute gradients of the likelihood by default (i.e., when the user doesn't supply gradients). These are often slow and imprecise approximations, making optimization harder.
+
+@raueLessons2013 highlight the importance of using *sensitivity equations*, which augment the system of ODEs with additional equations that are integrated to find the gradient of model predictions (states of the system at observed time points) with respect to dynamical parameters. (Likelihoods may also depend on other, non-dynamical parameters, e.g. parameters such as reporting rate or dispersion parameters.) While sensitivity equations can be composed by hand for simple systems, it is both convenient and computationally efficient to use *automatic differentiation* [@griewankIntroduction2003] to generate the sensitivity equations.
+
+There is a lot of cutting-edge work in this area (e.g. @maComparison2021), focused on sensitivity analysis and on machine-learning approaches such as neural ODEs, but what follows will mostly cover tools for more traditional math-biology/infectious-disease epidemiology modelling, focusing on R. I'll also focus on trajectory matching (e.g., neglecting tools such as iterated filtering and sequential Monte Carlo that consider process as well as observation error: see material at the end of @earnFitting2024 for references to this area).
+
+Since gradient evaluation in R is often slow, and since gradient expressions typically need to be evaluated many times, it is also useful to find a way to speed up gradient computations (ideally without leaving the comfort of R). This is less of an issue for models coded in Python, Matlab, or (especially) Julia.
+
+Other criteria we are interested in:
+
+* use of sensitivity equations
+* convenience (e.g. gradient function specification in R; ease of specifying link functions/parameter transformations)
+* speed (compilation to C++)
+* automatic differentiation
+* handling weak identifiability (ability to specify priors/regularizing factors)
+* allowing use of priors to represent uncertainty in auxiliary parameters [@elderdUncertainty2006]
+* flexibility
+
+Source for this document (a Quarto file) [here](https://github.com/bbolker/bbmisc/blob/master/ode_braindump.qmd).
+
+# Tools
+
+## [odin](https://mrc-ide.github.io/odin/)
+
+Fast, convenient ODE integration by [transpiling](https://en.wikipedia.org/wiki/Source-to-source_compiler) R definitions to C++. Integration via `odin` may give up to a hundred-fold speed improvement in some cases ... but not integrated with tools for autodiff/sensitivity equations
+
+## [fitode](https://github.com/parksw3/fitode)
+
+A tool for doing (limited) autodiff, and generating sensitivity equations, from models coded in R. See @earnFitting2024 (and [package vignette](https://cran.r-project.org/web/packages/fitode/vignettes/fitode.pdf)) for examples.
+
+## [macpan2](https://canmod.github.io/macpan2)
+
+`macpan2` is primarily designed for fitting discrete-time epidemiological (compartmental models) but can be used for any kind of compartmental model (e.g. Lotka-Volterra equations in ecology, or pharmacokinetic models). Good support for setting up calibration equations.
+
+* ODE support is somewhat rudimentary (fixed-time step RK4 only, probably less efficiently implemented)
+
+## [Stan](mc-stan.org)
+
+A general tool for Bayesian estimation using autodiff on the posterior probability. Heavily focused on Hamiltonian Monte Carlo (although direct optimization, variational inference, may be possible?) [@grinsztajnBayesian2021]. Has built-in support for ODEs, but the gradient equations need to be written in C++.
+
+## [SUNDIALS](https://computing.llnl.gov/projects/sundials)
+
+A well-established tool for numerical solution of ODEs and sensitivity equations. There are R interfaces:
+
+* [sundialr package](https://sn248.github.io/sundialr/)
+
+> Currently `sundialr` provides an interface to the serial versions of `cvode` (for solving ODES), `cvodes` (for solving ODE with sensitivity equations) and `ida` (for solving differential-algebraic equations) using the Linear Solver (dense version).
+
+* [r2sundials package](https://github.com/sgsokol/r2sundials) ([comparison with sundialr](https://github.com/sgsokol/r2sundials?tab=readme-ov-file#sundialr))
+
+## [Template Model Builder](https://kaskr.github.io/adcomp/Introduction.html)
+
+This is a general-purpose autodiff tool, heavily integrated with R [@kristensenTMB2016]; it is used in `macpan2`.
+
+* no built-in ODE capability
+* While original TMB definitions were entirely in C++, the [RTMB package](https://github.com/kaskr/RTMB) allows objective functions written in R; there is an [experimental package with ODE support](https://kaskr.r-universe.dev/RTMBode/doc/manual.html#ode)
+
+TMB's predecessor, [AD Model Builder](https://www.admb-project.org/) (now in legacy/maintenance mode), had a few examples for fitting ODEs, but the code for these was more complicated than "specify your gradient equations and push the button": see
+Example 1.14 in the [ADMB manual](https://github.com/admb-project/admb/releases/download/admb-12.3/admb-12.3.pdf) ([code](https://github.com/admb-project/admb/blob/dd6ccb3a46d44582455f76d9569b012918dc2338/examples/admb/chem_eng/chem_eng.tpl))
+
+## collocation inference (Ramsay, Hooker et al.)
+
+Collocation inference is a *generalized profiling* approach that combines trajectory matching and gradient matching [@ramsayParameter2007, @hookerCollocInfer2016, @hookerParameterizing2011]
+
+* [pCODE package](https://CRAN.R-project.org/package=pCODE) (on [GitHub](https://github.com/alex-haixuw/PCODE))
+* [collocInfer](https://CRAN.R-project.org/package=CollocInfer) package
+
+## other languages
+
+* MATLAB code is also available for collocation inference, e.g. in the supplementary material of some of the papers referenced.
+* [torchdiffeq](https://github.com/rtqichen/torchdiffeq) Python library
+* [SciMLSensitivity.jl](https://docs.sciml.ai/SciMLSensitivity/stable/manual/differential_equation_sensitivities/)
+
+## Summary
+
+```{r table, echo=FALSE, results = "asis"}
+library(pander)
+dd <- read.csv("ode_tools.csv", check.names = FALSE)
+pander(dd, split.cells = 10, split.table = Inf)
+```
+
+## References

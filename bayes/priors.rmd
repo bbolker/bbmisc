@@ -33,6 +33,13 @@ See [distribution explorer](https://distribution-explorer.github.io) ([backend](
 - correlation/covariance matrices
    * [LKJ](https://distribution-explorer.github.io/multivariate_continuous/lkj.html) or "onion" [@lewandowskiGenerating2009a]. $\eta=1$ $\to$ uniform, $\eta>1$ favours a stronger diagonal (smaller correlations)
    * Wishart [older] ('mean' = typical corr matrix, usually diagonal; shape 'nu' determines variance [1 is equivalent to an exponential dist for 1-dim, so <1 is 'weak']
+   
+## independent vs multivariate priors
+
+* we usually set priors on parameters one at a time
+* this assumes they're independent (!)
+* hard to do very much about this, but keep it in mind
+* means that *reparameterizing* a model (e.g. by centering a variable) can change the priors, if we're not careful
 
 ## prior problems
 
@@ -70,21 +77,21 @@ pc(dlogitnorm(x, sd = sdval), from = 1e-6, to = 1-1e-6,
 
 ## stacking problems
 
-* problems when informative (posterior squashing) @carpenterComputational2017
+* when uniform priors that are supposed to be uninformative are actually informative ... [@carpenterComputational2017]
+* posterior piles up at the edge
 
 ## priors for variances
-
 
 * people used to use inverse-Gamma a lot (because conjugate): uninformative/wide → big spike at zero  [@gelmanPrior2006]
 * half-Normal, half-$t$ are better
     * *parameter-expanded priors* in `MCMCglmm` @gelmanData2006
 * regularizing priors [@chungNondegenerate2013a] prevent 'singularity'
-* singularity doesn't matter as much when fully Bayesian because we're integrating over the whole posterior
+    * singularity doesn't really matter when fully Bayesian (not MAP!) because we integrate over the whole posterior
 
 ## priors for covariance/correlation matrices
 
 * a single correlation is easy (e.g. a Beta distribution)
-* multivariate correlation/covariance matrix is ugly
+* multivariate correlation/covariance matrix is hard (Wishart)
 * separate priors for (log)-SDs, correlations
    * **LKJ** or "onion" [@lewandowskiGenerating2009a]
 

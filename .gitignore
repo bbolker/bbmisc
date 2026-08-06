@@ -13,6 +13,7 @@ figure
 *_beamer-tikzDictionary
 *.o
 *.so
+<<<<<<< HEAD
 ## content from makestuff
 target.mk
 arrive.log
@@ -140,10 +141,17 @@ cpdir/
 *.newfile
 *.newdiff
 *.blame
+beta_df.html
+brant_survive.html
 distrib.html
 peak_I.html
 peak_I_simple.html
+respec.html
 r_parallel_hpc.html
+*.html
+tools.md
+sim_sesoi/*.html
+Rmisc/*.html
 makestuff
 *.checkfile
 dropstuff
@@ -164,6 +172,7 @@ jekyll.log
 *.rds
 Rplots.pdf
 *.ggp.*
+*md.html
 local.mk
 target.mk
 make.log
@@ -201,10 +210,17 @@ cpdir/
 *.newdiff
 *.blame
 presources
+beta_df.html
+brant_survive.html
 distrib.html
 peak_I.html
 peak_I_simple.html
+respec.html
 r_parallel_hpc.html
+*.html
+tools.md
+sim_sesoi/*.html
+Rmisc/*.html
 makestuff
 *.checkfile
 dropstuff
@@ -225,6 +241,7 @@ jekyll.log
 *.rds
 Rplots.pdf
 *.ggp.*
+*md.html
 local.mk
 target.mk
 make.log
@@ -262,10 +279,17 @@ cpdir/
 *.newdiff
 *.blame
 presources
+beta_df.html
+brant_survive.html
 distrib.html
 peak_I.html
 peak_I_simple.html
+respec.html
 r_parallel_hpc.html
+*.html
+tools.md
+sim_sesoi/*.html
+Rmisc/*.html
 makestuff
 *.checkfile
 dropstuff
@@ -286,6 +310,7 @@ jekyll.log
 *.rds
 Rplots.pdf
 *.ggp.*
+*md.html
 local.mk
 target.mk
 make.log

@@ -1,0 +1,106 @@
+---
+title: "federated mixed models"
+format: pdf
+date: today
+documentclass: scrreprt
+author: Ben Bolker
+---
+
+Suppose we want to run a mixed model (LMM, GLMM, etc.) on a data set that is either (1) too large to handle in-memory (or on a single node/instance) or (2) divided into components which must be kept private from each other (e.g. sensitive health or economic data). Suppose furthermore that the data can be split into [shards](https://en.wikipedia.org/wiki/Shard_(database_architecture)) where observations from any *grouping variable* (block/cluster/etc.) are never split between shards (in practice, this means that the approach described here will work for data sets with *nested* grouping variables, but not necessary for data sets with *crossed* grouping variables).
+
+At the cost of setting up communications between the workers/servers that are handling each shard, we can easily^[for some value of "easily"] extend a standard mixed-model analysis to handle this case, as an example of [federated analysis](https://en.wikipedia.org/wiki/Federated_learning). For example, most modern mixed model fitting approaches rely on maximize the log-likelihood as a function of "top-level" covariance parameters $\theta$ (in some cases, the fixed-effect parameters $\beta$ are also treated as top-level parameters). The model also involves random-effect parameters $b$; conditional on the values of $b$, the observed $y$ values are independent. Random-effect parameters $b$ for different clusters are also independent, which means that the full log-likelihood can be summed over log-likelihoods for the data in each cluster (and the log-likelihood of the $b$ values for that cluster). The $b$ values are usually profiled out or optimized in a separate, inner loop - i.e., they don't have to be provided as explicit parameters to the log-likelihood function.
+
+Similarly, the gradient of the log-likelihood or deviance ($= -2 \log {\cal L}$) function (if this is available) is the sum of the gradients computed for each shard.
+
+Say we have a central controller and a set of workers, each of which has its own shards. The central controller runs the nonlinear optimizer; each time it needs to evaluate the log-likelihood of a vector of top-level parameters ($\theta$ or $\{\theta, \beta\}$, it broadcasts a request to the workers to tell them to evaluate the log-likelihoods of their shard with those parameters and return the value (and the gradients). It then computes the log-likelihood by adding up the returned log-likelihoods, and uses the value in the nonlinear optimizer to choose the next parameter values to evaluate.
+
+We can illustrate the proof of concept by splitting data within a single R session, setting up separate deviance functions for each shard, and evaluating them *sequentially* (we could also do this with a parallel/multicore cluster set up on the machine; whether this is useful or not depends on whether a particular package already has the capability for parallel computation [e.g. via parallelized linear algebra, or OpenMP/threading]).
+
+This is easiest to illustrate with `glmmTMB`, which includes both the fixed effect coefficients and the dispersion parameter as top-level parameters.
+
+First split the data into shards:
+
+```{r split_data}
+data("sleepstudy", package ="lme4")
+subj <- unique(sleepstudy$Subject)
+ns <- 5
+ss <- split(subj, rep(1:ns, length.out = length(subj)))
+shards <- lapply(1:ns, function(i) subset(sleepstudy, Subject %in% ss[[i]]))
+```
+
+Set up the machinery:
+
+```{r setup}
+library(glmmTMB)
+get_fun <- function(data, component = "fn") {
+    lmod <- glmmTMB(Reaction ~ Days + (Days|Subject), data = data, doFit = FALSE)
+    fitTMB(lmod, doOptim = FALSE)[[component]]
+}
+## lists of functions that evaluate the
+##  deviance or gradient for a particular shard
+split_fn <- lapply(shards, get_fun)
+split_gr <- lapply(shards, get_fun, component = "gr")
+## function to apply these functions and sum the results
+comb_fun <- function(p, funs = split_fn) {
+    devs <- sapply(funs, function(f) f(p))
+    if (is.matrix(devs)) return(rowSums(devs))
+    sum(devs)
+}
+## starting values (fixed effects = 1; log-SDs etc. = 0)
+p0 <- rep(c(1,0), c(2, 4))
+## testing
+comb_fun(p0)
+comb_fun(p0, split_gr)
+```
+
+Compare against the log-likelihood computed for the same parameters on the combined data:
+
+```{r compare_0}
+lmod <- glmmTMB(Reaction ~ Days + (Days|Subject), data = sleepstudy, doFit = FALSE)
+f <- fitTMB(lmod, doOptim = FALSE)
+## test equivalence
+stopifnot(all.equal(c(f$fn(p0)), comb_fun(p0)))
+```
+
+Now compare the combined fit against the split-fit:
+
+```{r compare_fits}
+fit1 <- glmmTMB(Reaction ~ Days + (Days|Subject), data = sleepstudy)
+allpars <- function(fit) with(fit$obj$env, last.par.best[-random])
+fit2 <- nlminb(start = p0,
+               objective = comb_fun,
+               gradient = function(p) comb_fun(p, split_gr))
+## test equivalence
+stopifnot(all.equal(fit2$par, unname(allpars(fit1)), tolerance = 5e-5))
+```
+
+We see that we do indeed get the same parameter estimates from the single vs. combined fits. However, there are a lot of issues to deal with before this is practical:
+
+* we need to set up non-trivial parallel computation machinery that works across possibly distantly connected machines (e.g., something based on MPI would be a good solution for distributed-memory computation on a single cluster, but not for remote machines communicating by remote procedure calls).  It will also need to be sufficiently polished/secure that administrators who are handling sensitive data are willing to let it run on their machines. Ideally this would work from within a single running R process, so that data and objects didn't need to be reloaded/rebuilt for every evaluation, but a very slow/clumsy solution would be to set up an R batch script that took parameters as arguments and returned the log-likelihood, then call it via `ssh` at every step.
+* It would be nice to make this work for `lme4` as well but there are some additional challenges:
+    * in `lmer` the fixed-effect coefficients are profiled out of the deviance. This is efficient but means we'd have to figure out how to reconstruct the coefficients given estimates of the covariance parameters
+	* `lmer` also profiles out the residual variance or dispersion parameter; in effect, this means that the variance/dispersion will be estimated separately for every shard. We'd need to figure out how to extract and return the *unscaled* log-likelihood. (This would not be a problem for GLMMs with a fixed scale parameter (i.e. Poisson/binomial).
+
+<!--
+
+Preliminary `lme4` attempts
+
+```{r eval = FALSE}
+## see ?lme4::modular
+## create 5 separate deviance functions, each for one shard
+split_fun <- lapply(1:5,
+                    function(i) {
+                        lmod <- lFormula(Reaction ~ Days + (Days|Subject), data = shards[[i]])
+                        do.call(mkLmerDevfun, lmod)
+                    })
+comb_fun <- function(theta) {
+    devs <- vapply(1:5, function(i) split_fun[[i]](theta), FUN.VALUE = numeric(1))
+    sum(devs)
+}
+th0 <- rep(1,3)
+comb_fun(th0)
+lmod <- lFormula(Reaction ~ Days + (Days|Subject), data = sleepstudy)
+cfun <- do.call(mkLmerDevfun, lmod)
+cfun(th0)
+```
+-->

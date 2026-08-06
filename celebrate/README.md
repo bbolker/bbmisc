@@ -12,3 +12,4 @@ A silly package for audio enhancement of statistical model summaries
 ## To do
 
 - implement for `print.summary.glm` as well
+- allow user-specified hooks for sound ...

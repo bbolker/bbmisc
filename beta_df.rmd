@@ -1,0 +1,168 @@
+---
+title: degrees of freedom (yet again)
+---
+
+"How can I calculate the degrees of freedom for effects in this GLMM?
+
+This is a hard, and possibly impossible question in some cases. The GLMM FAQ has a [detailed discussion](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#why-doesnt-lme4-display-denominator-degrees-of-freedomp-values-what-other-options-do-i-have). Short version:
+
+* If you are fitting a LMM rather than a GLMM (i.e., Gaussian responses), then the Kenward-Roger and Satterthwaite approximations are available through the `lmerTest` or `pbkrtest` packages, `car::Anova()`, etc. (Most of these packages rely on a primary implementations in `pbkrtest`, at least for K-R.)
+* Getting a reliable p-value (which is the main reason people want df in the first place) can be done via parametric or nonparametric bootstrapping (e.g. `pbkrtest` again).
+
+What are your other options?
+
+```{r pkgs, message = FALSE}
+## need this to get a bug-fix for simulating beta responses ...
+remotes::install_github("glmmTMB/glmmTMB/glmmTMB",
+                        ref = "simulate_new_init_fix")
+library(glmmTMB)
+library(parallel)
+library(future.apply)
+plan(multisession, workers = 4)
+```
+
+Simulate an example (details don't really matter):
+
+```{r sim}
+data("sleepstudy", package = "lme4")
+ss <- transform(sleepstudy,
+                prop = simulate_new(
+                    ~ 1 + Days + (1 + Days | Subject),
+                    newdata = sleepstudy,
+                    newparams = list(beta = c(-1, 0.1),
+                                     theta = c(-1, -1, 0),
+                                     betad = 10),
+                    family = "beta_family",
+                    seed = 101)[[1]])
+m <- glmmTMB(prop ~ 1 + Days + ( 1 + Days | Subject),
+             family = beta_family, data = ss)
+```
+
+Baseline coefficient matrix (with $Z$ statistics/tests):
+
+```{r coef1}
+printCoefmat(cc <- coef(summary(m))$cond)
+```
+
+You can use this code to use the 'inner-outer'/'within-between' level-counting rules that are intended for classical balanced designs (and implemented in `nlme`: see details in the GLMM FAQ).
+
+```{r calcdf-funs}
+source("https://bbolker.github.io/mixedmodels-misc/R/calcDenDF.R")
+transform_coeftab <- function(x, ddf) {
+    m <- match(names(ddf), rownames(x))
+    if (any(is.na(m)) || length(setdiff(rownames(x), names(ddf)) > 0)) {
+        stop("mismatch between rownames and ddf names")
+    }
+    val_col <- grep("z.*val", colnames(x), ignore.case = TRUE)
+    pr_col <- grep("pr.*z", colnames(x), ignore.case = TRUE)
+    colnames(x)[val_col] <- sub("z", "t", colnames(x)[val_col], ignore.case = TRUE)
+    pr_name <- sub("z", "t",  colnames(x)[pr_col], ignore.case = TRUE)
+    x[, pr_col] <- 2*pt(-abs(x[,val_col]), lower.tail = TRUE, df = ddf)
+    ## easier way to insert a column?
+    x <- cbind(x[, 1:(val_col-1)], ddf = ddf, x[, pr_col])
+    colnames(x)[ncol(x)] <- pr_name
+    return(x)
+}
+```
+
+```{r calcdf}
+print(ddf <- calcDenDF( fixed = ~ Days, random = ~Days | Subject, data = ss))
+cc2 <- transform_coeftab(cc, ddf)
+## would be nice to format ddf column as integer but I think printCoefmat()
+##  is not quite flexible enough ... ?
+printCoefmat(cc2)
+```
+
+```{r param-boot}
+## could parallelize, etc etc
+## (future/furrr packages?)
+m0 <- update(m, . ~ . - Days)
+simfun <- function(progress = FALSE) {
+    ## depends on i, pb, set externally (next chunk)
+    if (progress) {
+        i <<- i + 1
+        setTxtProgressBar(pb, i)
+    }
+    dsim <- simulate(m0)[[1]]
+    ## provide data explicitly for scoping reasons
+    fit <- update(m, dsim ~ ., data = ss)
+    cc <- coef(summary(fit))$cond
+    cc["Days", "z value"]
+}
+```
+
+
+```{r run-param-boot, cache = TRUE, warning = FALSE}
+nsim <- 5e3
+progress <- FALSE ## progress bar doesn't work well with parallelization
+if (progress) {
+    pb <- txtProgressBar(max = nsim, style = 3)
+    i <- 0
+}
+set.seed(102)
+## see https://www.jottr.org/2020/09/22/push-for-statistical-sound-rng/
+system.time(
+    vals <- future_replicate(nsim, simfun(FALSE),
+                             future.packages = "glmmTMB",
+                             future.seed = TRUE)
+)
+```
+
+
+```{r est-dist, warning = FALSE}
+t_fit <- MASS::fitdistr(vals, "t")
+df_est <- t_fit$estimate[["df"]]
+df_sd <- t_fit$sd[["df"]]
+```
+
+The estimate of `df` is `r round(df_est,1)` (with fairly wide CIs: ± 2 SE is 
+[`r round(df_est-2*df_sd, 1)`, `r round(df_est+2*df_sd, 1)`])
+
+Confidence intervals on ddf from glmmTMB:
+
+```{r glmmTMB-t-est}
+tt <- TMB::sdreport(glmmTMB(vals ~ 1, family = t_family, data = NULL)$obj)
+## estimates/SEs on log scale
+ddf_est <- tt$par.fixed[["psi"]]
+ddf_sd <- sqrt(diag(tt$cov.fixed)[["psi"]])
+exp(ddf_est)  ## est
+## CIs:
+exp(ddf_est+qnorm(c(0.025, 0.975))*ddf_sd)
+```
+
+```{r plot-hist}
+par(las = 1)
+hist(vals, breaks = 80, main = "", freq = FALSE)
+curve(dt(x/t_fit$estimate[["s"]], df = df_sd), add = TRUE, col = 2, lwd = 2)
+curve(dt(x/t_fit$estimate[["s"]], df = 16), add = TRUE, col = 4, lwd = 2)
+legend("topleft",
+       lty = 1,
+       col = c(2,4),
+       legend = sprintf("df = %1.1f", c(df_est, 16)))
+```
+
+**experimental** below here ...
+
+Alternatively, if we know the $\alpha$-level at which we want to test, we can specifically find the $t$ distribution with the correct tail area. (This should work but there's something I'm not understanding right now ...)
+
+```{r}
+qqnorm(scale(vals))
+qqline(scale(vals), col  = 2)
+```
+
+definitely heavy-tailed ... ?? missing something here ?? t-quantiles are considerably more extreme ??
+
+df (16) fits the upper tail well but overcompensates in the lower tail ...
+
+```{r}
+qqplot(rt(5000, 16), scale(vals))
+qqline(scale(vals), col  = 2)
+```
+
+```{r}
+obs_q <- quantile(scale(vals), 0.05)
+qnorm(0.05)
+qt(0.05, 16)
+quantile(scale(vals), 0.95)
+qt(0.95, 16)
+```
