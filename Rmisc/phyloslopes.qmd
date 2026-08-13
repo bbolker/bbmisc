@@ -24,3 +24,39 @@ install_github("eric-pedersen/MRFtools")
 Clark, Nicholas. “Phylogenetic Smoothing Using Mgcv.” GAMbler, 2024. https://ecogambler.netlify.app/blog/phylogenetic-smooths-mgcv/.
 
 
+```{r}
+remotes::install_github("eric-pedersen/MRFtools")
+library(MRFtools)
+library(ade4)
+library(glmmTMB)
+library(ape)
+library(Matrix)
+library(ggplot2); theme_set(theme_bw())
+data("carniherbi49")
+chdat <- carniherbi49$tab2
+chtree <- read.tree(text=carniherbi49$tre2)
+
+## 
+m1 <- mrf_penalty(chtree, "brownian", internal_nodes = FALSE)
+m2 <- mrf_penalty(chtree, "brownian", internal_nodes = TRUE)
+image(Matrix(zapsmall(m1)))
+dim(zapsmall(m1))
+dim(m2)
+```
+
+If using all-nodes parameterization of phylogenetic precision matrix (to take advantage of sparsity/`gmrf()` in `RTMB`), we'd need to make sure that the 'species' factor included values (not included in data set) for the internal nodes ...
+
+## To do
+
+* replicate examples from `propto` paper, in RTMB (linear and functional effects of log(body mass) on running speed): additive model
+* try out separable model via `dseparable`
+* try out tensor-product model
+* what happens if we include a fixed effect of clade?
+
+```{r pic1}
+ggplot(chdat, aes(runningspeed, bodymass, colour = clade)) +
+  geom_point(size=4) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_colour_manual(values = c("darkred", "darkblue"))
+```
