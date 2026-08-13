@@ -1,0 +1,26 @@
+---
+title: "How should we model combinations of phylogenetic correlations with other (non-scalar) random effects models?"
+---
+
+e.g.
+
+* phylogenetic × random-slopes
+* phylogenetic × smooth terms (penalized regression splines)
+
+## additive
+
+## separable
+
+## tensor-product
+
+how does constructing a tensor product smooth actually work? (We need to combine both bases and penalty matrices, right?)
+
+cf. `phyloglmm` (which does this by putting everything in the $Z$ matrix -- should be equivalent, can we prove it?
+
+```{r}
+install_github("eric-pedersen/MRFtools")
+```
+
+Clark, Nicholas. “Phylogenetic Smoothing Using Mgcv.” GAMbler, 2024. https://ecogambler.netlify.app/blog/phylogenetic-smooths-mgcv/.
+
+
