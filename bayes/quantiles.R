@@ -2,7 +2,7 @@ library(invgamma)
 library(dplyr)
 library(ggplot2); theme_set(theme_bw(base_size=15))
 
-## library(shellpipes); startGraphics()
+library(shellpipes); startGraphics()
 
 ## Parameters
 shape <- 4
@@ -32,7 +32,7 @@ comb <- tibble(lrate = log(ran)*seq(-steps, steps)/steps
 	, ltden = tden*time
 	, drat = rate^2*rden/tden
 	, lrat= ltden/lrden
-	, pp = pgamma(rate, shape=shape, scale=scale)
+	, rp = pgamma(rate, shape=shape, scale=scale)
 	, tp = pinvgamma(time, shape=shape, scale=scale)
 )
 
@@ -40,7 +40,7 @@ summary(comb)
 print(comb, n=Inf)
 
 ## Quantile intervals (these are the same)
-qcomb <- comb |> filter(pp>0.025 & pp < 0.975)
+rqcomb <- comb |> filter(rp>0.025 & rp < 0.975)
 tqcomb <- comb |> filter(tp>0.025 & tp < 0.975)
 
 ######################################################################
@@ -124,7 +124,7 @@ lTimePlot <- (ggplot(comb)
 )
 
 qRatePlot <- (RatePlot
-	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=rden), ymin=-yspace
+	+ geom_ribbon(data=rqcomb, aes(x=rate, ymax=rden), ymin=-yspace
 		, alpha=0.3
 	)
 	+ ggtitle("Quantile-based credible interval")
@@ -149,7 +149,7 @@ chdRatePlot <- (RatePlot
 )
 
 qTimePlot <- (TimePlot
-	+ geom_ribbon(data=qcomb, aes(x=time, ymax=tden), ymin=-yspace
+	+ geom_ribbon(data=rqcomb, aes(x=time, ymax=tden), ymin=-yspace
 		, alpha=0.3
 	)
 	+ ggtitle("Quantile-based credible interval")
@@ -175,14 +175,14 @@ chdTimePlot <- (TimePlot
 )
 
 qlRatePlot <- (lRatePlot
-	+ geom_ribbon(data=qcomb, aes(x=rate, ymax=lrden), ymin=-yspace
+	+ geom_ribbon(data=rqcomb, aes(x=rate, ymax=lrden), ymin=-yspace
 		, alpha=0.3
 	)
 	+ ggtitle("Quantile-based credible interval")
 )
 
 qlTimePlot <- (lTimePlot
-	+ geom_ribbon(data=qcomb, aes(x=time, ymax=ltden), ymin=-yspace
+	+ geom_ribbon(data=rqcomb, aes(x=time, ymax=ltden), ymin=-yspace
 		, alpha=0.3
 	)
 	+ ggtitle("Quantile-based credible interval")
@@ -199,5 +199,5 @@ print(hdRatePlot)
 print(hdTimePlot)
 print(chdTimePlot)
 
-print(qlRatePlot)
-print(qlTimePlot)
+## print(qlRatePlot)
+## print(qlTimePlot)
