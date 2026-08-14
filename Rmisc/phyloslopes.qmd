@@ -11,6 +11,8 @@ library(ape)
 library(Matrix)
 library(ggplot2); theme_set(theme_bw())
 library(dplyr)
+library(RTMB)
+library(reformulas)
 ```
 
 The McGillycuddy *et al.* manuscript on 'propto' random effects (i.e. random effects where the covariance matrix is known *a priori* up to a scalar multiplier) illustrates how to use `glmmTMB` + `propto` to fit models with a phylogenetic term.
@@ -19,41 +21,90 @@ The McGillycuddy *et al.* manuscript on 'propto' random effects (i.e. random eff
 gsub2 <- function(x, pattern, replacement) {
   gsub(pattern, replacement, x)
 }
+
 fixup_species <- function(x) {
   x |>
     gsub2("\\.", "_") |>
     gsub2("nelsoni$", "") |>
-    gsub2("cenereorenteus", "cinereoargenteus") |>
+    gsub2("cinereorenteus", "cinereoargenteus") |>
     gsub2("hemonius", "hemionus") |>
-    gsub2("thomsonii", "thompsonii")
+    gsub2("thomsonii", "thompsonii") |>
+    gsub2("Odicoileus", "Odocoileus") |>
+    gsub2("_$", "")
 }
 
 data("carniherbi49", package = "ade4")
+chtree <- read.tree(text=carniherbi49$tre2)
+chtree$tip.label <- fixup_species(chtree$tip.label)
+vcmat <- vcv(chtree)
 chdat <- carniherbi49$tab2 |>
   mutate(log_bm = log(bodymass),
          log_rs = log(runningspeed),
          g = 1  ## dummy for grouping variable
          ) |>
   tibble::rownames_to_column("species") |>
-  mutate(across(species, fixup_species))
-## FIXME
-vcmat <- vcv(chtree)
+  mutate(across(species, fixup_species)) |>
+  mutate(across(species, \(x) factor(x, levels = rownames(vcmat))))
 
-setdiff(chdat$species, chtree$tip.label)
-setdiff(chtree$tip.label, chdat$species)
-chtree <- read.tree(text=carniherbi49$tre2)
+
+stopifnot(identical(sort(rownames(vcmat)), sort(chdat$species)))
+
 m1 <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
               data = chdat)
 ```
 
-e.g.
+RTMB analogue:
 
-* phylogenetic × random-slopes
-* phylogenetic × smooth terms (penalized regression splines)
+```{r}
+X <- model.matrix(~ log_bm, data = chdat)
+Z <- fac2sparse(chdat$species)
+nllfun1 <- function(params) {
+  getAll(params, chdat)
+  mu <- X %*% beta + Z %*% b
+  pen <- -dmvnorm(b, 0, Sigma = vcmat, scale = exp(logpsd), log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen
+}
+p0 <- list(beta = rep(0, 2), b = rep(0, nrow(vcmat)), logsd=0, logpsd = 0)
+obj <- MakeADFun(nllfun1, p0, silent = TRUE, random = "b")
+fit <- with(obj, nlminb(par, fn, gr))
+```
 
-## additive
+```{r}
+stopifnot(all.equal(obj$env$parList()$beta, fixef(m1)$cond,
+                    check.attributes = FALSE, tolerance = 1e-7))
+```
+
+(clade doesn't interfere with phylog signal??)
+```{r}
+m2 <- update(m1, . ~ . + clade)
+```
 
 ## separable
+
+```{r}
+us2 <- unstructured(2)
+rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
+               fr = chdat, calc.lambdat = FALSE) # <2>
+Z_sep <- t(rt$Zt)
+nllfun_sep <- function(params) {
+  getAll(params, chdat)
+  mu <- X %*% beta + Z_sep %*% c(b)
+  f_phylo <- function(x) dmvnorm(x, 0, Sigma = vcmat, scale = 1, log = TRUE)
+  f_cov <- function(x) dmvnorm(x, 0,
+                               Sigma = us2$corr(corval), scale = exp(logsd))
+  pen <- -dseparable(f_phylo, f_cov)(b)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen
+}
+p2 <- list(beta = rep(0, 2), b = matrix(0,
+                                        nrow = nrow(vcmat),
+                                        ncol = 2), logsd=rep(0, 2),
+           corval=0)
+obj2 <- MakeADFun(nllfun_sep, p2, silent = TRUE, random = "b")
+fit_sep <- with(obj2, nlminb(par, fn, gr))
+```
+Not working yet ...
 
 ## tensor-product
 
