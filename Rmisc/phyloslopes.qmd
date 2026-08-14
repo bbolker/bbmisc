@@ -2,8 +2,11 @@
 title: "How should we model combinations of phylogenetic correlations with other (non-scalar) random effects models?"
 ---
 
-```{r pkgs}
-## remotes::install_github("eric-pedersen/MRFtools")
+```{r pkgs, message=FALSE}
+if (!require("MRFtools")) {
+    stop('please remotes::install_github("eric-pedersen/MRFtools")')
+    ##remotes::install_github("eric-pedersen/MRFtools")
+}
 library(MRFtools)
 library(ade4)
 library(glmmTMB)
@@ -46,8 +49,7 @@ chdat <- carniherbi49$tab2 |>
   mutate(across(species, fixup_species)) |>
   mutate(across(species, \(x) factor(x, levels = rownames(vcmat))))
 
-
-stopifnot(identical(sort(rownames(vcmat)), sort(chdat$species)))
+stopifnot(identical(sort(rownames(vcmat)), sort(as.character(chdat$species))))
 
 m1 <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
               data = chdat)
@@ -82,10 +84,16 @@ m2 <- update(m1, . ~ . + clade)
 
 ## separable
 
-```{r}
+```{r phylo_sep1}
 us2 <- unstructured(2)
 rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
                fr = chdat, calc.lambdat = FALSE) # <2>
+f_phylo <- function(x) dmvnorm(x, 0, Sigma = vcmat, scale = 1, log = TRUE)
+## need to pass params
+mk_f_cov <- function(corval, logrsd) {
+    function(x) dmvnorm(x, 0,
+                        Sigma = us2$corr(corval), scale = exp(logrsd))
+}
 Z_sep <- t(rt$Zt)
 image(Z_sep)
 nllfun_sep <- function(params) {
@@ -93,10 +101,7 @@ nllfun_sep <- function(params) {
   ## do we have the orientation/ordering of b right?
   ## (tried it both ways ...)
   mu <- X %*% beta + Z_sep %*% c(b)
-  f_phylo <- function(x) dmvnorm(x, 0, Sigma = vcmat, scale = 1, log = TRUE)
-  f_cov <- function(x) dmvnorm(x, 0,
-                               Sigma = us2$corr(corval), scale = exp(logrsd))
-  pen <- -dseparable(f_phylo, f_cov)(b)
+  pen <- -dseparable(f_phylo, mk_f_cov(corval,logrsd))(b)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen
 }
@@ -109,7 +114,22 @@ p2 <- list(beta = rep(0, 2), b = matrix(0,
 obj2 <- MakeADFun(nllfun_sep, p2, silent = TRUE, random = "b")
 fit_sep <- with(obj2, nlminb(par, fn, gr))
 ```
-Not working yet ...
+
+Not working yet ... try building a mini-example by hand.
+
+```{r sep_ex
+nllfun_sep0 <- function(params) {
+  getAll(params, chdat)
+  ## do we have the orientation/ordering of b right?
+  ## (tried it both ways ...)
+  -dseparable(f_phylo, mk_f_cov(corval,logrsd))(b)
+}
+set.seed(101)
+p2 <- list(b = matrix(rnorm(nrow(vcmat),
+                                        nrow = nrow(vcmat),
+                                        ncol = 2),
+           logrsd=rep(0, 2),
+           corval=0.2)
 
 ## tensor-product
 
