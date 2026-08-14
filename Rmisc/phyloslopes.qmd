@@ -87,19 +87,24 @@ us2 <- unstructured(2)
 rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
                fr = chdat, calc.lambdat = FALSE) # <2>
 Z_sep <- t(rt$Zt)
+image(Z_sep)
 nllfun_sep <- function(params) {
   getAll(params, chdat)
+  ## do we have the orientation/ordering of b right?
+  ## (tried it both ways ...)
   mu <- X %*% beta + Z_sep %*% c(b)
   f_phylo <- function(x) dmvnorm(x, 0, Sigma = vcmat, scale = 1, log = TRUE)
   f_cov <- function(x) dmvnorm(x, 0,
-                               Sigma = us2$corr(corval), scale = exp(logsd))
+                               Sigma = us2$corr(corval), scale = exp(logrsd))
   pen <- -dseparable(f_phylo, f_cov)(b)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen
 }
 p2 <- list(beta = rep(0, 2), b = matrix(0,
                                         nrow = nrow(vcmat),
-                                        ncol = 2), logsd=rep(0, 2),
+                                        ncol = 2),
+           logrsd=rep(0, 2),
+           logsd = 0,
            corval=0)
 obj2 <- MakeADFun(nllfun_sep, p2, silent = TRUE, random = "b")
 fit_sep <- with(obj2, nlminb(par, fn, gr))
