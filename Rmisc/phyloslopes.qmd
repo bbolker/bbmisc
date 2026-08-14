@@ -2,6 +2,50 @@
 title: "How should we model combinations of phylogenetic correlations with other (non-scalar) random effects models?"
 ---
 
+```{r pkgs}
+## remotes::install_github("eric-pedersen/MRFtools")
+library(MRFtools)
+library(ade4)
+library(glmmTMB)
+library(ape)
+library(Matrix)
+library(ggplot2); theme_set(theme_bw())
+library(dplyr)
+```
+
+The McGillycuddy *et al.* manuscript on 'propto' random effects (i.e. random effects where the covariance matrix is known *a priori* up to a scalar multiplier) illustrates how to use `glmmTMB` + `propto` to fit models with a phylogenetic term.
+
+```{r setup}
+gsub2 <- function(x, pattern, replacement) {
+  gsub(pattern, replacement, x)
+}
+fixup_species <- function(x) {
+  x |>
+    gsub2("\\.", "_") |>
+    gsub2("nelsoni$", "") |>
+    gsub2("cenereorenteus", "cinereoargenteus") |>
+    gsub2("hemonius", "hemionus") |>
+    gsub2("thomsonii", "thompsonii")
+}
+
+data("carniherbi49", package = "ade4")
+chdat <- carniherbi49$tab2 |>
+  mutate(log_bm = log(bodymass),
+         log_rs = log(runningspeed),
+         g = 1  ## dummy for grouping variable
+         ) |>
+  tibble::rownames_to_column("species") |>
+  mutate(across(species, fixup_species))
+## FIXME
+vcmat <- vcv(chtree)
+
+setdiff(chdat$species, chtree$tip.label)
+setdiff(chtree$tip.label, chdat$species)
+chtree <- read.tree(text=carniherbi49$tre2)
+m1 <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
+              data = chdat)
+```
+
 e.g.
 
 * phylogenetic × random-slopes
