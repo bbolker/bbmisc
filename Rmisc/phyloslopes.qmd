@@ -33,14 +33,18 @@ library(reformulas)
 library(mgcv)
 library(MRFtools)
 library(Matrix)
-## model diagnostics,
+## model diagnostics, etc.
 library(performance)
 library(ggplot2); theme_set(theme_bw())
+library(cowplot)
+library(broom.mixed) ## for tidy()
 ```
 
 The McGillycuddy *et al.* manuscript on 'propto' random effects (i.e. random effects where the covariance matrix is known *a priori* up to a scalar multiplier) illustrates how to use `glmmTMB` + `propto` to fit models with a phylogenetic term.
 
 ```{r utils}
+ifun <- function(x) image(Matrix(x), sub = "",
+                          xlab = "", ylab = "")
 TMBfit <- function(obj, optimizer = nlminb, response = NULL) {
   fit <- optimizer(obj$par, obj$fn, obj$gr)
   ret <- list(fit = fit, obj = obj)
@@ -58,7 +62,7 @@ npar.TMB <- function(x) { length(x$fit$par) }
 ## these assume we have REPORT(mu) and REPORT(resid) and ADREPORT(mu)
 predict.TMB <- function(x, se.fit = FALSE) {
   if (!se.fit) x$obj$report()$mu
-  sdr <- TMB::sdreport(x$obj)
+  sdr <- RTMB::sdreport(x$obj)  ## need the RTMB version
   sdr2 <- summary(sdr, select = "report")
   list(fit = sdr2[,"Estimate"],
        se.fit = sdr2[,"Std. Error"])
@@ -136,6 +140,7 @@ chdat <- carniherbi49$tab2 |>
   mutate(across(species, \(x) factor(x, levels = rownames(vcmat))))
 ## check
 stopifnot(identical(sort(rownames(vcmat)), sort(as.character(chdat$species))))
+save(chdat, chtree, vcmat, file = "phyloslopes.rda")
 ```
 
 Model fit from McGillycuddy et al.:
@@ -154,10 +159,23 @@ performance::check_model(fit_propto_glmmTMB,
 RTMB analogue:
 
 ```{r rtmb1}
+mk_f_phylo <- function(vcmat, scale) {
+  function(x) dmvnorm(x, 0, Sigma = vcmat, scale = scale, log = TRUE) ## scale=1 for identifiability
+}
+## need to pass params
+mk_f_cov <- function(corval, logrsd) {
+    function(x) dmvnorm(x, rep(0,2),
+                        Sigma = us2$corr(corval), scale = exp(logrsd),
+                        log = TRUE)
+}
 X <- model.matrix(~ log_bm, data = chdat)
 Z <- fac2sparse(chdat$species)
+## for intercept-slope model
+us2 <- unstructured(2)
+rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
+               fr = chdat, calc.lambdat = FALSE)
 nllfun1 <- function(params) {
-  getAll(params, chdat)
+  getAll(params, chdat_x)
   mu <- drop(X %*% beta + Z %*% b)
   REPORT(mu)
   ADREPORT(mu)
@@ -167,6 +185,7 @@ nllfun1 <- function(params) {
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen
 }
+chdat_x <- chdat
 p0 <- list(beta = rep(0, 2), b = rep(0, nrow(vcmat)), logsd=0, logpsd = 0)
 obj <- MakeADFun(nllfun1, p0, silent = TRUE, random = "b")
 fit_propto_TMB <- TMBfit(obj)
@@ -183,41 +202,30 @@ do much --- abandon that avenue for now.
 ## separable
 
 ```{r phylo_sep1}
-us2 <- unstructured(2)
-rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
-               fr = chdat, calc.lambdat = FALSE)
-## scale=1 for identifiability (?)
-f_phylo <- function(x) dmvnorm(x, 0, Sigma = vcmat, scale = 1, log = TRUE)
-## need to pass params
-mk_f_cov <- function(corval, logrsd) {
-    function(x) dmvnorm(x, rep(0,2),
-                        Sigma = us2$corr(corval), scale = exp(logrsd),
-                        log = TRUE)
-}
+## modular: should be able to handle various separable cor structures
 nllfun_sep <- function(params) {
-  getAll(params, chdat)
-  mu <- drop(X %*% beta + t(rt$Zt) %*% c(b))
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Z %*% c(b))
   REPORT(mu)
   ADREPORT(mu)
   resid <- log_rs - mu
-  ## REPORT(resid)
-  pen <- -dseparable(f_phylo, mk_f_cov(corval, logrsd))(b)
+  REPORT(resid)
+  pen <- -dseparable(mk_f_phylo(phylomat, scale), mk_f_cov(corval, logrsd))(b)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsdres), log = TRUE))
   lik + pen
 }
+```
+
+```{r fit_sep1}
 p2 <- list(beta = rep(0, 2), b = matrix(0,
                                         nrow = nrow(vcmat),
                                         ncol = 2),
            logrsd=rep(0, 2),
            logsdres = 0,
            corval=0)
+chdat_x <- c(chdat, list(phylomat = vcmat, scale = 1, Z = t(rt$Zt)))
 obj2 <- MakeADFun(nllfun_sep, p2, silent = TRUE, random = "b")
 fit_sep <- TMBfit(obj2)
-```
-
-Debugging `sdreport` stuff/methods ...
-```{r}
-sdr <- sdreport(fit_sep$obj)
 ```
 
 ```{r test_phyloZ}
@@ -230,11 +238,23 @@ image(KR)
 
 ## tensor-product
 
-Not quite sure how I should do a tensor product between a phylo and a simple basis - do I need to drop the intercept?
-Then what about the phylogenetic correlation in the intercepts?
+```{r tp_tests}
+tp <- tensor.prod.penalties(list(diag(2), solve(vcmat)))
+lapply(tp, dim)
+plot_grid(plotlist = lapply(tp, ifun))
+tX <- tensor.prod.model.matrix(list(Z, as(X, "dgCMatrix")))
+dim(tX)
+```
+
+I believe based on Wood (2006) that we need the penalty to be the sum of the scales/penalty values times (`penalty %*% b`), with
+the `b` reused in each case. (Does the `scale` parameter of `RTMB::dgmrf` apply in the opposite direction, i.e. do we need
+`RTMB::dgmrf(S, scale = 1/sd)` ?
+
+I think in this case it's OK that the null space is empty - we do want this 'random effect' to disappear completely 
+as the penalty goes to infinity.
+
 
 Clark, Nicholas. “Phylogenetic Smoothing Using Mgcv.” GAMbler, 2024. https://ecogambler.netlify.app/blog/phylogenetic-smooths-mgcv/.
-
 
 ```{r mrf_penalty_test}
 m1 <- mrf_penalty(chtree, "brownian", internal_nodes = FALSE)
@@ -248,10 +268,15 @@ If using all-nodes parameterization of phylogenetic precision matrix (to take ad
 
 ## To do
 
-* replicate examples from `propto` paper, in RTMB (linear and functional effects of log(body mass) on running speed): additive model
-* try out separable model via `dseparable`
+* test cov (`dmvnorm`) implementation vs precision (`dgmrf`) implementation in RTMB
+* extend to phylo + smooths (need to separate fixed-effect params) [additive, separable, tensor-product]
+* performance comparison (single phylo structure), on simulated data (as a function of tree size):
+    * glmmTMB + propto
+    * RTMB + dense phylo (tips only)
+    * RTMB + sparse phylo (full matrix)
+    * RTMB + Z-matrix (phyloglmm)
+* which model does the Z-matrix with random slopes correspond to? (What is the implied correlation between species-A intercept and species-B slope? Does it match the separable model?) i.e. what is $\mathbf Z \boldsymbol \Sigma  \mathbf Z^\top$ (analytically or numerically) ... ?
 * try out tensor-product model
-* what happens if we include a fixed effect of clade?
 
 ```{r pic1}
 ggplot(chdat, aes(runningspeed, bodymass, colour = clade)) +
