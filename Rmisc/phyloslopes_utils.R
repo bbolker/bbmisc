@@ -97,3 +97,47 @@ mk_f_cov <- function(corval, logrsd) {
                         Sigma = us2$corr(corval), scale = exp(logrsd),
                         log = TRUE)
 }
+
+## -- RTMB negative log-likelihoods for alternative parameterizations -------
+## all rely on `chdat_x` (data + extras, via getAll) and on X/Z being set
+## up in the calling environment
+
+## dense covariance ("propto"-equivalent) parameterization
+nllfun1 <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Z %*% b)
+  REPORT(mu)
+  ADREPORT(mu)
+  resid <- log_rs - mu
+  REPORT(resid)
+  pen <- -dmvnorm(b, 0, Sigma = vcmat, scale = exp(logpsd), log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen
+}
+
+## sparse precision-matrix parameterization
+nllfun_prec <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Z %*% b)
+  REPORT(mu)
+  ADREPORT(mu)
+  resid <- log_rs - mu
+  REPORT(resid)
+  pen <- -dgmrf(b, 0, Q = phyloprec, scale = exp(-logpsd), log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen
+}
+
+## separable (phylogenetic x intercept-slope covariance) parameterization
+## modular: should be able to handle various separable cor structures
+nllfun_sep <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Z %*% c(b))
+  REPORT(mu)
+  ADREPORT(mu)
+  resid <- log_rs - mu
+  REPORT(resid)
+  pen <- -dseparable(mk_f_phylo(phylomat, scale), mk_f_cov(corval, logrsd))(b)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsdres), log = TRUE))
+  lik + pen
+}

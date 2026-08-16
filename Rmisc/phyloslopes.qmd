@@ -86,17 +86,6 @@ Z <- fac2sparse(chdat$species)
 us2 <- unstructured(2)
 rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
                fr = chdat, calc.lambdat = FALSE)
-nllfun1 <- function(params) {
-  getAll(params, chdat_x)
-  mu <- drop(X %*% beta + Z %*% b)
-  REPORT(mu)
-  ADREPORT(mu)
-  resid <- log_rs - mu
-  REPORT(resid)
-  pen <- -dmvnorm(b, 0, Sigma = vcmat, scale = exp(logpsd), log = TRUE)
-  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
-  lik + pen
-}
 ## move data into required wrapper (no extras needed for this version)
 chdat_x <- chdat
 p0 <- list(beta = rep(0, 2), b = rep(0, nrow(vcmat)), logsd=0, logpsd = 0)
@@ -110,17 +99,6 @@ stopifnot(all.equal(fixef(fit_propto_TMB), fixef(fit_propto_glmmTMB)$cond,
 ```
 
 ```{r phylo_prec}
-nllfun_prec <- function(params) {
-  getAll(params, chdat_x)
-  mu <- drop(X %*% beta + Z %*% b)
-  REPORT(mu)
-  ADREPORT(mu)
-  resid <- log_rs - mu
-  REPORT(resid)
-  pen <- -dgmrf(b, 0, Q = phyloprec, scale = exp(-logpsd), log = TRUE)
-  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
-  lik + pen
-}
 ## Matrix(solve(vcmat)) auto-detects symmetry and returns a *dense*
 ## "dsyMatrix" -- not a "sparseMatrix" subclass, so it can't be coerced
 ## to "adsparse" (RTMB's AD sparse-matrix type), nor to "dgCMatrix"
@@ -132,25 +110,38 @@ chdat_x <- c(chdat, list(phyloprec =
 obj <- MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b")
 ```
 
+Precision matrix over the *whole* tree (tips + internal nodes), via `MRFtools::mrf_penalty(..., internal_nodes = TRUE)`. The full `ntip + Nnode` precision matrix is rank-deficient by 1: the classic Brownian-motion "no fixed origin" singularity, since shifting every node (including the root) by the same constant leaves all edge contrasts unchanged. Dropping the root's row/column from the precision matrix (and the corresponding column from `Z`) removes the singularity:
+
+```{r phylo_prec_allnodes}
+ntip <- length(chtree$tip.label)
+Q_full_raw <- mrf_penalty(chtree, "brownian", internal_nodes = TRUE)
+## mrf_penalty() orders [tips][internal nodes]; reorder to [internal][tips]
+## to match the factor levels used to build Z_full below, so that the root
+## (the first internal node) ends up at position 1
+ord <- c(ntip + seq_len(chtree$Nnode), seq_len(ntip))
+Q_full <- as(Q_full_raw[ord, ord], "CsparseMatrix")
+Q_noroot <- Q_full[-1, -1]
+
+## fac2sparse() returns levels x observations (the "Zt" convention); use
+## placeholder levels 1:Nnode for the (never-observed -> all-zero-column)
+## internal nodes, then transpose to the usual observations x levels form
+Z_full <- t(fac2sparse(factor(chdat$species,
+                              levels = c(seq_len(chtree$Nnode), chtree$tip.label)),
+                       drop.unused.levels = FALSE))
+Z_noroot <- Z_full[, -1]
+
+p0_noroot <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
+chdat_x <- c(chdat, list(Z = Z_noroot, phyloprec = Q_noroot))
+obj_noroot <- MakeADFun(nllfun_prec, p0_noroot, silent = TRUE, random = "b")
+fit_prec_allnodes_noroot <- TMBfit(obj_noroot)
+```
+
+`fixef(fit_prec_allnodes_noroot)` and `logLik(fit_prec_allnodes_noroot)` come out identical to `fit_dense`/`fit_prec` -- i.e. marginalizing the internal nodes really does reduce to the tip-only model, confirming the `phyloglmm`-equivalence conjecture from the intro, once the root is pinned down.
+
 Thought I would try adding `clade` as a fixed effect, but it doesn't seem to
 do much --- abandon that avenue for now.
 
 ## separable
-
-```{r phylo_sep1}
-## modular: should be able to handle various separable cor structures
-nllfun_sep <- function(params) {
-  getAll(params, chdat_x)
-  mu <- drop(X %*% beta + Z %*% c(b))
-  REPORT(mu)
-  ADREPORT(mu)
-  resid <- log_rs - mu
-  REPORT(resid)
-  pen <- -dseparable(mk_f_phylo(phylomat, scale), mk_f_cov(corval, logrsd))(b)
-  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsdres), log = TRUE))
-  lik + pen
-}
-```
 
 ```{r fit_sep1}
 p2 <- list(beta = rep(0, 2), b = matrix(0,
