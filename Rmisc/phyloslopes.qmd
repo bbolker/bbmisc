@@ -138,10 +138,26 @@ fit_prec_allnodes_noroot <- TMBfit(obj_noroot)
 
 `fixef(fit_prec_allnodes_noroot)` and `logLik(fit_prec_allnodes_noroot)` come out identical to `fit_dense`/`fit_prec` -- i.e. marginalizing the internal nodes really does reduce to the tip-only model, confirming the `phyloglmm`-equivalence conjecture from the intro, once the root is pinned down.
 
+A third way to encode the same tree structure: `phylo.to.Z()` builds a tip x edge matrix with a `sqrt(edge.length)` entry wherever an edge is ancestral to a tip, so `Z %*% b` with `b` iid unit-scale reproduces `vcv(chtree)` exactly -- no covariance/precision matrix needed, and (unlike the all-nodes precision matrix above) no root-singularity to work around, since there's no free "root value" parameter.
+
+```{r phylo_edge}
+pZ <- phylo.to.Z(chtree)
+Z_edge <- pZ[as.character(chdat$species), ]
+
+p0_edge <- modifyList(p0, list(b = rep(0, nrow(chtree$edge))))
+chdat_x <- c(chdat, list(Z = Z_edge))
+obj_edge <- MakeADFun(nllfun_edge, p0_edge, silent = TRUE, random = "b")
+fit_edge <- TMBfit(obj_edge)
+```
+
+`fixef(fit_edge)` and `logLik(fit_edge)` again match `fit_dense`/`fit_prec`/`fit_prec_allnodes_noroot`, confirming the `phyloglmm` `Z`-matrix equivalence a second, more direct way.
+
 Thought I would try adding `clade` as a fixed effect, but it doesn't seem to
 do much --- abandon that avenue for now.
 
 ## separable
+
+`Z = t(rt$Zt)` orders its columns `[species-outer, trait-inner]` (each species' intercept/slope pair adjacent), so `b` (an `ntip x 2` matrix) must be flattened to match via `c(t(b))`, not `c(b)` -- flattening column-major would silently permute `b` relative to `Z`'s columns (trait-outer/species-inner vs. species-outer/trait-inner) and land the optimizer on a much worse fit. `nllfun_sep` in `phyloslopes_utils.R` has this fix.
 
 ```{r fit_sep1}
 p2 <- list(beta = rep(0, 2), b = matrix(0,
@@ -155,13 +171,35 @@ obj2 <- MakeADFun(nllfun_sep, p2, silent = TRUE, random = "b")
 fit_sep <- TMBfit(obj2)
 ```
 
-```{r test_phyloZ}
-f <- ~ 1 + (1+log_bm | species)
+As a ground-truth check, we can also write out the *dense* Kronecker covariance directly: stack the 49 species x 2 traits into one 98-vector `b` with `b ~ N(0, Sigma2 %x% vcmat)`, no `dseparable()` abstraction involved.
+
+```{r dense_slopes}
+Zdense <- t(rt$Zt)
+p0_ds <- modifyList(p0, list(b = rep(0, 2*nrow(vcmat)), logrsd = rep(0,2), corval = 0))
+chdat_x <- c(chdat, list(Zdense = Zdense))
+obj_ds <- MakeADFun(nllfun_dense_slopes, p0_ds, silent = TRUE, random = "b")
+fit_dense_slopes <- TMBfit(obj_ds)
+```
+
+`fixef(fit_sep)` and `fixef(fit_dense_slopes)` now agree (as do their `logLik`s), confirming `dseparable()` really does implement the `Sigma2 %x% vcmat` covariance.
+
+Now the edge-based version, answering the to-do question below ("does the Z-matrix random-slopes model match the separable model?"): `KhatriRao(t(pZ), t(J))` builds a `nobs x (2*nedge)` matrix whose columns are ordered `[edge-outer, trait-inner]` -- each edge contributes an (intercept-innovation, slope-innovation) pair. Propagating an edge-level, iid-across-edges, 2x2-correlated Brownian innovation up the tree induces `Cov(trait_a_i, trait_b_j) = Sigma2[a,b] * vcmat[i,j]` for species `i,j` -- exactly the same separable covariance as above, just built without ever forming `vcmat` or a covariance/precision matrix at all.
+
+```{r phylo_edge_slopes}
+f <- ~ 1 + (1 + log_bm | species)
 J <- eval(bquote(model.matrix(~.(findbars(f)[[1]][[2]]), data = chdat)))
 pZ <- phylo.to.Z(chtree)
-KR <- t(KhatriRao(t(pZ), t(J)))
-image(KR)
+## reorder pZ's tip-label rows to match chdat's (species-factor) row order
+pZ_ord <- pZ[as.character(chdat$species), ]
+KR <- t(KhatriRao(t(pZ_ord), t(J)))
+
+p0_es <- modifyList(p0, list(b = rep(0, 2*nrow(chtree$edge)), logrsd = rep(0,2), corval = 0))
+chdat_x <- c(chdat, list(KR = KR))
+obj_es <- MakeADFun(nllfun_edge_slopes, p0_es, silent = TRUE, random = "b")
+fit_edge_slopes <- TMBfit(obj_es)
 ```
+
+`fixef(fit_edge_slopes)` and `logLik(fit_edge_slopes)` match `fit_sep`/`fit_dense_slopes` too (all three agree to several significant figures) -- so yes, the edge-based `Z`-matrix random-slopes model is exactly the separable model, just reparameterized.
 
 ## tensor-product
 
@@ -177,9 +215,18 @@ I believe based on Wood (2006) that we need the penalty to be the sum of the sca
 the `b` reused in each case. (Does the `scale` parameter of `RTMB::dgmrf` apply in the opposite direction, i.e. do we need
 `RTMB::dgmrf(S, scale = 1/sd)` ?
 
-I think in this case it's OK that the null space is empty - we do want this 'random effect' to disappear completely 
+I think in this case it's OK that the null space is empty - we do want this 'random effect' to disappear completely
 as the penalty goes to infinity.
 
+**Is the separable random-slopes model (above) nested in this tensor-product model?** No. For `b` laid out species-outer/trait-inner (so the separable covariance is `Sigma_full = vcmat %x% Sigma2`), the separable model's precision is a Kronecker *product*
+$$Q_{sep} = S_{phylo} \otimes P_{trait,sep},$$
+while summing `-dgmrf()` over `tensor.prod.penalties(list(Sphylo, Ptrait))` gives a Kronecker *sum*
+$$Q_{add} = S_{phylo} \otimes I_2 \;+\; I_{ntip} \otimes P_{trait,add}.$$
+Both are diagonalized by the same rotation $V \otimes I_2$, where $S_{phylo} = V\Lambda V^\top$ ($\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_{49})$). In that basis, block $i$ of $Q_{sep}$ is $\lambda_i P_{trait,sep}$ and block $i$ of $Q_{add}$ is $\lambda_i I_2 + P_{trait,add}$. Matching every block simultaneously requires
+$$P_{trait,add} = \lambda_i\,(P_{trait,sep} - I_2) \quad \text{for all } i = 1,\dots,49,$$
+which is impossible unless $P_{trait,sep} = I_2$ (which forces $P_{trait,add}=0$, not a valid precision matrix), since $S_{phylo}$'s eigenvalues are not all equal (range $\approx 0.0032$-$3.33$ for this tree, i.e. $S_{phylo}$ is not proportional to $I_{ntip}$). So the separable model is *not* a special case of this tensor-product-penalty model -- Kronecker product and Kronecker sum are different families of precision matrices, and no choice of the free 2x2 trait-precision parameters lets the tensor-product model exactly reproduce the separable one.
+
+This matches what happens numerically: fitting this model (`Sphylo` fixed/unscaled, `Ptrait` built from 3 free parameters -- two log-sds and a correlation, then inverted) converges to a much worse fit (logLik $\approx -180$ vs. $-6.5$ for the separable model) and lands on a genuine saddle point -- the profiled Hessian (via `numDeriv::jacobian(obj$gr, ...)`) has substantial negative eigenvalues (e.g. $-3011,-107$ from an all-zero start; $-55,-7.3$ from a warm start at the separable model's optimum) -- regardless of how the trait correlation is parameterized (`unstructured(2)`'s internal transform vs. the glmmTMB-vignette mapping $\rho=\theta/\sqrt{1+\theta^2}$ give near-identical results). The optimizer keeps pushing the correlation toward its boundary, trying (and failing) to approximate the unreachable separable structure.
 
 Clark, Nicholas. “Phylogenetic Smoothing Using Mgcv.” GAMbler, 2024. https://ecogambler.netlify.app/blog/phylogenetic-smooths-mgcv/.
 
@@ -193,10 +240,109 @@ dim(m2)
 
 If using all-nodes parameterization of phylogenetic precision matrix (to take advantage of sparsity/`gmrf()` in `RTMB`), we'd need to make sure that the 'species' factor included values (not included in data set) for the internal nodes ...
 
+## phylogenetic splines
+
+McGillycuddy *et al.*'s `propto` manuscript (`main.tex`) fits an *additive* model combining a penalized thin-plate-spline smoother of `log_bm` with a phylogenetic random intercept:
+```
+glmmTMB(log(runningspeed) ~ s(logbm) + propto(0 + species | g, mat), data = data,
+        control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS")))
+```
+the two random effects (spline wiggle, phylogenetic intercept) are completely independent, summed in the linear predictor. Here we redo this comparing three structures: (1) that additive model, (2) a *separable* model where the spline's wiggly coefficients also get their own (single-scale) phylogenetically-correlated component, and (3) a genuine tensor-product smooth of phylogeny x `log_bm`.
+
+```{r spline_setup}
+## thin-plate spline marginal for log_bm; absorb.cons=TRUE matches glmmTMB's
+## internal s() handling (its own sum-to-zero identifiability constraint) --
+## essential for an exact match below, not just a convenience
+sm <- smoothCon(s(log_bm, k = 10), data = chdat, absorb.cons = TRUE)
+sm2ran <- smooth2random(sm[[1]], "", type = 2)
+Xf <- sm2ran$Xf              ## fixed (linear-in-log_bm) design, 49 x 1
+Xfull <- cbind(1, Xf)        ## + intercept column, so beta = c(intercept, linear coef)
+Xr <- sm2ran$rand$Xr         ## wiggly random-effect design, 49 x 8, iid-equivalent
+Kw <- ncol(Xr)
+
+## cross the wiggly basis with the phylo indicator for the separable model
+## below (species-outer/wiggly-inner, matching earlier tensor.prod.model.matrix
+## conventions -- Zphylo needs transposing first, same fac2sparse gotcha as always)
+Xr_joint <- tensor.prod.model.matrix(list(as(t(Zphylo <- fac2sparse(chdat$species)), "dgCMatrix"),
+                                          as(Xr, "dgCMatrix")))
+```
+
+### additive
+
+```{r spline_additive}
+p0_spadd <- list(beta = rep(0, 2), b_spline = rep(0, Kw), b_phylo = rep(0, nrow(vcmat)),
+                 logsd = 0, logsd_f = 0, logpsd = 0)
+chdat_x <- chdat
+obj_spadd <- MakeADFun(nllfun_spline_additive, p0_spadd, silent = TRUE,
+                       random = c("b_spline", "b_phylo"))
+fit_spline_additive <- TMBfit(obj_spadd)
+```
+
+Validate against the paper's actual `glmmTMB` call (using `vcv(chtree, corr = TRUE)`, the standardized correlation matrix used in the paper -- an ultrametric tree makes this exactly proportional to our raw `vcmat`, so it's just a reparameterization, not a different model):
+
+```{r spline_additive_check}
+mat_corr <- vcv(chtree, corr = TRUE)[levels(chdat$species), levels(chdat$species)]
+fit_spline_glmmTMB <- glmmTMB(log_rs ~ s(log_bm) + propto(0 + species | g, mat_corr), data = chdat,
+                              control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS")))
+stopifnot(all.equal(logLik(fit_spline_additive), c(logLik(fit_spline_glmmTMB)),
+                    check.attributes = FALSE, tolerance = 1e-4))
+stopifnot(all.equal(fixef(fit_spline_additive), fixef(fit_spline_glmmTMB)$cond,
+                    check.attributes = FALSE, tolerance = 1e-3))
+```
+
+`fixef(fit_spline_additive)` and `logLik(fit_spline_additive)` match `fit_spline_glmmTMB` exactly (intercept 3.894787 vs. 3.894789, `s(log_bm)` coefficient -0.007723 vs. -0.007724, logLik -6.14403 both) -- confirming the RTMB reimplementation reproduces the paper's model precisely.
+
+### separable
+
+Add a phylogenetically-correlated copy of the wiggly coefficients on top of the additive model's baseline (non-phylogenetic) wiggle -- a single extra scale (`logpsd_f`), diagonal across the `r Kw` wiggly dimensions, not a full covariance. Crucially this must be *added to*, not substituted for, the baseline `b_spline` term, so that the model properly nests the additive one (recoverable exactly as `logpsd_f -> -Inf`) rather than losing that flexibility entirely.
+
+```{r spline_separable}
+p0_spsep <- modifyList(p0_spadd, list(b_wiggly = rep(0, nrow(vcmat)*Kw), logpsd_f = -10))
+chdat_x <- c(chdat, list(Xr_joint = Xr_joint))
+obj_spsep <- MakeADFun(nllfun_spline_separable, p0_spsep, silent = TRUE,
+                       random = c("b_spline", "b_wiggly", "b_phylo"))
+fit_spline_separable <- TMBfit(obj_spsep)
+```
+
+`fixef(fit_spline_separable)` and `logLik(fit_spline_separable)` match `fit_spline_additive` exactly, with `logpsd_f` collapsing to its floor -- the data don't support any *additional* phylogenetically-correlated wiggle beyond the plain iid term, so the separable model correctly reduces to the additive one.
+
+### tensor-product smooth
+
+For a genuine tensor-product smooth of phylogeny x `log_bm`, `Sphylo = solve(vcmat)` is always full rank (no null space of its own), so *any* direction of the spline crossed with it stays fully regularized -- there's no risk of feeding `dgmrf()`/`dmvnorm()` a rank-deficient precision as long as we handle the *spline's own* null space (constant + linear, rank-deficient by construction) before crossing it with phylogeny, rather than trying to eigendecompose the full rank-deficient joint tensor penalty (or worse, passing it straight to `dgmrf()`, which silently returns `NaN` for a singular `Q`). `mgcv::smooth2random()` can't be used here directly for a `te()` term (only `t2()`, whose all-iid ANOVA-style reformulation exists to keep every marginal precision-free -- exactly the kind of arbitrary-precision-matrix restriction RTMB's `dgmrf()` doesn't need); instead we eigendecompose the spline's own 10x10 penalty directly. Note this needs a *fresh* (non-`absorb.cons`) `smoothCon()` call: `sm` above already has the constant direction folded away (a 9-dim basis with a 1-dim null space), which would leave only one combined null-space scale instead of two separately-shrinkable ones.
+
+```{r spline_tensor_setup}
+sm_full <- smoothCon(s(log_bm, k = 10), data = chdat)  ## no absorb.cons -- want the full null space
+S_spline <- sm_full[[1]]$S[[1]]
+ev <- eigen(S_spline, symmetric = TRUE)
+null_idx <- which(ev$values < 1e-8 * max(ev$values))
+range_idx <- which(ev$values >= 1e-8 * max(ev$values))
+Xf_null <- sm_full[[1]]$X %*% ev$vectors[, null_idx, drop = FALSE]                 ## 49 x 2: [linear, constant]
+Xr_range <- sm_full[[1]]$X %*% ev$vectors[, range_idx, drop = FALSE] %*%
+  diag(1/sqrt(ev$values[range_idx]))                                              ## 49 x 8, Wood's sqrt(D) reparam
+Kn <- ncol(Xf_null); Kr <- ncol(Xr_range)
+
+tZphylo <- as(t(Zphylo), "dgCMatrix")
+Xnull_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xf_null, "dgCMatrix")))   ## 49 x 98
+Xrange_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xr_range, "dgCMatrix"))) ## 49 x 392
+```
+
+The two null-space directions (constant and linear-in-`log_bm`) need *separate* scales -- a single shared scale can't shrink away the (unsupported) phylo-slope variation without also killing the (well-supported) phylo-intercept variation, giving a much worse fit than necessary:
+
+```{r spline_tensor}
+p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
+                    logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
+chdat_x <- c(chdat, list(Xnull_joint = Xnull_joint, Xrange_joint = Xrange_joint))
+obj_sptensor <- MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
+                          random = c("b_null", "b_range"))
+fit_spline_tensor <- TMBfit(obj_sptensor)
+```
+
+`fixef(fit_spline_tensor)` and `logLik(fit_spline_tensor)` match `fit_dense`/`fit_prec` (the very first tip-only phylo-intercept models) exactly -- both extra components (phylo-slope, phylo-wiggle) shrink cleanly to zero for this weak-signal dataset, and (unlike the earlier random-slopes tensor-product exploration) the profiled Hessian has no negative eigenvalues, just the boundary-flat directions expected from variance components at zero -- a well-posed fit, not a saddle.
+
 ## To do
 
-* test cov (`dmvnorm`) implementation vs precision (`dgmrf`) implementation in RTMB
-* extend to phylo + smooths (need to separate fixed-effect params) [additive, separable, tensor-product]
+* ~~test cov (`dmvnorm`) implementation vs precision (`dgmrf`) implementation in RTMB~~ done, see `phylo_prec`/`glmmTMB_rtmb_check`
+* ~~extend to phylo + smooths (need to separate fixed-effect params) [additive, separable, tensor-product]~~ done, see "phylogenetic splines" section above
 * performance comparison (single phylo structure), on simulated data (as a function of tree size):
     * glmmTMB + propto
     * RTMB + dense phylo (tips only)
