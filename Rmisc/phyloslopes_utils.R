@@ -243,7 +243,9 @@ nllfun_spline_separable <- function(params) {
   resid <- log_rs - mu
   REPORT(resid)
   pen_spline <- -sum(dnorm(b_spline, 0, sd = exp(logsd_f), log = TRUE))
-  Kw <- ncol(Xr)
+  ## Kw (wiggly dimension) comes from the calling environment (set alongside
+  ## Xr, before chdat_x is built) -- not recomputed here, so it can't
+  ## silently diverge from the Xr actually used to build Xr_joint
   Sigma_wiggly <- exp(2*logpsd_f) * diag(Kw)
   Sigma_full <- kronecker(vcmat, Sigma_wiggly)
   pen_wiggly <- -dmvnorm(b_wiggly, rep(0, length(b_wiggly)), Sigma = Sigma_full, log = TRUE)
@@ -271,8 +273,11 @@ nllfun_spline_tensor <- function(params) {
   ADREPORT(mu)
   resid <- log_rs - mu
   REPORT(resid)
-  Kr <- ncol(Xrange_joint) / nrow(vcmat)
-  Sigma_full_null <- kronecker(vcmat, diag(exp(2*logpsd_null)))
+  ## Kr (wiggly range-space dimension) comes from the calling environment
+  ## (set alongside Xr_range, before chdat_x is built) -- not recomputed
+  ## here, so it can't silently diverge from the basis actually used to
+  ## build Xrange_joint
+  Sigma_full_null <- kronecker(vcmat, diag(exp(2*logpsd_null), nrow = length(logpsd_null)))
   Sigma_full_range <- kronecker(vcmat, exp(2*logpsd_range) * diag(Kr))
   pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_full_null, log = TRUE)
   pen_range <- -dmvnorm(b_range, rep(0, length(b_range)), Sigma = Sigma_full_range, log = TRUE)

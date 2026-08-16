@@ -72,11 +72,20 @@ fit_prec <- TMBfit(MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b"))
 ## marginalizing the internal nodes reduces to fit_dense/fit_prec.
 ntip <- length(chtree$tip.label)
 Q_full_raw <- mrf_penalty(chtree, "brownian", internal_nodes = TRUE)
-## mrf_penalty() orders [tips][internal nodes]; reorder to [internal][tips]
-## to match the factor levels used to build Z_full below, so that the root
-## (the first internal node) ends up at position 1
-ord <- c(ntip + seq_len(chtree$Nnode), seq_len(ntip))
-Q_full <- as(Q_full_raw[ord, ord], "CsparseMatrix")
+## mrf_penalty() orders [tips][internal nodes], with dimnames = tip labels
+## then "N<node id>"; reorder to [root][other internal nodes][tips] *by
+## name*, not position, so this doesn't silently misalign if mrf_penalty()'s
+## internal ordering convention ever changes. Root identified the same way
+## as in phylo.to.Z(): the internal node that never appears as an edge's
+## child
+internal_ids <- (ntip + 1):(ntip + chtree$Nnode)
+root_id <- internal_ids[!(internal_ids %in% chtree$edge[, 2])]
+stopifnot(length(root_id) == 1)
+internal_names <- paste0("N", internal_ids)
+root_name <- paste0("N", root_id)
+ord_names <- c(root_name, setdiff(internal_names, root_name), chtree$tip.label)
+stopifnot(all(ord_names %in% rownames(Q_full_raw)))
+Q_full <- as(Q_full_raw[ord_names, ord_names], "CsparseMatrix")
 Q_noroot <- Q_full[-1, -1]
 
 ## fac2sparse() returns levels x observations (the "Zt" convention); use
@@ -191,7 +200,7 @@ null_idx <- which(ev$values < 1e-8 * max(ev$values))
 range_idx <- which(ev$values >= 1e-8 * max(ev$values))
 Xf_null <- sm_full[[1]]$X %*% ev$vectors[, null_idx, drop = FALSE]
 Xr_range <- sm_full[[1]]$X %*% ev$vectors[, range_idx, drop = FALSE] %*%
-  diag(1/sqrt(ev$values[range_idx]))
+  diag(1/sqrt(ev$values[range_idx]), nrow = length(range_idx))
 Kn <- ncol(Xf_null); Kr <- ncol(Xr_range)
 tZphylo <- as(t(Zphylo), "dgCMatrix")
 Xnull_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xf_null, "dgCMatrix")))
@@ -228,9 +237,10 @@ get_loglik <- function(fit) {
 ## sits near a zero boundary for this dataset, so its optimum is resolved
 ## slightly less precisely (fixef relative diff ~6e-5) than the other,
 ## better-conditioned parameterizations
-check_fixef_equal <- function(fit1, fit2, tolerance = 1e-4,
-                              label1 = deparse(substitute(fit1)),
-                              label2 = deparse(substitute(fit2))) {
+## label1/label2 are required, not defaulted via deparse(substitute(...)):
+## every call site here passes fits[[p[1]]]/fits[[p[2]]], for which that
+## idiom would print the indexing expression, not a useful fit name
+check_fixef_equal <- function(fit1, fit2, label1, label2, tolerance = 1e-4) {
   cat(sprintf("checking fixed effects agree: %s vs %s ...\n", label1, label2))
   stopifnot(all.equal(get_fixef(fit1), get_fixef(fit2),
                       check.attributes = FALSE, tolerance = tolerance))
@@ -243,9 +253,7 @@ check_fixef_equal <- function(fit1, fit2, tolerance = 1e-4,
 ## convergence" (nlminb code 8) is common due to a near-zero
 ## residual-variance boundary in this dataset -- relative diffs there can
 ## reach ~1e-4, hence the looser tolerance for that group
-check_loglik_equal <- function(fit1, fit2, tolerance = 1e-3,
-                               label1 = deparse(substitute(fit1)),
-                               label2 = deparse(substitute(fit2))) {
+check_loglik_equal <- function(fit1, fit2, label1, label2, tolerance = 1e-3) {
   cat(sprintf("checking log-likelihoods agree: %s vs %s ...\n", label1, label2))
   stopifnot(all.equal(get_loglik(fit1), get_loglik(fit2),
                       tolerance = tolerance))
