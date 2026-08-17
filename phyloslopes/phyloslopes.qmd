@@ -2,12 +2,19 @@
 author: Ben Bolker
 title: "Notes on implementing phylogenetic random effects"
 date: today
+bibliography: phyloslopes.bib
 format:
     html:
        embed-resources: true
        code-fold: true
     pdf: default
 ---
+
+<!-- https://github.com/orgs/quarto-dev/discussions/1793 -->
+<!-- LaTeX doesn't like newcommand in math mode; Pandoc doesn't care -->
+\newcommand{\bQ}{\mathbf Q}
+\newcommand{\bZ}{\mathbf Z}
+\newcommand{\bSigma}{\boldsymbol \Sigma}
 
 This note covers two different topics:
 
@@ -16,10 +23,23 @@ This note covers two different topics:
 
 The first topic is purely computational; we are looking at various ways to implement the same model (a Brownian-motion evolutionary model of a single response [intercept-only random effect] on a tree). In the second topic, we are considering qualitatively different models.
 
+This note is inspired by a manuscript in progress with Maeve McGillycuddy *et al.* on the `propto` functionality in `glmmTMB`; it is related to an older, incomplete project (manuscript/R package) with Mike Li ([phyloglmm](https://github.com/wzmli/phyloglmm/)).
+
+Most of the examples below will be implemented in [RTMB](https://kaskr.r-universe.dev/RTMB) for flexibility and comparability, although I'll also compare to the `propto` functionality in `glmmTMB`; I'm also going to stick to optimization/MLE fits for now, not considering Bayesian/sampling approaches. (The `phyloglmm` repo does a wider comparison across packages.)
+
 ## Implementing phylogenetic terms
 
-* benchmarking alternative approaches to phylogenetic fits (Z-matrix, dense (tip-only) precision matrix, sparse (full tree) precision matrix ...
-* alternative approaches to crossed (phylogenetic × something else): additive, separable, tensor-product
+Some of the choices in implementing a phylogenetic correlation/random effect term:
+
+* should the phylogenetic structure be incorporated in the random-effects model matrix ($\bZ$) or in the covariance matrix ($\bSigma$)? (As pointed out e.g. by @hefleyBasisFunctionApproach2017, the covariance matrix between *observations* is $\bSigma_{\textrm{obs}} = \bZ \bSigma \bZ^\top$, so any division of $\bZ$ and $\bSigma$ that gives the same $\bSigma_{\textrm{obs}}$ gives an equivalent fit to the data.
+* should we model on the covariance scale ($\bSigma$) or the precision scale ($\bQ$) ? In general $\bSigma$ will be dense, while $\bQ$ will generally be at lease somewhat sparse. At least for Brownian-motion phylogenetic model, the covariance (or precision) matrix only needs to be constructed once. 
+    * computing the precision matrix scales badly (${\cal O}(n^3)$) but is manageable up to moderately large trees (e.g. $\approx$ 8 minutes for a tree with 7500 tips)
+    * computing on the covariance scale can be convenient for dealing with singular fits, but computing on the precision scale is generally advantageous both because of sparse-matrix computation and because the penalty/MVN-log-likelihood computation uses $\bQ$ directly.
+
+For the examples below, I will use both the phylogenetic running-speed data set from @garlandDoes1993 (as provided by the `ade4` R package) [$\approx$ 50 speces], used in McGillycuddy *et al.*'s ms., and the fish phylogeny as provided by the `fishtree` R package) [$\approx$ 11K species] [@raboskyinverse2018a].
+
+### Cost of computing $\bSigma$ / $\bQ$
+
 
 ```{r pkgs, message=FALSE}
 if (!require("MRFtools")) {

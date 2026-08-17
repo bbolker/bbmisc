@@ -412,3 +412,15 @@ if (do_bench) {
         title = "phyloslopes: fitting time by method")
   ggsave("phyloslopes_bench.png", bench_plot, width = 8, height = 7)
 }
+
+## test inverting a single tree
+library(fishtree)
+library(ape)
+library(MRFtools)
+f <- fishtree_phylogeny()
+v <- vcv(f)
+system.time(s <- solve(v))
+f <- fishtree_phylogeny()
+system.time(p1 <- mrf_penalty(f)) ## 4 seconds
+format(object.size(p1), "Mb") ## 4.1 Gb
+system.time(p2 <- mrf_penalty(f, internal_nodes = FALSE))
