@@ -305,122 +305,25 @@ check_loglik_equal(fit_spline_tensor, fit_dense, label1 = "fit_spline_tensor", l
 
 cat("all consistency checks passed.\n")
 
-## -- benchmark (optional) -----------------------------------------------
-## set do_bench <- TRUE before sourcing/running this script to time just
-## the fitting procedure (MakeADFun + optimization, or glmmTMB()) for each
-## method -- not the data/matrix setup above. Results saved to
-## phylo_bench.rds.
-if (!exists("do_bench")) do_bench <- FALSE
-
-if (do_bench) {
-  library(microbenchmark)
-  library(ggplot2)
-
-  ## glmmTMB() bundles R-level formula/data preprocessing together with
-  ## MakeADFun() + optimization; to see how much of its relative slowness is
-  ## processing overhead vs. actual fitting, pre-process once with
-  ## doFit=FALSE (excluded from the timed comparison, like the other
-  ## pre-built matrices above), then time only fitTMB(doOptim=FALSE)
-  ## (glmmTMB's MakeADFun() call) + a plain nlminb() optimization -- this
-  ## reproduces glmmTMB_propto's fixef/logLik exactly (verified separately)
-  pre_glmmTMB <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
-                        data = chdat, doFit = FALSE)
-
-  bench <- microbenchmark(
-    glmmTMB_propto = glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
-                             data = chdat),
-    glmmTMB_obj_only = {
-      obj <- fitTMB(pre_glmmTMB, doOptim = FALSE)
-      nlminb(obj$par, obj$fn, obj$gr)
-    },
-    RTMB_dense = {
-      chdat_x <- chdat
-      TMBfit(MakeADFun(nllfun1, p0, silent = TRUE, random = "b"))
-    },
-    RTMB_prec_tip = {
-      chdat_x <- c(chdat, list(phyloprec = Qprec_tip))
-      TMBfit(MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b"))
-    },
-    RTMB_prec_allnodes_noroot = {
-      chdat_x <- c(chdat, list(Z = Z_noroot, phyloprec = Q_noroot))
-      TMBfit(MakeADFun(nllfun_prec, p0_noroot, silent = TRUE, random = "b"))
-    },
-    RTMB_edge = {
-      chdat_x <- c(chdat, list(Z = Z_edge))
-      TMBfit(MakeADFun(nllfun_edge, p0_edge, silent = TRUE, random = "b"))
-    },
-    phyr_compare = pglmm_compare(log_rs ~ log_bm, family = "gaussian",
-                                 data = chdat_phyr, phy = chtree, REML = FALSE),
-    times = 100
-  )
-
-  ## microbenchmark objects support rbind(), so a new method can be timed
-  ## on its own and appended to a previously-saved result without redoing
-  ## the (slower) full run, e.g.:
-  ##   old <- readRDS("phylo_bench.rds")
-  ##   new <- microbenchmark(newmethod = ..., times = 100)
-  ##   bench <- rbind(old, new)
-
-  saveRDS(bench, "phylo_bench.rds")
-  print(bench)
-
-  ## random-slopes methods are a different modeling task (more parameters,
-  ## bigger random-effects vector) than the intercept-only methods above,
-  ## so they get their own benchmark/plot rather than being mixed in
-  bench_slopes <- microbenchmark(
-    sep_dseparable = {
-      chdat_x <- c(chdat, list(phylomat = vcmat, scale = 1, Z = t(rt$Zt)))
-      TMBfit(MakeADFun(nllfun_sep, p2, silent = TRUE, random = "b"))
-    },
-    dense_Kronecker = {
-      chdat_x <- c(chdat, list(Zdense = Zdense))
-      TMBfit(MakeADFun(nllfun_dense_slopes, p0_ds, silent = TRUE, random = "b"))
-    },
-    edge_KhatriRao = {
-      chdat_x <- c(chdat, list(KR = KR))
-      TMBfit(MakeADFun(nllfun_edge_slopes, p0_es, silent = TRUE, random = "b"))
-    },
-    times = 100
-  )
-
-  saveRDS(bench_slopes, "phylo_bench_slopes.rds")
-  print(bench_slopes)
-
-  ## combined plot: hand-built (not autoplot()) violin plot, times on x,
-  ## methods on y, faceted top/bottom by model class with free x scales
-  ## (the two classes differ by ~1-2 orders of magnitude in fitting time).
-  ## phyr_compare is excluded here (its timings are so much faster than
-  ## everything else that it squashes the other violins) but stays in
-  ## `bench`/phylo_bench.rds -- see its median/5%/95% printed below
-  theme_set(theme_bw())
-  bench_df_intercept <- as.data.frame(bench)
-  bench_df_intercept <- droplevels(bench_df_intercept[bench_df_intercept$expr != "phyr_compare", ])
-  bench_df <- rbind(
-    transform(bench_df_intercept, model_type = "random-intercept only"),
-    transform(as.data.frame(bench_slopes), model_type = "random-slopes (+ intercept)")
-  )
-  bench_df$time_ms <- bench_df$time / 1e6
-  bench_df$model_type <- factor(bench_df$model_type,
-                                levels = c("random-slopes (+ intercept)",
-                                           "random-intercept only"))
-
-  bench_plot <- ggplot(bench_df, aes(x = time_ms, y = expr)) +
-    geom_violin(fill = "gray") +
-    scale_x_log10() +
-    facet_wrap(~ model_type, ncol = 1, scales = "free") +
-    labs(x = "time (ms)", y = NULL,
-        title = "phyloslopes: fitting time by method")
-  ggsave("phyloslopes_bench.png", bench_plot, width = 8, height = 7)
-}
-
-## test inverting a single tree
-library(fishtree)
-library(ape)
-library(MRFtools)
-f <- fishtree_phylogeny()
-v <- vcv(f)
-system.time(s <- solve(v))
-f <- fishtree_phylogeny()
-system.time(p1 <- mrf_penalty(f)) ## 4 seconds
-format(object.size(p1), "Mb") ## 4.1 Gb
-system.time(p2 <- mrf_penalty(f, internal_nodes = FALSE))
+## -- save benchmarking inputs ---------------------------------------------
+## the raw data/design-matrix ingredients phyloslopes_bench1.R times fitting
+## on -- not the fits themselves -- saved once here (after the consistency
+## checks above have validated them) so that script can read them in
+## directly instead of re-sourcing this whole script (and redoing every fit)
+## just to rebuild them. X and Z are included even though they're derivable
+## from chdat, because the nllfun_* functions in phyloslopes_utils.R pick
+## them up as free variables from the calling environment (see the comment
+## above nllfun1), not from chdat_x -- they must exist under exactly these
+## names wherever those functions are called
+bench_setup <- list(
+  chdat = chdat, chtree = chtree, vcmat = vcmat,
+  X = X, Z = Z,
+  p0 = p0, Qprec_tip = Qprec_tip,
+  Z_noroot = Z_noroot, Q_noroot = Q_noroot, p0_noroot = p0_noroot,
+  Z_edge = Z_edge, p0_edge = p0_edge,
+  chdat_phyr = chdat_phyr,
+  rt = rt, p2 = p2,
+  Zdense = Zdense, p0_ds = p0_ds,
+  KR = KR, p0_es = p0_es
+)
+saveRDS(bench_setup, "phyloslopes_bench_setup.rds")

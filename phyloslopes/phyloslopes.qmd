@@ -10,6 +10,33 @@ format:
     pdf: default
 ---
 
+```{r pkgs, message=FALSE}
+if (!require("MRFtools")) {
+    stop('please remotes::install_github("eric-pedersen/MRFtools")')
+    ##remotes::install_github("eric-pedersen/MRFtools")
+}
+if (!require("phyloglmm")) {
+    stop('please remotes::install_github("wzmli/phyloglmm/pkg")')
+}
+
+## data / data manipulation
+library(ade4)
+library(ape)
+library(dplyr)
+## modeling
+library(glmmTMB)
+library(RTMB)
+library(reformulas)
+library(mgcv)
+library(MRFtools)
+library(Matrix)
+## model diagnostics, etc.
+library(performance)
+library(ggplot2); theme_set(theme_bw())
+library(cowplot)
+library(broom.mixed) ## for tidy()
+```
+
 <!-- https://github.com/orgs/quarto-dev/discussions/1793 -->
 <!-- LaTeX doesn't like newcommand in math mode; Pandoc doesn't care -->
 \newcommand{\bQ}{\mathbf Q}
@@ -40,39 +67,41 @@ For the examples below, I will use both the phylogenetic running-speed data set 
 
 ### Cost of computing $\bSigma$ / $\bQ$
 
+Summary of results (solely of computing $\bSigma$ or $\bQ$ or their sparse analogs - no consideration of their downstream efficiency - using random subsamples of the 11K tips fish phylogeny:
 
-```{r pkgs, message=FALSE}
-if (!require("MRFtools")) {
-    stop('please remotes::install_github("eric-pedersen/MRFtools")')
-    ##remotes::install_github("eric-pedersen/MRFtools")
-}
-if (!require("phyloglmm")) {
-    stop('please remotes::install_github("wzmli/phyloglmm/pkg")')
-}
-
-## data / data manipulation
-library(ade4)
-library(ape)
-library(dplyr)
-## modeling
-library(glmmTMB)
-library(RTMB)
-library(reformulas)
-library(mgcv)
-library(MRFtools)
-library(Matrix)
-## model diagnostics, etc.
-library(performance)
-library(ggplot2); theme_set(theme_bw())
-library(cowplot)
-library(broom.mixed) ## for tidy()
+```{r sigma-q-plot}
+#| echo: false
+knitr::include_graphics("phyloslopes_testinv_plot.png")
 ```
 
-The McGillycuddy *et al.* manuscript on 'propto' random effects (i.e. random effects where the covariance matrix is known *a priori* up to a scalar multiplier) illustrates how to use `glmmTMB` + `propto` to fit models with a phylogenetic term.
+where:
+
+* `vcv`: compute phylogenetic covariance matrix from phylogeny
+* `solve`: invert $\bSigma \to \bQ$ for previous step
+* `mrf_tips`: compute $\bQ$ based on tips only (no internal nodes) using `MRFtools::mrf_penalty.phylo`
+* `mrf_tips_sparse`: convert previous object to a sparse matrix
+* `mrf_full`: compute $\bQ$ including internal nodes (with `mrf_penalty.phylo`)
+* `mrf_full_sparse`: convert to sparse representation
+
+**FIXME/TODO**: can `MRFtools` do a better job maintaining sparsity throughout?
+
+### Cost of fitting intercept-only phylogeny terms
+
+McGillycuddy et al. fit the model `log_rs ~ f(log_bm) + propto(0 + species | g, vcmat)` i.e.,
+"log of running speed is linearly related to (a function of) log of body mass; phylogenetic covariance among species
+follows the covariance matrix `vcmat`") to the data from @garlandDoes1993. They first consider a (log-log) linear model
+for body mass, then a thin-plate spline. I'll start with the linear model, to focus on the computational cost of 
+the phylogenetic term. I'll first show how to set up a series of `RTMB` models that implement different methods:
 
 ```{r utils}
 source("phyloslopes_utils.R")
 ```
+
+```{r read-chunks, include=FALSE}
+knitr::read_chunk("phyloslopes_utils.R")
+```
+
+#### basic setup/glmmTMB model
 
 ```{r setup}
 data("carniherbi49", package = "ade4")
@@ -92,24 +121,20 @@ stopifnot(identical(sort(rownames(vcmat)), sort(as.character(chdat$species))))
 save(chdat, chtree, vcmat, file = "phyloslopes.rda")
 ```
 
-Model fit from McGillycuddy et al.:
+
 ```{r fit1}
 fit_propto_glmmTMB <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
-              data = chdat)
+                              data = chdat)
 ```
 
-```{r fit1_check, eval=FALSE}
-performance::check_model(fit_propto_glmmTMB,
-                         check = c("linearity",
-                                   "homogeneity", "pp_check",
-                                   "qq"))
+#### RTMB analog
+An RTMB analog of this model:
+
+```{r nllfun1}
+#| eval: false
 ```
 
-
-phyr::pglmm_compare timing (n=100): median = 13.5 ms, 5th/95th percentiles = 8.6 ms / 16.0 ms.
-
-RTMB analogue:
-
+Setup to use this RTMB function to fit:
 ```{r rtmb1}
 X <- model.matrix(~ log_bm, data = chdat)
 Z <- fac2sparse(chdat$species)
@@ -121,47 +146,42 @@ rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
 chdat_x <- chdat
 p0 <- list(beta = rep(0, 2), b = rep(0, nrow(vcmat)), logsd=0, logpsd = 0)
 obj <- MakeADFun(nllfun1, p0, silent = TRUE, random = "b")
-fit_propto_TMB <- TMBfit(obj)
+fit_propto_TMB <- TMBfit(obj) ## wrapper to run nlminb() and store results
 ```
+
+Confirming the match:
 
 ```{r glmmTMB_rtmb_check}
 stopifnot(all.equal(fixef(fit_propto_TMB), fixef(fit_propto_glmmTMB)$cond,
                     check.attributes = FALSE, tolerance = 1e-7))
 ```
 
+#### RTMB with precision matrix (hand-inverted)
+
+We can change this to a precision-based approach by changing just the penalty line, to:
+
+```{r nll_prec_fake}
+#| eval: false
+pen <- -dgmrf(b, 0, Q = phyloprec, scale = exp(-logpsd), log = TRUE)
+```
+(`dgmrf` stands for "distribution of a Gaussian Markov random field", i.e.
+a multivariate Normal parameterized by its precision matrix)
+and inverting the covariance matrix:
 ```{r phylo_prec}
-## Matrix(solve(vcmat)) auto-detects symmetry and returns a *dense*
-## "dsyMatrix" -- not a "sparseMatrix" subclass, so it can't be coerced
-## to "adsparse" (RTMB's AD sparse-matrix type), nor to "dgCMatrix"
-## (note also the capital C -- "dgcMatrix" isn't a real class name).
-## sparse = TRUE forces a sparse ("dsCMatrix") representation instead,
-## which *is* a "sparseMatrix" and coerces fine.
 chdat_x <- c(chdat, list(phyloprec =
                            Matrix(solve(vcmat), sparse = TRUE)))
 obj <- MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b")
 ```
 
-Precision matrix over the *whole* tree (tips + internal nodes), via `MRFtools::mrf_penalty(..., internal_nodes = TRUE)`. The full `ntip + Nnode` precision matrix is rank-deficient by 1: the classic Brownian-motion "no fixed origin" singularity, since shifting every node (including the root) by the same constant leaves all edge contrasts unchanged. Dropping the root's row/column from the precision matrix (and the corresponding column from `Z`) removes the singularity:
+
+#### RTMB with internal-nodes precision matrix
+
+`MRFtools::mrf_penalty()` offers the option (with `internal_nodes = TRUE`) of generating a penalty matrix that includes all of the internal nodes. To use this, we have to be a little careful because this full matrix includes the root, and is thus rank-deficient ($\textrm{rank}(\bQ) = \textrm{dim}(\bQ)-1$): the classic Brownian-motion "no fixed origin" singularity, since shifting every node (including the root) by the same constant leaves all edge contrasts unchanged. We drop the root's row/column from the precision matrix (and the corresponding column from `Z`), and change the length of `b` to match:
 
 ```{r phylo_prec_allnodes}
 ntip <- length(chtree$tip.label)
 Q_full_raw <- mrf_penalty(chtree, "brownian", internal_nodes = TRUE)
-## mrf_penalty() orders [tips][internal nodes], with dimnames = tip labels
-## then "N<node id>"; reorder to [root][other internal nodes][tips] *by
-## name*, not position, so this doesn't silently misalign if mrf_penalty()'s
-## internal ordering convention ever changes. Root identified the same way
-## as in phylo.to.Z(): the internal node that never appears as an edge's
-## child
-internal_ids <- (ntip + 1):(ntip + chtree$Nnode)
-root_id <- internal_ids[!(internal_ids %in% chtree$edge[, 2])]
-stopifnot(length(root_id) == 1)
-internal_names <- paste0("N", internal_ids)
-root_name <- paste0("N", root_id)
-ord_names <- c(root_name, setdiff(internal_names, root_name), chtree$tip.label)
-stopifnot(all(ord_names %in% rownames(Q_full_raw)))
-Q_full <- as(Q_full_raw[ord_names, ord_names], "CsparseMatrix")
-Q_noroot <- Q_full[-1, -1]
-
+Q_noroot <- drop_mrf_root(chtree, Q_full_raw)
 ## fac2sparse() returns levels x observations (the "Zt" convention); use
 ## placeholder levels 1:Nnode for the (never-observed -> all-zero-column)
 ## internal nodes, then transpose to the usual observations x levels form
@@ -169,33 +189,68 @@ Z_full <- t(fac2sparse(factor(chdat$species,
                               levels = c(seq_len(chtree$Nnode), chtree$tip.label)),
                        drop.unused.levels = FALSE))
 Z_noroot <- Z_full[, -1]
-
 p0_noroot <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
 chdat_x <- c(chdat, list(Z = Z_noroot, phyloprec = Q_noroot))
 obj_noroot <- MakeADFun(nllfun_prec, p0_noroot, silent = TRUE, random = "b")
 fit_prec_allnodes_noroot <- TMBfit(obj_noroot)
 ```
 
-`fixef(fit_prec_allnodes_noroot)` and `logLik(fit_prec_allnodes_noroot)` come out identical to `fit_dense`/`fit_prec` -- i.e. marginalizing the internal nodes really does reduce to the tip-only model, confirming the `phyloglmm`-equivalence conjecture from the intro, once the root is pinned down.
+These results are equivalent.
 
-A third way to encode the same tree structure: `phylo.to.Z()` builds a tip x edge matrix with a `sqrt(edge.length)` entry wherever an edge is ancestral to a tip, so `Z %*% b` with `b` iid unit-scale reproduces `vcv(chtree)` exactly -- no covariance/precision matrix needed, and (unlike the all-nodes precision matrix above) no root-singularity to work around, since there's no free "root value" parameter.
+#### RTMB with Z-encoding
+
+As pointed out above, and in the `phyloglmm` repo, we can encode the phylogenetic covariance in $\bZ$ instead of in $\bSigma$: this leaves $\bSigma$ as a indicator matrix for species (an identity matrix for this particular data set, which samples each species once). `phylo.to.Z()` builds a tip x edge matrix with a `sqrt(edge.length)` entry wherever an edge is ancestral to a tip, so `Z %*% b` with `b` iid unit-scale reproduces `vcv(chtree)` exactly -- no covariance/precision matrix needed ... the corresponding RTMB function uses
+
+```{r rtmb_edge}
+#| eval: false
+pen <- -sum(dnorm(b, 0, sd = exp(logpsd), log = TRUE))
+```
+for the penalty.
+
+Setup:
 
 ```{r phylo_edge}
 pZ <- phylo.to.Z(chtree)
-Z_edge <- pZ[as.character(chdat$species), ]
-
+Z_edge <- pZ[as.character(chdat$species), ] ## reorder
 p0_edge <- modifyList(p0, list(b = rep(0, nrow(chtree$edge))))
 chdat_x <- c(chdat, list(Z = Z_edge))
 obj_edge <- MakeADFun(nllfun_edge, p0_edge, silent = TRUE, random = "b")
 fit_edge <- TMBfit(obj_edge)
 ```
 
-`fixef(fit_edge)` and `logLik(fit_edge)` again match `fit_dense`/`fit_prec`/`fit_prec_allnodes_noroot`, confirming the `phyloglmm` `Z`-matrix equivalence a second, more direct way.
+#### Timings
+
+```{r bench-fig1}
+#| echo: false
+knitr::include_graphics("phyloslopes_bench1.png")
+```
+
+`phyr` is much faster: median (n=100) = 13.5 ms, 5th/95th percentiles = 8.6 ms / 16.0 ms.
 
 Thought I would try adding `clade` as a fixed effect, but it doesn't seem to
 do much --- abandon that avenue for now.
 
-## separable
+## Phylogenetic covariance combinations with other terms
+
+All the models above are *additive*: effectively, the species-level intercepts are phylogenetically correlated, 
+but --- whether we model it as a linear term or a smooth (thin-plate spline) term, the effect of body mass on running speed
+is assumed to be homogeneous across species. As @schielzethConclusionsSupportOverconfident2009 (and many others) note,
+modeling only variation of intercepts among clusters and not variation of effects (in this case the effect of body mass on running speed)
+across clusters can be overoptimistic/anticonservative (not to mention missing potentially interesting phylogenetic variation).
+
+FIXME: add *independent* intercept and slope variation as an example (i.e. `propto(1|species, vcmat) + propto(0 + log_bm | species, vcmat)` or `propto(1||species, vcmat)` (be careful about splitting, this shouldn't be converted to `diag` !)
+
+In addition to the intercept-only/additive model above, we'll fit three models:
+
+* independent phylogenetic variation in slopes and intercepts
+* *separable* phylogenetic variation (implemented in two ways: via `dseparable` and via `phylo.Z` setup)
+* tensor-product combination of phylogenetic variation with a linear model
+
+We'll do these first with a strictly linear effect of log-body-mass, then with a thin-plate-spline smooth.
+
+### independent
+
+### separable
 
 `Z = t(rt$Zt)` orders its columns `[species-outer, trait-inner]` (each species' intercept/slope pair adjacent), so `b` (an `ntip x 2` matrix) must be flattened to match via `c(t(b))`, not `c(b)` -- flattening column-major would silently permute `b` relative to `Z`'s columns (trait-outer/species-inner vs. species-outer/trait-inner) and land the optimizer on a much worse fit. `nllfun_sep` in `phyloslopes_utils.R` has this fix.
 
@@ -241,7 +296,7 @@ fit_edge_slopes <- TMBfit(obj_es)
 
 `fixef(fit_edge_slopes)` and `logLik(fit_edge_slopes)` match `fit_sep`/`fit_dense_slopes` too (all three agree to several significant figures) -- so yes, the edge-based `Z`-matrix random-slopes model is exactly the separable model, just reparameterized.
 
-## tensor-product
+### tensor-product
 
 ```{r tp_tests}
 tp <- tensor.prod.penalties(list(diag(2), solve(vcmat)))
@@ -400,3 +455,15 @@ ggplot(chdat, aes(runningspeed, bodymass, colour = clade)) +
   scale_y_log10() +
   scale_colour_manual(values = c("darkred", "darkblue"))
 ```
+
+
+## junk
+
+```{r fit1_check, eval=FALSE}
+performance::check_model(fit_propto_glmmTMB,
+                         check = c("linearity",
+                                   "homogeneity", "pp_check",
+                                   "qq"))
+```
+
+## References

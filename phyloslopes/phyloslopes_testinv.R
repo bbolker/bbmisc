@@ -22,7 +22,7 @@ set.seed(20260817)
 n_workers <- 10
 plan(multicore, workers = n_workers)
 
-sizes <- c(100, 500, 1000, 2500, 5000, 7500, 10000)
+sizes <- c(100, 500, 1000, 2500, 5000, 7500)
 n_reps <- 10
 outfile <- here("phyloslopes", "phyloslopes_testinv.rds")
 

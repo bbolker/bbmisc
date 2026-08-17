@@ -67,6 +67,34 @@ phylo.to.Z <- function(r, stand = FALSE) {
   return(Z)
 }
 
+##' drop the root row/column from a whole-tree (tips + internal nodes) MRF
+##' precision matrix, removing the Brownian-motion "no fixed origin"
+##' rank deficiency
+##' @param tree a \code{phylo} object
+##' @param Q the whole-tree penalty matrix, e.g. from
+##'   \code{MRFtools::mrf_penalty(tree, internal_nodes = TRUE)}
+##' @param sparse convert the result to a sparse (\code{CsparseMatrix}) matrix?
+##' @export
+drop_mrf_root <- function(tree, Q, sparse = TRUE) {
+  ntip <- length(tree$tip.label)
+  ## mrf_penalty() orders [tips][internal nodes], with dimnames = tip labels
+  ## then "N<node id>"; reorder to [root][other internal nodes][tips] *by
+  ## name*, not position, so this doesn't silently misalign if mrf_penalty()'s
+  ## internal ordering convention ever changes. Root identified the same way
+  ## as in phylo.to.Z(): the internal node that never appears as an edge's
+  ## child
+  internal_ids <- (ntip + 1):(ntip + tree$Nnode)
+  root_id <- internal_ids[!(internal_ids %in% tree$edge[, 2])]
+  stopifnot(length(root_id) == 1)
+  internal_names <- paste0("N", internal_ids)
+  root_name <- paste0("N", root_id)
+  ord_names <- c(root_name, setdiff(internal_names, root_name), tree$tip.label)
+  stopifnot(all(ord_names %in% rownames(Q)))
+  Q_full <- Q[ord_names, ord_names]
+  if (sparse) Q_full <- as(Q_full, "CsparseMatrix")
+  Q_full[-1, -1]
+}
+
 ## -- data cleanup helpers ---------------------------------------------------
 
 gsub2 <- function(x, pattern, replacement) {
@@ -103,6 +131,7 @@ mk_f_cov <- function(corval, logrsd) {
 ## up in the calling environment
 
 ## dense covariance ("propto"-equivalent) parameterization
+## @knitr nllfun1
 nllfun1 <- function(params) {
   getAll(params, chdat_x)
   mu <- drop(X %*% beta + Z %*% b)
@@ -115,6 +144,7 @@ nllfun1 <- function(params) {
   lik + pen
 }
 
+## @knitr nllfun_prec
 ## sparse precision-matrix parameterization
 nllfun_prec <- function(params) {
   getAll(params, chdat_x)
@@ -128,6 +158,7 @@ nllfun_prec <- function(params) {
   lik + pen
 }
 
+#' @knitr nllfun_edge
 ## edge-based Z-matrix parameterization: Z (from phylo.to.Z()) maps tips to
 ## their ancestral edges, scaled by sqrt(edge.length), so b ~ iid N(0, tau^2)
 ## gives Cov(Z %*% b) = tau^2 * vcv(tree) -- no covariance/precision matrix
@@ -144,6 +175,7 @@ nllfun_edge <- function(params) {
   lik + pen
 }
 
+#' @knitr nllfun_sep
 ## separable (phylogenetic x intercept-slope covariance) parameterization
 ## modular: should be able to handle various separable cor structures
 ## NB: Z (= t(rt$Zt) from mkReTrms) has columns ordered [species-outer,
