@@ -316,9 +316,23 @@ if (do_bench) {
   library(microbenchmark)
   library(ggplot2)
 
+  ## glmmTMB() bundles R-level formula/data preprocessing together with
+  ## MakeADFun() + optimization; to see how much of its relative slowness is
+  ## processing overhead vs. actual fitting, pre-process once with
+  ## doFit=FALSE (excluded from the timed comparison, like the other
+  ## pre-built matrices above), then time only fitTMB(doOptim=FALSE)
+  ## (glmmTMB's MakeADFun() call) + a plain nlminb() optimization -- this
+  ## reproduces glmmTMB_propto's fixef/logLik exactly (verified separately)
+  pre_glmmTMB <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
+                        data = chdat, doFit = FALSE)
+
   bench <- microbenchmark(
     glmmTMB_propto = glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
                              data = chdat),
+    glmmTMB_obj_only = {
+      obj <- fitTMB(pre_glmmTMB, doOptim = FALSE)
+      nlminb(obj$par, obj$fn, obj$gr)
+    },
     RTMB_dense = {
       chdat_x <- chdat
       TMBfit(MakeADFun(nllfun1, p0, silent = TRUE, random = "b"))
@@ -374,10 +388,15 @@ if (do_bench) {
 
   ## combined plot: hand-built (not autoplot()) violin plot, times on x,
   ## methods on y, faceted top/bottom by model class with free x scales
-  ## (the two classes differ by ~1-2 orders of magnitude in fitting time)
+  ## (the two classes differ by ~1-2 orders of magnitude in fitting time).
+  ## phyr_compare is excluded here (its timings are so much faster than
+  ## everything else that it squashes the other violins) but stays in
+  ## `bench`/phylo_bench.rds -- see its median/5%/95% printed below
   theme_set(theme_bw())
+  bench_df_intercept <- as.data.frame(bench)
+  bench_df_intercept <- droplevels(bench_df_intercept[bench_df_intercept$expr != "phyr_compare", ])
   bench_df <- rbind(
-    transform(as.data.frame(bench), model_type = "random-intercept only"),
+    transform(bench_df_intercept, model_type = "random-intercept only"),
     transform(as.data.frame(bench_slopes), model_type = "random-slopes (+ intercept)")
   )
   bench_df$time_ms <- bench_df$time / 1e6

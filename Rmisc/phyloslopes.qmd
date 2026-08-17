@@ -1,14 +1,22 @@
 ---
 author: Ben Bolker
-title: "How should we model combinations of phylogenetic correlations with other (non-scalar) random effects models?"
+title: "Notes on implementing phylogenetic random effects"
 date: today
 format:
     html:
        embed-resources: true
        code-fold: true
+    pdf: default
 ---
 
-Tow (potential) parts to this:
+This note covers two different topics:
+
+* varying approaches to implementing phylogenetic random-effect terms in models
+* varying approaches to combining phylogenetic terms with other terms in models
+
+The first topic is purely computational; we are looking at various ways to implement the same model (a Brownian-motion evolutionary model of a single response [intercept-only random effect] on a tree). In the second topic, we are considering qualitatively different models.
+
+## Implementing phylogenetic terms
 
 * benchmarking alternative approaches to phylogenetic fits (Z-matrix, dense (tip-only) precision matrix, sparse (full tree) precision matrix ...
 * alternative approaches to crossed (phylogenetic × something else): additive, separable, tensor-product
@@ -76,6 +84,9 @@ performance::check_model(fit_propto_glmmTMB,
                                    "homogeneity", "pp_check",
                                    "qq"))
 ```
+
+
+phyr::pglmm_compare timing (n=100): median = 13.5 ms, 5th/95th percentiles = 8.6 ms / 16.0 ms.
 
 RTMB analogue:
 
@@ -306,6 +317,7 @@ stopifnot(all.equal(fixef(fit_spline_additive), fixef(fit_spline_glmmTMB)$cond,
 Add a phylogenetically-correlated copy of the wiggly coefficients on top of the additive model's baseline (non-phylogenetic) wiggle -- a single extra scale (`logpsd_f`), diagonal across the `r Kw` wiggly dimensions, not a full covariance. Crucially this must be *added to*, not substituted for, the baseline `b_spline` term, so that the model properly nests the additive one (recoverable exactly as `logpsd_f -> -Inf`) rather than losing that flexibility entirely.
 
 ```{r spline_separable}
+#| cache: true
 p0_spsep <- modifyList(p0_spadd, list(b_wiggly = rep(0, nrow(vcmat)*Kw), logpsd_f = -10))
 chdat_x <- c(chdat, list(Xr_joint = Xr_joint))
 obj_spsep <- MakeADFun(nllfun_spline_separable, p0_spsep, silent = TRUE,
@@ -338,6 +350,7 @@ Xrange_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xr_range, "dgCMatrix")
 The two null-space directions (constant and linear-in-`log_bm`) need *separate* scales -- a single shared scale can't shrink away the (unsupported) phylo-slope variation without also killing the (well-supported) phylo-intercept variation, giving a much worse fit than necessary:
 
 ```{r spline_tensor}
+#| cache: true
 p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
                     logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
 chdat_x <- c(chdat, list(Xnull_joint = Xnull_joint, Xrange_joint = Xrange_joint))
