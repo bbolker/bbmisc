@@ -1,25 +1,16 @@
 # TODO
 
-## 1. Clean up phyloslopes.qmd text
-
-- `### independent` (~L251) is an empty stub section header -- either fill
-  in or remove.
-- FIXME at ~L241: add an *independent* intercept/slope variation example
-  (`propto(1|species, vcmat) + propto(0 + log_bm | species, vcmat)`, or
-  `propto(1||species, vcmat)`) -- watch for `||` silently getting converted
-  to a `diag` structure instead of two independent terms.
-- `## junk` (~L468) is an empty section header at the end of the doc --
-  remove or populate.
-- Reconcile the existing "## To do" list (~L447) with this file so
-  there's one place to check, not two.
-- FIXME at ~L86: can `MRFtools` do a better job maintaining sparsity
-  throughout the `mrf_full`/`mrf_full_sparse` benchmark steps?
-- FIXME at ~L302 (just added): `tensor.prod.model.matrix()` /
-  `tensor.prod.penalties()` argument-order mismatch in the
-  "### tensor-product" section (`tp` built trait-outer/phylo-inner, `tX`
-  built phylo-outer/trait-inner) -- fix the order if this ever gets wired
-  into a real `nllfun_tensor` fit.
-- `phylo.to.Z` FIXME in `phyloslopes_utils.R`: rename to `phylo_to_Z`?
+* keep working on `phyloslopes`
+   * clean up/integrate/throw out junk
+   * prettify tables (check PDF output for glitches)
+* downstream: can `MRFtools` do a better job maintaining sparsity throughout the `mrf_full`/`mrf_full_sparse` benchmark steps?
+* `phylo.to.Z` FIXME in `phyloslopes_utils.R`: rename to `phylo_to_Z`?
+* see if we can do the tensor-product construction via `te()` and pull out the stuff we need, rather than doing the eigendecomposition ourselves? Is this problem somehow specific to what we're trying to do here? (How does it differ from @clarkPhylogeneticSmoothing2024 ?)
+* can we do the TP+phylo tensor smooth with `internal_nodes = TRUE` (with root dropped)? Does that improve efficiency as in the intercept-only case?
+* get rid of the (incorrect/useless/superseded?) `nllfun_tensor()` and `nllfun_tensor_nullspace` stuff?
+* try on larger examples where everything won't collapse to singular/simpler fits?
+* understand Schur-complement vs `solve(vcmat)` differences (see below)
+* decide what if anything needs to be kept from last item below
 
 ## 2. Document the MRFtools tips-only vs. solve(vcmat) precision mismatch
 
