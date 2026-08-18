@@ -299,6 +299,14 @@ fit_edge_slopes <- TMBfit(obj_es)
 ### tensor-product
 
 ```{r tp_tests}
+## FIXME: tensor.prod.model.matrix()/tensor.prod.penalties() both use the
+## convention "first list element = outer block, second = inner" (verified
+## against small test matrices in phylo_tiny.R). tX below is built from
+## list(Z, X) (phylo outer, trait inner) but tp is built from list(diag(2),
+## solve(vcmat)) (trait outer, phylo inner) -- reversed, so tp's and tX's
+## columns don't actually line up. Harmless for now since tp/tX are never
+## combined into a fitted nllfun_* here, but fix the order (phylo first) if
+## this ever gets wired into a real fit.
 tp <- tensor.prod.penalties(list(diag(2), solve(vcmat)))
 lapply(tp, dim)
 plot_grid(plotlist = lapply(tp, ifun))
