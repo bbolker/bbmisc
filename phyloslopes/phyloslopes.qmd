@@ -15,14 +15,12 @@ if (!require("MRFtools")) {
     stop('please remotes::install_github("eric-pedersen/MRFtools")')
     ##remotes::install_github("eric-pedersen/MRFtools")
 }
-if (!require("phyloglmm")) {
-    stop('please remotes::install_github("wzmli/phyloglmm/pkg")')
-}
 
 ## data / data manipulation
 library(ade4)
 library(ape)
 library(dplyr)
+library(tibble)  ## lst(), rownames_to_column()
 ## modeling
 library(glmmTMB)
 library(RTMB)
@@ -142,8 +140,11 @@ Z <- fac2sparse(chdat$species)
 us2 <- unstructured(2)
 rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
                fr = chdat, calc.lambdat = FALSE)
-## move data into required wrapper (no extras needed for this version)
-chdat_x <- chdat
+## move data into required wrapper: nllfun_* read X, Z, vcmat (and anything
+## else beyond `params`) from chdat_x -- nothing from the calling
+## environment -- so they're bundled in explicitly here, not left to be
+## picked up as free variables
+chdat_x <- c(chdat, lst(X, Z, vcmat))
 p0 <- list(beta = rep(0, 2), b = rep(0, nrow(vcmat)), logsd=0, logpsd = 0)
 obj <- MakeADFun(nllfun1, p0, silent = TRUE, random = "b")
 fit_propto_TMB <- TMBfit(obj) ## wrapper to run nlminb() and store results
@@ -168,8 +169,7 @@ pen <- -dgmrf(b, 0, Q = phyloprec, scale = exp(-logpsd), log = TRUE)
 a multivariate Normal parameterized by its precision matrix)
 and inverting the covariance matrix:
 ```{r phylo_prec}
-chdat_x <- c(chdat, list(phyloprec =
-                           Matrix(solve(vcmat), sparse = TRUE)))
+chdat_x <- c(chdat, lst(X, Z, phyloprec = Matrix(solve(vcmat), sparse = TRUE)))
 obj <- MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b")
 ```
 
@@ -190,7 +190,7 @@ Z_full <- t(fac2sparse(factor(chdat$species,
                        drop.unused.levels = FALSE))
 Z_noroot <- Z_full[, -1]
 p0_noroot <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
-chdat_x <- c(chdat, list(Z = Z_noroot, phyloprec = Q_noroot))
+chdat_x <- c(chdat, lst(X, Z = Z_noroot, phyloprec = Q_noroot))
 obj_noroot <- MakeADFun(nllfun_prec, p0_noroot, silent = TRUE, random = "b")
 fit_prec_allnodes_noroot <- TMBfit(obj_noroot)
 ```
@@ -213,7 +213,7 @@ Setup:
 pZ <- phylo.to.Z(chtree)
 Z_edge <- pZ[as.character(chdat$species), ] ## reorder
 p0_edge <- modifyList(p0, list(b = rep(0, nrow(chtree$edge))))
-chdat_x <- c(chdat, list(Z = Z_edge))
+chdat_x <- c(chdat, lst(X, Z = Z_edge))
 obj_edge <- MakeADFun(nllfun_edge, p0_edge, silent = TRUE, random = "b")
 fit_edge <- TMBfit(obj_edge)
 ```
@@ -225,10 +225,18 @@ fit_edge <- TMBfit(obj_edge)
 knitr::include_graphics("phyloslopes_bench1.png")
 ```
 
-`phyr` is much faster: median (n=100) = 13.5 ms, 5th/95th percentiles = 8.6 ms / 16.0 ms.
+Where
 
-Thought I would try adding `clade` as a fixed effect, but it doesn't seem to
-do much --- abandon that avenue for now.
+* `RTMB_edge`: construction with phylogenetic structure in $\bZ$
+* `RTMB_prec_allnodes_noroot`: with `mrf_penalty(., internal_nodes = TRUE)`
+* `RMB_prec_tip`: with `mrf_penalty(., internal_nodes = FALSE)`
+* `RTMB_dense`: with raw $\bSigma$ via `dmvnorm`
+* `glmmTMB_obj_only`: optimizing the `glmmTMB` object, no overhead
+* `glmmTMB_propto`: full `glmmTMB` call
+
+This is a small problem, so it might be more informative to benchmark larger examples and see how the differences scale.
+
+For what it's worth `phyr` is much faster: median (n=100) = 13.5 ms, 5th/95th percentiles = 8.6 ms / 16.0 ms. However, it may be less flexible (in terms of additional random-effect terms, weird conditional distributions, etc.). The `phyloglmm` repo does more systematic benchmarks across a wider range of packages. (Also worth considering `gllvm`.)
 
 ## Phylogenetic covariance combinations with other terms
 
@@ -246,22 +254,32 @@ In addition to the intercept-only/additive model above, we'll fit three models:
 * *separable* phylogenetic variation (implemented in two ways: via `dseparable` and via `phylo.Z` setup)
 * tensor-product combination of phylogenetic variation with a linear model
 
-We'll do these first with a strictly linear effect of log-body-mass, then with a thin-plate-spline smooth.
+### tiny example
+
+| model     | penalty/variance params                                              | latent variables                                    |
+|-----------|-----------------------------------------------------------------------|-------------------------------------------------------|
+| additive  | 2 — `logsd_f` (iid wiggle scale), `logpsd` (phylo intercept scale)    | 7 — `b_spline` (2) + `b_phylo` (5)                     |
+| separable | 3 — `logsd_f`, `logpsd_f` (phylo-correlated wiggle-deviation scale), `logpsd` | 17 — `b_spline` (2) + `b_wiggly` (10) + `b_phylo` (5) |
+| tensor    | 3 — `logpsd_null` (×2, one per null-space direction), `logpsd_range`  | 20 — `b_null` (10) + `b_range` (10)                    |
+
+## Linear effects
+
 
 ### independent
 
 ### separable
 
-`Z = t(rt$Zt)` orders its columns `[species-outer, trait-inner]` (each species' intercept/slope pair adjacent), so `b` (an `ntip x 2` matrix) must be flattened to match via `c(t(b))`, not `c(b)` -- flattening column-major would silently permute `b` relative to `Z`'s columns (trait-outer/species-inner vs. species-outer/trait-inner) and land the optimizer on a much worse fit. `nllfun_sep` in `phyloslopes_utils.R` has this fix.
+`Z = t(rt$Zt)` orders its columns `[species-outer, trait-inner]` (each species' intercept/slope pair adjacent), so `b` (an `ntip x 2` matrix) must be flattened to match via `c(t(b))`, not `c(b)`
 
 ```{r fit_sep1}
-p2 <- list(beta = rep(0, 2), b = matrix(0,
-                                        nrow = nrow(vcmat),
-                                        ncol = 2),
+p2 <- list(beta = rep(0, 2),
+           b = matrix(0,
+                      nrow = nrow(vcmat),
+                      ncol = 2),
            logrsd=rep(0, 2),
            logsdres = 0,
            corval=0)
-chdat_x <- c(chdat, list(phylomat = vcmat, scale = 1, Z = t(rt$Zt)))
+chdat_x <- c(chdat, lst(X, phylomat = vcmat, scale = 1, Z = t(rt$Zt), us2))
 obj2 <- MakeADFun(nllfun_sep, p2, silent = TRUE, random = "b")
 fit_sep <- TMBfit(obj2)
 ```
@@ -271,7 +289,7 @@ As a ground-truth check, we can also write out the *dense* Kronecker covariance 
 ```{r dense_slopes}
 Zdense <- t(rt$Zt)
 p0_ds <- modifyList(p0, list(b = rep(0, 2*nrow(vcmat)), logrsd = rep(0,2), corval = 0))
-chdat_x <- c(chdat, list(Zdense = Zdense))
+chdat_x <- c(chdat, lst(X, Zdense, vcmat, us2))
 obj_ds <- MakeADFun(nllfun_dense_slopes, p0_ds, silent = TRUE, random = "b")
 fit_dense_slopes <- TMBfit(obj_ds)
 ```
@@ -289,7 +307,7 @@ pZ_ord <- pZ[as.character(chdat$species), ]
 KR <- t(KhatriRao(t(pZ_ord), t(J)))
 
 p0_es <- modifyList(p0, list(b = rep(0, 2*nrow(chtree$edge)), logrsd = rep(0,2), corval = 0))
-chdat_x <- c(chdat, list(KR = KR))
+chdat_x <- c(chdat, lst(X, KR, us2))
 obj_es <- MakeADFun(nllfun_edge_slopes, p0_es, silent = TRUE, random = "b")
 fit_edge_slopes <- TMBfit(obj_es)
 ```
@@ -301,7 +319,7 @@ fit_edge_slopes <- TMBfit(obj_es)
 ```{r tp_tests}
 ## FIXME: tensor.prod.model.matrix()/tensor.prod.penalties() both use the
 ## convention "first list element = outer block, second = inner" (verified
-## against small test matrices in phylo_tiny.R). tX below is built from
+## against small test matrices in phyloslopes_tiny.R/phyloslopes_tiny_explore.R). tX below is built from
 ## list(Z, X) (phylo outer, trait inner) but tp is built from list(diag(2),
 ## solve(vcmat)) (trait outer, phylo inner) -- reversed, so tp's and tX's
 ## columns don't actually line up. Harmless for now since tp/tX are never
@@ -330,6 +348,8 @@ $$P_{trait,add} = \lambda_i\,(P_{trait,sep} - I_2) \quad \text{for all } i = 1,\
 which is impossible unless $P_{trait,sep} = I_2$ (which forces $P_{trait,add}=0$, not a valid precision matrix), since $S_{phylo}$'s eigenvalues are not all equal (range $\approx 0.0032$-$3.33$ for this tree, i.e. $S_{phylo}$ is not proportional to $I_{ntip}$). So the separable model is *not* a special case of this tensor-product-penalty model -- Kronecker product and Kronecker sum are different families of precision matrices, and no choice of the free 2x2 trait-precision parameters lets the tensor-product model exactly reproduce the separable one.
 
 This matches what happens numerically: fitting this model (`Sphylo` fixed/unscaled, `Ptrait` built from 3 free parameters -- two log-sds and a correlation, then inverted) converges to a much worse fit (logLik $\approx -180$ vs. $-6.5$ for the separable model) and lands on a genuine saddle point -- the profiled Hessian (via `numDeriv::jacobian(obj$gr, ...)`) has substantial negative eigenvalues (e.g. $-3011,-107$ from an all-zero start; $-55,-7.3$ from a warm start at the separable model's optimum) -- regardless of how the trait correlation is parameterized (`unstructured(2)`'s internal transform vs. the glmmTMB-vignette mapping $\rho=\theta/\sqrt{1+\theta^2}$ give near-identical results). The optimizer keeps pushing the correlation toward its boundary, trying (and failing) to approximate the unreachable separable structure.
+
+**Follow-up (see `phyloslopes_tiny_explore.R`, TODO.md item 3):** wiring up and fitting this exact Kronecker-sum construction (`nllfun_tensor`) on small simulated examples (`ntip` = 5 and 10) -- including data simulated *correctly* under the model itself, with strong signal (`sigma_1 = sigma_2 = 2 >> sigma_resid = 0.1`) and enough replication that this isn't just an interpolation artifact -- confirms a genuine, reproducible non-identifiability between the two variance-component scales (one always runs off toward a boundary; verified via multi-start that this is the true global optimum, not a bad start). It's not fixed/random (`X`/`tX`) aliasing. The cause is specific to `Ptrait/Strait` being a trivial, structureless, full-rank identity matrix (`diag(2)` here) -- indistinguishable from a generic flat ridge, so the model can't tell "shrink toward phylogenetic similarity" apart from "shrink generically." It does **not** generalize to a genuine tensor-product smooth of phylogeny x a spline (see the "tensor-product smooth" section below): a trait-side penalty with real internal (null/range) structure, like a TPS penalty, avoids the redundancy even fed into this same naive shared-`dgmrf()` construction. The "tensor-product smooth" section's actual approach -- eigendecompose null/range space first, give each its own separate Kronecker-*product* term rather than summing into one shared precision -- also sidesteps it when applied back to this plain intercept+slope case.
 
 Clark, Nicholas. “Phylogenetic Smoothing Using Mgcv.” GAMbler, 2024. https://ecogambler.netlify.app/blog/phylogenetic-smooths-mgcv/.
 
@@ -375,7 +395,7 @@ Xr_joint <- tensor.prod.model.matrix(list(as(t(Zphylo <- fac2sparse(chdat$specie
 ```{r spline_additive}
 p0_spadd <- list(beta = rep(0, 2), b_spline = rep(0, Kw), b_phylo = rep(0, nrow(vcmat)),
                  logsd = 0, logsd_f = 0, logpsd = 0)
-chdat_x <- chdat
+chdat_x <- c(chdat, lst(Xfull, Xr, Zphylo, vcmat))
 obj_spadd <- MakeADFun(nllfun_spline_additive, p0_spadd, silent = TRUE,
                        random = c("b_spline", "b_phylo"))
 fit_spline_additive <- TMBfit(obj_spadd)
@@ -402,7 +422,7 @@ Add a phylogenetically-correlated copy of the wiggly coefficients on top of the 
 ```{r spline_separable}
 #| cache: true
 p0_spsep <- modifyList(p0_spadd, list(b_wiggly = rep(0, nrow(vcmat)*Kw), logpsd_f = -10))
-chdat_x <- c(chdat, list(Xr_joint = Xr_joint))
+chdat_x <- c(chdat, lst(Xfull, Xr, Xr_joint, Zphylo, Kw, vcmat))
 obj_spsep <- MakeADFun(nllfun_spline_separable, p0_spsep, silent = TRUE,
                        random = c("b_spline", "b_wiggly", "b_phylo"))
 fit_spline_separable <- TMBfit(obj_spsep)
@@ -429,14 +449,13 @@ tZphylo <- as(t(Zphylo), "dgCMatrix")
 Xnull_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xf_null, "dgCMatrix")))   ## 49 x 98
 Xrange_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xr_range, "dgCMatrix"))) ## 49 x 392
 ```
-
 The two null-space directions (constant and linear-in-`log_bm`) need *separate* scales -- a single shared scale can't shrink away the (unsupported) phylo-slope variation without also killing the (well-supported) phylo-intercept variation, giving a much worse fit than necessary:
 
 ```{r spline_tensor}
 #| cache: true
 p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
                     logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
-chdat_x <- c(chdat, list(Xnull_joint = Xnull_joint, Xrange_joint = Xrange_joint))
+chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Kr, vcmat))
 obj_sptensor <- MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
                           random = c("b_null", "b_range"))
 fit_spline_tensor <- TMBfit(obj_sptensor)
@@ -446,7 +465,6 @@ fit_spline_tensor <- TMBfit(obj_sptensor)
 
 ## To do
 
-* ~~test cov (`dmvnorm`) implementation vs precision (`dgmrf`) implementation in RTMB~~ done, see `phylo_prec`/`glmmTMB_rtmb_check`
 * ~~extend to phylo + smooths (need to separate fixed-effect params) [additive, separable, tensor-product]~~ done, see "phylogenetic splines" section above
 * performance comparison (single phylo structure), on simulated data (as a function of tree size):
     * glmmTMB + propto
@@ -454,7 +472,6 @@ fit_spline_tensor <- TMBfit(obj_sptensor)
     * RTMB + sparse phylo (full matrix)
     * RTMB + Z-matrix (phyloglmm)
 * which model does the Z-matrix with random slopes correspond to? (What is the implied correlation between species-A intercept and species-B slope? Does it match the separable model?) i.e. what is $\mathbf Z \boldsymbol \Sigma  \mathbf Z^\top$ (analytically or numerically) ... ?
-* try out tensor-product model
 
 ```{r pic1}
 ggplot(chdat, aes(runningspeed, bodymass, colour = clade)) +

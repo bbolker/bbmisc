@@ -120,15 +120,30 @@ mk_f_phylo <- function(vcmat, scale) {
   function(x) dmvnorm(x, 0, Sigma = vcmat, scale = scale, log = TRUE) ## scale=1 for identifiability
 }
 ## need to pass params
-mk_f_cov <- function(corval, logrsd) {
+## us2 is an explicit argument (not looked up in the calling nllfun_*'s
+## local frame) because mk_f_cov is a separate function -- getAll(params,
+## chdat_x) inside nllfun_sep only binds names into *that* function's own
+## execution frame, not into mk_f_cov's (mk_f_cov's free variables resolve
+## via its own lexical closure, i.e. wherever it was *defined*, not wherever
+## it's *called* from). Callers must pull `us2` out of chdat_x themselves
+## (via their own getAll()) and pass it in explicitly.
+mk_f_cov <- function(us2, corval, logrsd) {
     function(x) dmvnorm(x, rep(0,2),
                         Sigma = us2$corr(corval), scale = exp(logrsd),
                         log = TRUE)
 }
 
 ## -- RTMB negative log-likelihoods for alternative parameterizations -------
-## all rely on `chdat_x` (data + extras, via getAll) and on X/Z being set
-## up in the calling environment
+## all rely on `chdat_x` (via getAll) for EVERYTHING they reference beyond
+## `params` -- data (log_rs, ...), design/incidence matrices (X, Z and their
+## analogues Zdense/KR/Zphylo/Xfull/Xr/...), the phylogenetic covariance
+## (vcmat), precision matrices (phyloprec, tp1/tp2), dimension constants
+## (Kw, Kr), and helper objects (us2). Nothing is read from the calling
+## environment -- every nllfun_* call site must build a self-contained
+## chdat_x with all of these, or the fit will error (missing binding) rather
+## than silently pick up a stale/wrong-shape object left over from a
+## previous fit in the same session (see phyloslopes_tiny_explore.R for a case where the
+## latter actually happened, with `vcmat`/`Kr`)
 
 ## dense covariance ("propto"-equivalent) parameterization
 ## @knitr nllfun1
@@ -142,6 +157,25 @@ nllfun1 <- function(params) {
   pen <- -dmvnorm(b, 0, Sigma = vcmat, scale = exp(logpsd), log = TRUE)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen
+}
+
+## independent phylogenetic intercepts and slopes: extends nllfun1 by adding
+## a separate phylogenetic penalty for species-level slope deviations.
+## Z (nobs x ntip) maps species intercepts to observations; Z_slope (nobs x
+## ntip) maps species slopes to observations, typically as a weighted
+## species indicator (diag(covariate) %*% Z or more generally Khatri-Rao
+## product). Both b_int and b_slope are penalized independently via vcmat
+nllfun_independent_slopes <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Z %*% b_int + Z_slope %*% b_slope)
+  REPORT(mu)
+  ADREPORT(mu)
+  resid <- log_rs - mu
+  REPORT(resid)
+  pen_int <- -dmvnorm(b_int, 0, Sigma = vcmat, scale = exp(logpsd_int), log = TRUE)
+  pen_slope <- -dmvnorm(b_slope, 0, Sigma = vcmat, scale = exp(logpsd_slope), log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen_int + pen_slope
 }
 
 ## @knitr nllfun_prec
@@ -190,7 +224,7 @@ nllfun_sep <- function(params) {
   ADREPORT(mu)
   resid <- log_rs - mu
   REPORT(resid)
-  pen <- -dseparable(mk_f_phylo(phylomat, scale), mk_f_cov(corval, logrsd))(b)
+  pen <- -dseparable(mk_f_phylo(phylomat, scale), mk_f_cov(us2, corval, logrsd))(b)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsdres), log = TRUE))
   lik + pen
 }
@@ -236,11 +270,60 @@ nllfun_dense_slopes <- function(params) {
   lik + pen
 }
 
+## tensor-product (Kronecker-*sum*) random-slopes: b (length 2*ntip, ordered
+## [species-outer, intercept/slope-inner] to match tX from
+## tensor.prod.model.matrix(list(Z_species, X)), same layout nllfun_dense_slopes
+## uses for its Kronecker-*product* Zdense/b) ~ N(0, Q_tensor^-1) with
+## Q_tensor = (1/sigma_1^2)*tp1 + (1/sigma_2^2)*tp2. This is a Kronecker sum
+## of two fixed penalty components (tp1 = phylo-structured, tp2 = flat-ridge,
+## both from tensor.prod.penalties()), not a Kronecker product, so it can't
+## be written via dgmrf()'s scalar `scale` argument on one fixed Q the way
+## nllfun_prec/nllfun_spline_* are -- Q_tensor has to be rebuilt from tp1/tp2
+## at every evaluation using the current sigma_1/sigma_2
+nllfun_tensor <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + tX %*% b)
+  REPORT(mu)
+  ADREPORT(mu)
+  resid <- log_rs - mu
+  REPORT(resid)
+  Q_tensor <- (1/exp(logsigma1)^2) * tp1 + (1/exp(logsigma2)^2) * tp2
+  pen <- -dgmrf(b, 0, Q = Q_tensor, log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd_resid), log = TRUE))
+  lik + pen
+}
+
+## "tensor-product-smooth" construction (see nllfun_spline_tensor below)
+## applied to a plain linear (intercept+slope) trait basis, which has no
+## genuine null/range split of its own -- the whole 2-dim trait space *is*
+## the (unpenalized) null space, nothing wiggly to separate out. So the
+## "eigendecompose into null/range, give each its own Kronecker PRODUCT"
+## recipe collapses to a single Kronecker-product term with no range
+## component at all: structurally the separable-model family
+## (nllfun_dense_slopes/nllfun_sep), just with independent (not correlated)
+## per-trait-direction scales instead of a full 2x2 covariance. Verified
+## (phyloslopes_tiny_explore.R) that this avoids the sigma_1/sigma_2 non-identifiability
+## nllfun_tensor's Kronecker *sum* has for a trivial (identity, no-null-
+## space) trait penalty like diag(2)
+nllfun_tensor_nullspace <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + tX %*% b)
+  REPORT(mu)
+  ADREPORT(mu)
+  resid <- log_rs - mu
+  REPORT(resid)
+  Sigma_full <- kronecker(vcmat, diag(exp(2*logpsd_null), nrow = length(logpsd_null)))
+  pen <- -dmvnorm(b, rep(0, length(b)), Sigma = Sigma_full, log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd_resid), log = TRUE))
+  lik + pen
+}
+
 ## -- RTMB negative log-likelihoods for phylogenetic + spline models ---------
 ## (McGillycuddy et al.'s propto+s() additive model, and separable/tensor-
 ## product-smooth extensions of it). All rely on chdat_x supplying the
-## precomputed (fixed, not rebuilt per-iteration) model matrices, and on
-## `vcmat` in the calling environment.
+## precomputed (fixed, not rebuilt per-iteration) model matrices, `vcmat`,
+## and any dimension constants (Kw, Kr) -- nothing from the calling
+## environment.
 
 ## additive: independent (i) baseline iid spline-wiggle random effect and
 ## (ii) phylogenetic random intercept, exactly matching the propto+s()
@@ -275,9 +358,9 @@ nllfun_spline_separable <- function(params) {
   resid <- log_rs - mu
   REPORT(resid)
   pen_spline <- -sum(dnorm(b_spline, 0, sd = exp(logsd_f), log = TRUE))
-  ## Kw (wiggly dimension) comes from the calling environment (set alongside
-  ## Xr, before chdat_x is built) -- not recomputed here, so it can't
-  ## silently diverge from the Xr actually used to build Xr_joint
+  ## Kw (wiggly dimension) comes from chdat_x (set alongside Xr, before
+  ## chdat_x is built) -- not recomputed here, so it can't silently diverge
+  ## from the Xr actually used to build Xr_joint
   Sigma_wiggly <- exp(2*logpsd_f) * diag(Kw)
   Sigma_full <- kronecker(vcmat, Sigma_wiggly)
   pen_wiggly <- -dmvnorm(b_wiggly, rep(0, length(b_wiggly)), Sigma = Sigma_full, log = TRUE)
@@ -305,10 +388,9 @@ nllfun_spline_tensor <- function(params) {
   ADREPORT(mu)
   resid <- log_rs - mu
   REPORT(resid)
-  ## Kr (wiggly range-space dimension) comes from the calling environment
-  ## (set alongside Xr_range, before chdat_x is built) -- not recomputed
-  ## here, so it can't silently diverge from the basis actually used to
-  ## build Xrange_joint
+  ## Kr (wiggly range-space dimension) comes from chdat_x (set alongside
+  ## Xr_range, before chdat_x is built) -- not recomputed here, so it can't
+  ## silently diverge from the basis actually used to build Xrange_joint
   Sigma_full_null <- kronecker(vcmat, diag(exp(2*logpsd_null), nrow = length(logpsd_null)))
   Sigma_full_range <- kronecker(vcmat, exp(2*logpsd_range) * diag(Kr))
   pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_full_null, log = TRUE)
