@@ -29,6 +29,7 @@ library(mgcv)
 library(MRFtools)
 library(Matrix)
 ## model diagnostics, etc.
+library(bbmle) ## AICtab
 library(performance)
 library(ggplot2); theme_set(theme_bw())
 library(cowplot)
@@ -37,9 +38,13 @@ library(broom.mixed) ## for tidy()
 
 <!-- https://github.com/orgs/quarto-dev/discussions/1793 -->
 <!-- LaTeX doesn't like newcommand in math mode; Pandoc doesn't care -->
+\newcommand{\bA}{\mathbf A}
+\newcommand{\bB}{\mathbf B}
+\newcommand{\bI}{\mathbf I}
 \newcommand{\bQ}{\mathbf Q}
 \newcommand{\bZ}{\mathbf Z}
 \newcommand{\bSigma}{\boldsymbol \Sigma}
+\newcommand{\kron}[2]{#1 \otimes #2}
 
 This note covers two different topics:
 
@@ -118,7 +123,6 @@ chdat <- carniherbi49$tab2 |>
 stopifnot(identical(sort(rownames(vcmat)), sort(as.character(chdat$species))))
 save(chdat, chtree, vcmat, file = "phyloslopes.rda")
 ```
-
 
 ```{r fit1}
 fit_propto_glmmTMB <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
@@ -246,24 +250,65 @@ is assumed to be homogeneous across species. As @schielzethConclusionsSupportOve
 modeling only variation of intercepts among clusters and not variation of effects (in this case the effect of body mass on running speed)
 across clusters can be overoptimistic/anticonservative (not to mention missing potentially interesting phylogenetic variation).
 
-FIXME: add *independent* intercept and slope variation as an example (i.e. `propto(1|species, vcmat) + propto(0 + log_bm | species, vcmat)` or `propto(1||species, vcmat)` (be careful about splitting, this shouldn't be converted to `diag` !)
-
 In addition to the intercept-only/additive model above, we'll fit three models:
 
 * independent phylogenetic variation in slopes and intercepts
 * *separable* phylogenetic variation (implemented in two ways: via `dseparable` and via `phylo.Z` setup)
 * tensor-product combination of phylogenetic variation with a linear model
 
+* In a separable model, we construct the combined covariance matrix as $\kron{\mathbf A}{\mathbf B}$; that is, the element corresponding to the covariance between $ij$ and $kl$ (say, species $i$ and $j$ and spline parameters $k$ and $l$ will be $\sigma_{A,ij} \cdot \sigma_{B,kl}$. We do have to be a little bit careful about identifiability; if both $\bA$ and $\bB$ have overall adjustable scale parameters, then the Kronecker product will be jointly unidentifiable). With only a small loss of generality, suppose that $\textrm{diag}(\bB)$ is homogeneous and (without further loss of generality) equal to 1; then there will be repeated $\bA$ blocks along the diagonal of the product (assuming I have the Kronecker product defined the right way around). The basis matrices stay the same.
+* the tensor product smooth is a little bit more complicated. As described in @woodGeneralizedAdditiveModels2017 section 5.6, we have to combine the model matrices for each term via rowwise Kronecker products (see `mgcv::tensor.prod.model.matrix`), and to generate a series of penalty matrices (two in this case) as $\kron{\bA}{\bI_B}$ and $\kron{\bI}{\bI_A}$. The Claude-generated code I use here does *not* (I think) use the reparameterization suggested on pp. 230-231 of @woodGeneralizedAdditiveModels2017; I think that means that 
+> the penalties no longer have the interpretation in terms of (averaged) function shape that is inherited from the marginal smooths ...
+but I think (??) we still get the same overall fits. As also described below, we have to make sure to separate the components of $\bZ$ that correspond to the nullspace of the penalty and treat them as (unpenalized) fixed effects. This is done manually below, not using the built-in `te()` machinery from `mgcv` ... I may take another crack at this later, as it would definitely be simpler and easier to explain to use existing machinery (as in @clarkPhylogeneticSmoothing2024) to set up the structures that RTMB needs.
+
 ### tiny example
 
-| model     | penalty/variance params                                              | latent variables                                    |
-|-----------|-----------------------------------------------------------------------|-------------------------------------------------------|
-| additive  | 2 — `logsd_f` (iid wiggle scale), `logpsd` (phylo intercept scale)    | 7 — `b_spline` (2) + `b_phylo` (5)                     |
-| separable | 3 — `logsd_f`, `logpsd_f` (phylo-correlated wiggle-deviation scale), `logpsd` | 17 — `b_spline` (2) + `b_wiggly` (10) + `b_phylo` (5) |
-| tensor    | 3 — `logpsd_null` (×2, one per null-space direction), `logpsd_range`  | 20 — `b_null` (10) + `b_range` (10)                    |
+We'll start with a very small example where we could (hopefully) visualize the penalty matrices/covariance matrices/etc. used by the different approaches. The hardest part of the machinery to understand (for me, at least) is the required separation of the smooth terms (which are rank-deficient in their original construction) into a fixed-effect component (no penalization) and random-effect component. The example here uses a simple phylogeny with $S=5$ tips/species; each species has a different `x` value. The model will use a thin-plate spline with $K=4$.
 
-## Linear effects
+| model     | penalty/variance params                                              | latent variables                                      | latent variables |
+|-----------|-----------------------------------------------------------------------|---------------------------------------------------------|:---:|
+| additive  | 2 — `logsd_f` (iid wiggle scale), `logpsd` (phylo intercept scale)    | 7 — `b_spline` (2) + `b_phylo` (5)                       | $(K-2) + S$ |
+| separable | 3 — `logsd_f`, `logpsd_f` (phylo-correlated wiggle-deviation scale), `logpsd` | 17 — `b_spline` (2) + `b_wiggly` (10) + `b_phylo` (5)   | $S(K-1) + (K-2)$ |
+| tensor    | 3 — `logpsd_null` (×2, one per null-space direction), `logpsd_range`  | 20 — `b_null` (10) + `b_range` (10)                      | $SK$ |
 
+
+Here are plots of the covariances between the predicted values of species 1-5 at $x=3$ and their slopes at $x=3$. For this tiny example, the separable model collapses back to the additive model.
+
+```{r tiny-plots}
+#| fig-width: 9.4
+#| fig-height: 8.6
+L <- load("phyloslopes_tiny_predcovs.rda")
+covs1 <- lapply(predcovs, \(x) x$cov)
+covs1 <- c(covs1, list("separable-additive"= covs1[["separable"]]-covs1[["additive"]],
+                       "separable-additive/true" = covs1[["separable/true"]]-covs1[["additive/true"]]))
+cowplot::plot_grid(plotlist = Map(ifun, covs1, names(covs1)))
+```
+
+I still haven't figured out a great way to illustrate the differences among these approaches.
+
+### linear effects
+
+I briefly explored comparisons of linear-additive models (i.e. `~ log_bm + (0 + propto | species, phylo)`), fitting a null model (phylogenetic intercept term only); an additive model as above; a model with independent random slopes `(0 + bm | species)`; and a separable model. In this example, if we tried to construct a tensor-product smooth between the linear term and the phylogenetic term, it would be unidentifiable/would reduce to the separable model because the null space dimension (2) is equal to the full dimension of the model ...
+
+Even the plain additive model barely improves the fit over the null model in this case; the independent model fit is singular and collapses back to the additive model; and the separable model gives a minor improvement.
+
+```{r compare-linear-fits}
+load("phyloslopes_linear.rda")
+tt <- bbmle::AICtab(phyloslopes_linear_models, logLik = TRUE)
+print(as.data.frame(tt), digits = 2)
+```
+
+### spline effects
+
+The analogous comparison with a smooth (thin-plate spline) trend in `log_bm` instead of a linear one: null (phylogenetic intercept only), additive, separable, and a genuine tensor-product smooth (see `phyloslopes_combo.R`, adapted from the additive/separable/tensor-product fits below).
+
+```{r compare-spline-fits}
+load("phyloslopes_combo.rda")
+tt <- bbmle::AICtab(phyloslopes_combo_models, logLik = TRUE)
+print(as.data.frame(tt), digits = 2)
+```
+
+### combinations of thin-plate splines and phylogenetic effects
 
 ### independent
 
@@ -353,16 +398,6 @@ This matches what happens numerically: fitting this model (`Sphylo` fixed/unscal
 
 Clark, Nicholas. “Phylogenetic Smoothing Using Mgcv.” GAMbler, 2024. https://ecogambler.netlify.app/blog/phylogenetic-smooths-mgcv/.
 
-```{r mrf_penalty_test}
-m1 <- mrf_penalty(chtree, "brownian", internal_nodes = FALSE)
-m2 <- mrf_penalty(chtree, "brownian", internal_nodes = TRUE)
-image(Matrix(zapsmall(m1)))
-dim(zapsmall(m1))
-dim(m2)
-```
-
-If using all-nodes parameterization of phylogenetic precision matrix (to take advantage of sparsity/`gmrf()` in `RTMB`), we'd need to make sure that the 'species' factor included values (not included in data set) for the internal nodes ...
-
 ## phylogenetic splines
 
 McGillycuddy *et al.*'s `propto` manuscript (`main.tex`) fits an *additive* model combining a penalized thin-plate-spline smoother of `log_bm` with a phylogenetic random intercept:
@@ -408,7 +443,7 @@ mat_corr <- vcv(chtree, corr = TRUE)[levels(chdat$species), levels(chdat$species
 fit_spline_glmmTMB <- glmmTMB(log_rs ~ s(log_bm) + propto(0 + species | g, mat_corr), data = chdat,
                               control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS")))
 stopifnot(all.equal(logLik(fit_spline_additive), c(logLik(fit_spline_glmmTMB)),
-                    check.attributes = FALSE, tolerance = 1e-4))
+                    check.attributes = FALSE, check.class = FALSE, tolerance = 1e-4))
 stopifnot(all.equal(fixef(fit_spline_additive), fixef(fit_spline_glmmTMB)$cond,
                     check.attributes = FALSE, tolerance = 1e-3))
 ```

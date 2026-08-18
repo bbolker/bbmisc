@@ -228,10 +228,14 @@ print(c(additive = logLik.TMB(fit_add), separable = logLik.TMB(fit_sep),
 ## data-dependent, as before.
 
 ## -- save everything for downstream use/fitting -----------------------------
+## sm/sm_full (the smoothCon() results, not just their derived design
+## matrices) are included so downstream scripts (phyloslopes_tiny_predcovs.R)
+## can call mgcv::PredictMat() on the *same* basis/knots/reparameterization
+## used here, without re-deriving it
 save(chtree, vcmat, Q_dense, Q_tips, Q_full_raw, Q_noroot, Q_tips_mrf_schur,
      Z_edge, Z_species, nrep, x, x_rep, species_rep, Zphylo,
      Xfull, Xr, Xr_joint, Xspline, S_spline, Xf_null, Xr_range, Kn, Kr,
-     Xnull_joint, Xrange_joint, sim_dat,
+     Xnull_joint, Xrange_joint, sim_dat, sm, sm_full,
      beta0, beta1, sd_f, sd_wiggly, sd_phylo, sigma_resid,
      b_spline_true, b_wiggly_true, b_phylo_true,
      file = "phyloslopes_tiny.rda")

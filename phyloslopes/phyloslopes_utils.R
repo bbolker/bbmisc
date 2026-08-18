@@ -2,8 +2,9 @@
 
 ## -- plotting / TMB helpers ------------------------------------------------
 
-ifun <- function(x) image(Matrix(x), sub = "",
-                          xlab = "", ylab = "")
+## help("image-methods")
+ifun <- function(x, main = "") image(Matrix(x), sub = "",
+                          xlab = "", ylab = "", main = main)
 
 TMBfit <- function(obj, optimizer = nlminb, response = NULL) {
   fit <- optimizer(obj$par, obj$fn, obj$gr)
@@ -13,11 +14,74 @@ TMBfit <- function(obj, optimizer = nlminb, response = NULL) {
   ret
 }
 AIC.TMB <- function(x) { 2*x$fit$objective + 2*npar(x) }
-logLik.TMB <- function(x) { -1*x$fit$objective }
+## proper logLik-classed return (df = number of estimated fixed-effect
+## parameters), not just a bare number -- needed for anything that relies
+## on the standard logLik() contract (bbmle::AICtab(), anova(), the
+## generic AIC()/BIC() fallback, ...), and still behaves as a plain number
+## anywhere it's just used arithmetically/printed
+logLik.TMB <- function(x) {
+  val <- -1*x$fit$objective
+  attr(val, "df") <- npar(x)
+  class(val) <- "logLik"
+  val
+}
 fixef.TMB <- function(x) { x$obj$env$parList()$beta }
 npar <- function(x, ...) {
   UseMethod("npar")
 }
+
+## HACK, per glmmTMB's own troubleshooting vignette
+## (https://cran.r-project.org/web/packages/glmmTMB/vignettes/troubleshooting.html):
+## glmmTMB deliberately sets logLik() to NA for models with convergence
+## problems (e.g. a non-positive-definite Hessian), to keep users from
+## silently including a bad fit in a model comparison. This OVERRIDES that
+## safety check globally for glmmTMB objects (once phyloslopes_utils.R is
+## sourced) by reading the raw nlminb objective directly off the fit
+## (fit$fit$objective), exactly as the vignette suggests -- needed so
+## bbmle::AICtab() (and anything else calling logLik() generically) can
+## compare phyloslopes_linear_models' `independent` fit alongside the
+## others. For a normally-converged fit this returns the identical value
+## glmmTMB's own logLik() would (both are just -objective at the nlminb
+## optimum); it only changes behavior for the NA-flagged case. Use with
+## the same caution the vignette gives: a flagged model may not actually
+## be at its true optimum, so treat its logLik/AIC as approximate, not a
+## substitute for fixing the underlying fit.
+logLik.glmmTMB <- function(object, ...) {
+  val <- -object$fit$objective
+  attr(val, "df") <- length(object$fit$par)
+  ## nrow(object$frame), not stats::nobs(object): nobs() would do its own
+  ## S3 dispatch to nobs.glmmTMB, which is only registered if the glmmTMB
+  ## package is actually attached (library(glmmTMB)) in the calling
+  ## session -- object$frame is a plain data.frame already stored on the
+  ## object, so this works even when phyloslopes_utils.R is sourced (and
+  ## a saved phyloslopes_linear.rda loaded) without glmmTMB attached
+  attr(val, "nobs") <- nrow(object$frame)
+  class(val) <- "logLik"
+  val
+}
+## same hack, same caveat -- AIC.glmmTMB computes AIC from the NA-gated
+## internal logLik rather than by calling the (now-overridden) logLik()
+## generic, so it still propagates NA for a flagged fit unless this is
+## *also* overridden; bbmle::AICtab() calls AIC() directly when available,
+## so both overrides are needed for it to include a flagged model
+AIC.glmmTMB <- function(object, ..., k = 2) {
+  2*object$fit$objective + k*length(object$fit$par)
+}
+## logLik/AIC become S4 generics once stats4 is loaded (e.g. via
+## library(bbmle)); their "ANY" fallback method's UseMethod() dispatch
+## resolves S3 methods starting from the *calling package's own sealed
+## namespace*, not from .GlobalEnv -- so a plain top-level function
+## definition above is only visible to dispatch triggered directly from
+## the global environment (e.g. typing logLik(fit) at the console/in a
+## sourced script), not to dispatch triggered from *inside* another
+## package's internal code (e.g. bbmle::ICtab()'s own
+## sapply(L, function(x) logLik(x)), which resolved to NA even after the
+## overrides above -- confirmed by testing bbmle::AICtab(...,
+## logLik = TRUE) directly). registerS3method() inserts these into R's
+## actual S3 method table, which every namespace's dispatch consults
+## regardless of where the call originates.
+registerS3method("logLik", "glmmTMB", logLik.glmmTMB)
+registerS3method("AIC", "glmmTMB", AIC.glmmTMB)
 npar.TMB <- function(x) { length(x$fit$par) }
 ## these assume we have REPORT(mu) and REPORT(resid) and ADREPORT(mu)
 predict.TMB <- function(x, se.fit = FALSE) {
@@ -391,10 +455,26 @@ nllfun_spline_tensor <- function(params) {
   ## Kr (wiggly range-space dimension) comes from chdat_x (set alongside
   ## Xr_range, before chdat_x is built) -- not recomputed here, so it can't
   ## silently diverge from the basis actually used to build Xrange_joint
-  Sigma_full_null <- kronecker(vcmat, diag(exp(2*logpsd_null), nrow = length(logpsd_null)))
-  Sigma_full_range <- kronecker(vcmat, exp(2*logpsd_range) * diag(Kr))
-  pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_full_null, log = TRUE)
-  pen_range <- -dmvnorm(b_range, rep(0, length(b_range)), Sigma = Sigma_full_range, log = TRUE)
+  ##
+  ## Sigma = scale^2 * Sigma_unsc, with the scale factor applied via
+  ## dmvnorm's scale= argument (elementwise on the residual) instead of
+  ## baked into Sigma itself -- Sigma_unsc_null/range are then pure
+  ## functions of data (vcmat, dimensions), not parameters, so RTMB caches
+  ## them instead of rebuilding the full Kronecker product on every
+  ## objective/gradient evaluation. logpsd_null has one scale per
+  ## null-space direction (not a single shared scale), so its scale
+  ## vector repeats exp(logpsd_null) once per species, matching
+  ## Xnull_joint/b_null's [species-outer, null-dim-inner] column order;
+  ## logpsd_range is a single shared scale, so it broadcasts as-is.
+  ## (Verified equivalent to the previous kronecker(vcmat,
+  ## diag(exp(2*logpsd_null)))-style construction to floating-point
+  ## precision on a test case -- nll/gradient/refit all match to ~1e-13.)
+  Sigma_unsc_null <- kronecker(vcmat, diag(length(logpsd_null)))
+  Sigma_unsc_range <- kronecker(vcmat, diag(Kr))
+  pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_unsc_null,
+                        scale = rep(exp(logpsd_null), nrow(vcmat)), log = TRUE)
+  pen_range <- -dmvnorm(b_range, rep(0, length(b_range)), Sigma = Sigma_unsc_range,
+                         scale = exp(logpsd_range), log = TRUE)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen_null + pen_range
 }
