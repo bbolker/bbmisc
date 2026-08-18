@@ -3,11 +3,14 @@ author: Ben Bolker
 title: "Notes on implementing phylogenetic random effects"
 date: today
 bibliography: phyloslopes.bib
+csl: ieee.csl
 format:
     html:
        embed-resources: true
        code-fold: true
-    pdf: default
+       toc: true
+    pdf:
+       toc: true
 ---
 
 ```{r pkgs, message=FALSE}
