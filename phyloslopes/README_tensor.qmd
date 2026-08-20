@@ -1,0 +1,355 @@
+---
+title: "Tensor-product phylogenetic smooths: naive vs. null/range-decomposed constructions"
+author: Ben Bolker / Claude
+date: today
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+---
+
+## Motivation
+
+`phyloslopes.qmd`'s "phylogenetic splines" section fits a genuine tensor-product
+smooth of phylogeny x `log_bm` (`nllfun_spline_tensor`, `phyloslopes_utils.R`) by
+eigendecomposing the spline's own (rank-deficient) penalty into a null space
+(constant + linear) and a range space (wiggly), then giving *each* its own
+separate Kronecker-product term crossed with the (always full-rank) phylogenetic
+precision. (That describes the construction as it stood when this investigation
+started; the range-space block has since changed as a direct result of the
+findings below -- see "Recommendation".) `TODO.md` item 8 asked whether this
+eigendecomposition is actually necessary, given that RTMB can (in principle)
+accept arbitrary precision matrices in `dgmrf()`/`dmvnorm()` -- could we instead
+build the tensor-product smooth via `mgcv::smooth.construct()` directly (as in
+Clark 2024's blog post) and use its raw `$X`/`$S` output with no decomposition
+at all?
+
+This note works through the answer, which turned out to require correcting
+several of my own intermediate hypotheses along the way -- kept here so the
+false starts (and why they were wrong) are documented, not just the final
+answer.
+
+```{r setup, message = FALSE}
+library(ade4)
+library(ape)
+library(dplyr)
+library(RTMB)
+library(reformulas)
+library(mgcv)
+library(Matrix)
+library(tibble)
+library(glmmTMB)
+library(numDeriv)
+source("phyloslopes_utils.R")
+
+data("carniherbi49", package = "ade4")
+chtree <- read.tree(text = carniherbi49$tre2)
+chtree$tip.label <- fixup_species(chtree$tip.label)
+vcmat <- vcv(chtree)
+chdat <- carniherbi49$tab2 |>
+  mutate(log_bm = log(bodymass), log_rs = log(runningspeed), g = 1) |>
+  tibble::rownames_to_column("species") |>
+  mutate(across(species, fixup_species)) |>
+  mutate(across(species, \(x) factor(x, levels = rownames(vcmat))))
+
+X <- model.matrix(~ log_bm, data = chdat)
+Zphylo <- fac2sparse(chdat$species)
+Sphylo <- solve(vcmat)
+
+to_Q <- function(P) {
+  if (inherits(P, "advector")) as(as(P, "sparseMatrix"), "adsparse")
+  else Matrix::Matrix(P, sparse = TRUE)
+}
+```
+
+## Two ways to build a tensor-product penalty (Wood 2006, sec. 4.1.8)
+
+Wood's *Generalized Additive Models* distinguishes two ways to combine marginal
+penalties $\mathbf S_x, \mathbf S_z$ into a tensor-product smooth's joint penalty
+over the full basis:
+
+**"Multiple term penalties"** (what `mgcv::te()` actually uses by default):
+$$J(f) \approx \lambda_x J_x^*(f) + \lambda_z J_z^*(f), \qquad
+\tilde{\mathbf S}_x = \mathbf S_x \otimes \mathbf I_z, \quad
+\tilde{\mathbf S}_z = \mathbf I_x \otimes \mathbf S_z$$
+i.e. a **sum** of two Kronecker products, each padded out with an identity in
+the *other* dimension.
+
+**"Single penalty"**:
+$$\boldsymbol\beta^\top \mathbf S \boldsymbol\beta \quad\text{where}\quad
+\mathbf S = \mathbf S_x \otimes \mathbf S_z$$
+a literal Kronecker **product** of the two marginal penalties, no identity
+padding, no sum.
+
+Wood's verdict on the second option (p. 165), verbatim:
+
+> "but this often leads to **severe undersmoothing**. The reason for the
+> undersmoothing is straightforward: **the rank of S is the product of the
+> ranks of the S_j**, and in practice this is often far too low for practical
+> work. For example, consider a smooth of 3 predictors constructed as a
+> tensor product smooth of 3 cubic spline bases, each of rank 5. The
+> resulting smooth would have 125 free parameters, but a penalty matrix of
+> **rank 27**... By contrast, for the same marginal bases, the **multiple
+> term penalties would have rank 117**, leading to a much more useful range
+> of effective degrees of freedom."
+
+The mechanism: if $\mathbf S_z$ (say) has a $d$-dimensional null space (e.g.
+constant + linear functions, unpenalized by a wiggliness measure), then
+$\mathbf S_x \otimes \mathbf S_z$ has null space $\mathbb R^{n_x} \otimes
+\text{null}(\mathbf S_z)$ -- an entire $n_x \times d$ block that is
+**completely unpenalized** (flat/improper prior), no matter how the
+smoothing parameter is tuned. The "multiple term" sum avoids this because
+each summand is padded with an identity in the *other* dimension, so as long
+as at least one marginal penalty is full rank, the sum is full rank too.
+
+## Why doesn't RTMB choke on a rank-deficient marginal penalty?
+
+It doesn't, because a rank-deficient marginal penalty is never, on its own,
+handed to `dgmrf()`. A quick, self-contained illustration:
+
+```{r singular-check}
+S2_toy <- matrix(c(2, 0, 0, 0), 2, 2)  ## rank-deficient (1-dim null space)
+f_singular <- function(params) -dgmrf(params$b, 0, Q = Matrix::Matrix(S2_toy, sparse = TRUE), log = TRUE)
+obj_singular <- MakeADFun(f_singular, list(b = c(0.1, 0.1)), silent = TRUE)
+obj_singular$fn(obj_singular$par)  ## NaN: dgmrf() computes its OWN log-determinant for S2_toy alone
+```
+
+`S1` (phylo direction) is strictly positive-definite; `S2` (spline direction)
+is positive-*semi*-definite (a valid penalty matrix has no negative
+eigenvalues). For any finite $\sigma_1, \sigma_2 > 0$,
+$$\mathbf x^\top\!\left(\tfrac{1}{\sigma_1^2}\mathbf S_1 + \tfrac{1}{\sigma_2^2}\mathbf S_2\right)\!\mathbf x
+= \tfrac{1}{\sigma_1^2}\mathbf x^\top \mathbf S_1 \mathbf x + \tfrac{1}{\sigma_2^2}\mathbf x^\top \mathbf S_2 \mathbf x > 0$$
+for every nonzero $\mathbf x$, since the first term alone is already strictly
+positive. The **sum** is guaranteed strictly positive-definite regardless of
+how deficient $\mathbf S_2$ is by itself -- `dgmrf()` never sees a singular
+matrix, only an increasingly ill-conditioned (but always strictly PD) one as
+$\sigma_2 \to 0$. Cholesky factorization degrades gracefully under bad
+conditioning; it only fails outright at an *exact* zero pivot. So "RTMB
+handles a rank-deficient penalty" is really "RTMB never sees a rank-deficient
+matrix here at all" -- the multiple-term construction sidesteps the problem
+rather than being robust to it.
+
+## Are our `separable` models the (useless) single-penalty case?
+
+No -- both of our `separable` constructions have the algebraic *form* of a
+single penalty ($\mathbf Q = \mathbf S_{\text{phylo}} \otimes \mathbf S_{\text{trait}}$,
+a literal Kronecker product), but neither triggers Wood's undersmoothing
+warning, for two different reasons:
+
+- **`nllfun_sep` / `nllfun_dense_slopes`** (linear intercept+slope): the
+  trait factor is a full $2\times 2$ covariance matrix from `unstructured(2)`,
+  parameterized (log-sds + a correlation transform) to be positive-definite
+  for *any* parameter value. It's a genuine covariance over a 2-dimensional
+  trait space, not a wiggliness *penalty* -- nothing about (intercept, slope)
+  is "smoother" than anything else, so there's no null space to begin with.
+  $\text{rank}(\mathbf S_{\text{phylo}} \otimes \mathbf S_{\text{trait}}^{-1}) = 49 \times 2 = 98$,
+  full rank on the nose.
+- **`nllfun_spline_separable`**: the phylo-wiggle term multiplies `Sphylo` by
+  `Xr`, the *whitened* range-space design from `smooth2random()`'s
+  $1/\sqrt{d_i}$ reparameterization -- a scaled identity, full rank by
+  construction. The null space wasn't absent here (a spline's wiggliness
+  penalty genuinely has one); it was stripped out beforehand and handled
+  separately, via the plain iid `b_spline` baseline term.
+
+The actual useless single-penalty case would be $\mathbf S_{\text{phylo}}
+\otimes \mathbf S_{\text{spline,raw}}$ -- the *raw*, un-whitened, rank-8-of-10
+TPS penalty, multiplied directly with no preprocessing. We've never built
+that as a standalone model; it only ever appears as one summand inside the
+naive multiple-term sum below, where `S1` alone keeps the total full rank.
+Built alone it would be both singular (the `NaN` demonstrated above) and, if
+patched to avoid that, would have a genuinely free 98-dimensional null space
+-- Wood's exact undersmoothing scenario.
+
+## Building the naive (multiple-term) tensor smooth directly from `smooth.construct()`
+
+Per the original TODO question: yes, we can extract `$X`/`$S` directly from a
+`te()` smooth, no eigendecomposition, and reuse the *already-generic*
+`nllfun_tensor` (`phyloslopes_utils.R`, originally written for the trivial
+`diag(2)` random-slopes case) unchanged:
+
+```{r naive-tensor}
+te_spec <- te(species, log_bm, bs = c("mrf", "tp"), k = c(49, 10),
+             xt = list(list(penalty = Sphylo), NULL))
+sm_te <- smooth.construct(te_spec, data = chdat, knots = NULL)
+tX_naive <- sm_te$X
+S1 <- sm_te$S[[1]]; S2 <- sm_te$S[[2]]
+cat("dim(tX_naive):", dim(tX_naive), "\n")
+cat("rank(S1):", Matrix::rankMatrix(S1), " rank(S2):", Matrix::rankMatrix(S2),
+   "(out of", nrow(S1), ")\n")
+
+chdat_x <- c(chdat, lst(X, tX = tX_naive, tp1 = Matrix(S1, sparse = TRUE), tp2 = Matrix(S2, sparse = TRUE)))
+p0_naive <- list(beta = rep(0, 2), b = rep(0, ncol(tX_naive)), logsigma1 = 0, logsigma2 = 0, logsd_resid = 0)
+obj_naive <- MakeADFun(nllfun_tensor, p0_naive, silent = TRUE, random = "b")
+fit_naive <- nlminb(obj_naive$par, obj_naive$fn, obj_naive$gr,
+                    control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+H_naive <- numDeriv::jacobian(obj_naive$gr, fit_naive$par)
+ev_naive <- eigen(H_naive, symmetric = TRUE, only.values = TRUE)$values
+
+cat("convergence:", fit_naive$convergence, fit_naive$message, "\n")
+cat("logLik:", -fit_naive$objective, "\n")
+cat("Hessian eigenvalues:", round(ev_naive, 4), "\n")
+```
+
+Clean convergence, no `NaN`, essentially no negative curvature (the smallest
+eigenvalue is at the edge of numerical noise, not a genuine saddle like the
+`diag(2)` pathology documented in `phyloslopes_tiny_explore.R`). This
+confirms the tiny-example finding (naive Kronecker-sum is well-identified
+for a *genuine* TPS penalty, unlike the trivial `diag(2)` trait case)
+generalizes to the real 49-species data.
+
+But it gives a **different fit** from the (then-current) null/range-decomposed
+`nllfun_spline_tensor` construction, not the same one reparameterized -- for
+comparison, that construction as it stood at the start of this investigation
+(separate null-space scales, but a single-scale *pure* Kronecker-product range
+block). `nllfun_spline_tensor` itself has since been changed to the "hybrid"
+range block derived below, so that old, single-scale range-block version is
+reproduced here as a standalone local function (`nllfun_old_pure_product`)
+purely so it can still appear as a comparison row below -- it is deliberately
+*not* calling `nllfun_spline_tensor`, which now implements something else:
+
+```{r current-tensor}
+## smooth2random(), not a separate eigendecomposition, for the null/range
+## split (see "Building the naive..." above and phyloslopes_utils.R) --
+## its trans.D is 1/sqrt(eigenvalue) per range-space direction, in the same
+## column order as Xr
+sm_full <- smoothCon(s(log_bm, k = 10), data = chdat)  ## no absorb.cons -- want the full null space
+sm2ran_full <- smooth2random(sm_full[[1]], "", type = 2)
+Xf_null <- sm2ran_full$Xf
+Xr_range <- sm2ran_full$rand$Xr
+Kn <- ncol(Xf_null); Kr <- ncol(Xr_range)
+d_range <- 1 / sm2ran_full$trans.D[seq_len(Kr)]^2  ## true TPS range-space eigenvalues
+
+tZphylo <- as(t(Zphylo), "dgCMatrix")
+Xnull_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xf_null, "dgCMatrix")))
+Xrange_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xr_range, "dgCMatrix")))
+
+nllfun_old_pure_product <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Xnull_joint %*% b_null + Xrange_joint %*% b_range)
+  REPORT(mu); ADREPORT(mu)
+  resid <- log_rs - mu; REPORT(resid)
+  Sigma_unsc_null <- kronecker(vcmat, diag(length(logpsd_null)))
+  pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_unsc_null,
+                        scale = rep(exp(logpsd_null), nrow(vcmat)), log = TRUE)
+  Q_range <- (1/exp(logpsd_range)^2) * kronecker(Sphylo, diag(Kr))
+  pen_range <- -dgmrf(b_range, 0, Q = to_Q(Q_range), log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen_null + pen_range
+}
+chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Kr, vcmat))
+p0_old <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
+              logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
+obj_old <- MakeADFun(nllfun_old_pure_product, p0_old, silent = TRUE, random = c("b_null", "b_range"))
+fit_current <- nlminb(obj_old$par, obj_old$fn, obj_old$gr,
+                      control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+cat("old pure-product-range logLik:", -fit_current$objective, "\n")
+cat("naive (te()-extracted) logLik:", -fit_naive$objective, "\n")
+```
+
+## Isolating the mechanism
+
+Two structurally *independent* questions are tangled up inside "naive vs.
+current": how the null (constant+linear) block is scaled, and how the range
+(wiggle) block is penalized. Untangling them:
+
+```{r mechanism, message = FALSE}
+## (1) null-space block ALONE, one shared scale for both directions
+nllfun_nullspace_shared <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + tX %*% b)
+  REPORT(mu); ADREPORT(mu)
+  resid <- log_rs - mu; REPORT(resid)
+  Sigma_full <- kronecker(vcmat, diag(rep(exp(2*logpsd_shared), Kn), nrow = Kn))
+  pen <- -dmvnorm(b, rep(0, length(b)), Sigma = Sigma_full, log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd_resid), log = TRUE))
+  lik + pen
+}
+chdat_x <- c(chdat, lst(X, tX = Xnull_joint, vcmat, Kn))
+p0 <- list(beta = rep(0, 2), b = rep(0, ncol(Xnull_joint)), logpsd_shared = 0, logsd_resid = 0)
+fit_null_shared <- nlminb(MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")$par,
+                          MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")$fn,
+                          MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")$gr,
+                          control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+
+## (2) null-space block ALONE, separate scales (nllfun_tensor_nullspace)
+p0b <- list(beta = rep(0, 2), b = rep(0, ncol(Xnull_joint)), logpsd_null = rep(0, Kn), logsd_resid = 0)
+obj_null_sep <- MakeADFun(nllfun_tensor_nullspace, p0b, silent = TRUE, random = "b")
+fit_null_sep <- nlminb(obj_null_sep$par, obj_null_sep$fn, obj_null_sep$gr,
+                       control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+
+## (3) hybrid: SAME separate null scales as the old construction above, but
+## the range block rebuilt the multiple-term way (Sphylo x I + I x
+## diag(true TPS eigenvalues)) instead of the old pure Kronecker product
+## (Sphylo x I alone). This is now exactly what nllfun_spline_tensor itself
+## implements (see Recommendation below) -- called directly here, not a
+## local copy, so this comparison also doubles as a check that the real
+## function reproduces the derivation
+Qr_phylo <- kronecker(Sphylo, diag(Kr))
+Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
+chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat))
+p0c <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
+           logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
+obj_hybrid <- MakeADFun(nllfun_spline_tensor, p0c, silent = TRUE, random = c("b_null", "b_range"))
+fit_hybrid <- nlminb(obj_hybrid$par, obj_hybrid$fn, obj_hybrid$gr,
+                     control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+
+data.frame(
+  model = c("null-only, 1 shared scale", "null-only, separate scales",
+           "old (separate null + pure-product range)",
+           "hybrid == current nllfun_spline_tensor (separate null + multiple-term range)",
+           "naive te() (1 shared null + multiple-term range)"),
+  logLik = round(c(-fit_null_shared$objective, -fit_null_sep$objective,
+                   -fit_current$objective, -fit_hybrid$objective, -fit_naive$objective), 4)
+)
+```
+
+This cleanly separates two independent effects:
+
+1. **The null block wants separate per-direction scales.** Giving intercept
+   and slope their own phylogenetic scale (rather than sharing one) is worth
+   ~4.4 nats on its own (null-only: shared vs. separate). The multiple-term
+   recipe *cannot* provide this: `S2`'s null block is exactly zero there, so
+   only `sigma1` ever touches the null space, forcing one shared scale on
+   both directions no matter how the rest of the model is built.
+2. **The range block wants the multiple-term structure**, independently of
+   the null-block question. Holding the (already-separated) null block fixed
+   and rebuilding *only* the range block as `Sphylo %x% I + I %x%
+   diag(d_range)` instead of `Sphylo %x% I` alone gains another ~0.49 nats
+   (old vs. hybrid). This is Wood's point, correctly scoped: the range
+   block's own smoothness structure (the TPS's real eigenvalues) gives the
+   optimizer a second, phylo-independent knob for trading off wiggliness
+   against fit -- a pure Kronecker product can only "shrink everything
+   toward phylogenetic similarity or don't," with no way to separately
+   control smoothness.
+
+The naive `te()` fit sits between the two extremes: it gets the multiple-term
+range benefit but loses the separate-null-scales benefit (one shared scale,
+forced). The **hybrid** construction -- keep `nllfun_spline_tensor`'s
+separate null-space scales, but rebuild its range block as a multiple-term
+sum instead of a pure product -- beats every other *tensor-smooth*
+construction tried, including the fully-naive one.
+
+It does **not**, however, beat the additive/separable models
+(`phyloslopes_combo.R`): `fit_spline_additive`/`fit_spline_separable` both
+get logLik $-6.144$, still better than the hybrid tensor's $-6.163$ (and by
+AIC, more so, since the tensor smooth has more parameters to be penalized
+for). On this weak-signal, 49-species dataset, letting the linear/wiggle
+trend vary phylogenetically at all (tensor's whole premise) just isn't
+earning its keep relative to the simpler additive structure -- the fixes
+here are about making the tensor-smooth *family* well-posed and as
+strong as it can be, not about making it win the model comparison.
+
+## Recommendation
+
+`nllfun_spline_tensor` is not "the same model as the naive `te()` one, just
+implemented more carefully to avoid `NaN`" -- it's a genuinely different
+(and, on the null-space side, better-identified) construction. But its
+range-space block was leaving real fit on the table by using a pure
+Kronecker product where a multiple-term sum does strictly better, per
+Wood's own argument about effective-degrees-of-freedom range. Implemented:
+`nllfun_spline_tensor`'s range-space penalty is now `(1/sigma1^2)
+* kron(Sphylo, I_Kr) + (1/sigma2^2) * kron(I_ntip, diag(d_range))` (the
+`hybrid` construction above), keeping the separate null-space scales
+unchanged, rather than switching wholesale to the naive `te()`-extracted
+version (which would sacrifice the separate null-space scales that are worth
+more than the range-space fix on their own).
