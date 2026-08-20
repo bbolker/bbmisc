@@ -11,6 +11,30 @@
 * try on larger examples where everything won't collapse to singular/simpler fits?
 * understand Schur-complement vs `solve(vcmat)` differences (see below)
 * decide what if anything needs to be kept from last item below
+* the ML vs. REML distinction (`gam(..., method=)` vs. our RTMB fits'
+  implicit ML, since only `b` is integrated out via Laplace, not `beta` --
+  see the `phyloslopes_combo.R` `te()`-vs-`gam()` comparison) may matter
+  more for "new-style" random effects (*sensu* Hodges) -- where the
+  random-effect variances themselves (e.g. spline wiggliness) are the
+  focal quantity of interest -- than for "old-style" random effects, where
+  they're usually a nuisance parameter to be integrated out/ignored
+* investigate a model more complex than the current "hybrid" tensor
+  (`nllfun_spline_tensor`), which gives the phylo-intercept and
+  phylo-linear-slope null-space directions *independent* (diagonal,
+  uncorrelated) penalties (`logpsd_null`, length 2) -- what about letting
+  them *correlate*, the way `nllfun_sep`/`nllfun_dense_slopes` give
+  intercept/slope a full unstructured 2x2 covariance instead of
+  independent scales? Probably not worth it for the real 49-species
+  example (already pushing the data's limits), but worth having in the
+  model space for completeness
+* "null" (as in "null-space") for the phylo-intercept/phylo-slope terms in
+  `nllfun_spline_tensor` is potentially misleading terminology: those
+  terms are in the null space of the *thin-plate spline's* wiggliness
+  penalty, but they are NOT unpenalized overall -- they still carry a
+  phylogenetic penalty (`logpsd_null`). "Null" could easily be misread as
+  "fixed effect/no penalization," which is wrong here (the phylogenetic
+  component itself has no null space of its own, given proper handling
+  like dropping the root)
 
 ## 2. Document the MRFtools tips-only vs. solve(vcmat) precision mismatch
 

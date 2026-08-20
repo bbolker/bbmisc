@@ -246,6 +246,103 @@ cat("old pure-product-range logLik:", -fit_current$objective, "\n")
 cat("naive (te()-extracted) logLik:", -fit_naive$objective, "\n")
 ```
 
+## Validating `te()` + `nllfun_tensor` against an independent worked example
+
+Before trusting `nllfun_tensor`'s behavior on our own (as it turns out,
+severely overparameterized -- see below) 49-species data, it's worth
+checking the basic machinery agrees with `mgcv::gam()` itself on a case
+`gam()` can actually fit. @clarkPhylogeneticSmoothing2024's own worked
+example does exactly this: a `te()` smooth crossing an 8-level `mrf` time
+margin with a 12-species `mrf` phylogenetic margin (`k = c(8, 12)`, 96
+total tensor-product coefficients), on 450 complete-case observations (12
+species x 50 time points, minus two withheld species and the last 5 time
+points per species) -- small and well-conditioned, unlike our own case.
+
+`clark_2024_ex.R` reproduces that example verbatim (down to fitting
+`gam()` and timing it: well under a second). Reusing its simulated `dat`,
+`omega` (phylogenetic precision), `rw_penalty`, and `N_species` here:
+
+```{r clark-setup, message = FALSE}
+source("clark_2024_ex.R")
+```
+
+For a direct, apples-to-apples comparison of the `te()`-handling itself,
+this drops Clark's additional `s(time, k = 10)` term (fitting the `te()`
+component alone against `y`) and works with complete cases only, so both
+`gam()` and RTMB see identical rows/basis:
+
+```{r clark-compare}
+dat_cc <- dat[stats::complete.cases(dat[, c("y", "time_factor", "species")]), ]
+te_spec <- te(time_factor, species, bs = c("mrf", "mrf"), k = c(8, N_species),
+             xt = list(list(penalty = rw_penalty), list(penalty = omega)))
+sm_te <- smooth.construct(te_spec, data = dat_cc, knots = NULL)
+tX <- sm_te$X; S1 <- sm_te$S[[1]]; S2 <- sm_te$S[[2]]
+
+## RTMB (nllfun_tensor, unmodified). X_clark, not X: X is already the
+## 49-species model.matrix(~log_bm, chdat) from earlier sections, and is
+## reused (from the global environment) by chdat_x in "Isolating the
+## mechanism" below -- overwriting it here would silently break that
+X_clark <- matrix(1, nrow(dat_cc), 1)  ## intercept-only fixed effect
+chdat_x <- lst(log_rs = dat_cc$y, X = X_clark, tX, tp1 = Matrix(S1, sparse = TRUE), tp2 = Matrix(S2, sparse = TRUE))
+p0 <- list(beta = 0, b = rep(0, ncol(tX)), logsigma1 = 0, logsigma2 = 0, logsd_resid = 0)
+obj_rtmb <- MakeADFun(nllfun_tensor, p0, silent = TRUE, random = "b")
+t_rtmb <- system.time({
+  fit_rtmb <- nlminb(obj_rtmb$par, obj_rtmb$fn, obj_rtmb$gr,
+                     control = list(rel.tol = 1e-12, eval.max = 2000, iter.max = 2000))
+})
+pl_rtmb <- obj_rtmb$env$parList(par = obj_rtmb$env$last.par.best)
+mu_rtmb <- drop(X_clark %*% fit_rtmb$par["beta"] + tX %*% pl_rtmb$b)
+
+## gam(), same te() spec, same complete-case data
+mod_ml <- gam(y ~ te(time_factor, species, bs = c("mrf", "mrf"), k = c(8, N_species),
+                     xt = list(list(penalty = rw_penalty), list(penalty = omega))),
+             data = dat_cc, drop.unused.levels = FALSE, method = "ML")
+mod_reml <- update(mod_ml, method = "REML")
+
+data.frame(
+  quantity = c("elapsed time (s)", "logLik", "intercept"),
+  RTMB = c(t_rtmb["elapsed"], -fit_rtmb$objective, unname(fit_rtmb$par["beta"])),
+  gam_ML = c(NA, logLik(mod_ml), unname(coef(mod_ml)[1])),
+  gam_REML = c(NA, logLik(mod_reml), unname(coef(mod_reml)[1]))
+)
+cat("max|mu_rtmb - fitted(mod_ml)|:  ", max(abs(mu_rtmb - fitted(mod_ml))), "\n")
+cat("cor(mu_rtmb, fitted(mod_ml)):   ", cor(mu_rtmb, fitted(mod_ml)), "\n")
+cat("recovered sigma_resid:", exp(fit_rtmb$par["logsd_resid"]),
+   " (true simulated sd = 0.35)\n")
+```
+
+Fitted values agree essentially exactly (correlation > 0.99999, max
+difference ~0.002 -- consistent with the two optimizers, `nlminb` vs.
+`gam()`'s own PIRLS+Newton, converging to slightly different points on a
+very flat final region rather than a real disagreement), and the recovered
+residual SD lands right on the true simulated value (0.35). This confirms
+`te()` + `nllfun_tensor` and `mgcv::gam()`'s own tensor-product handling
+are fitting the theoretically/conceptually equivalent model.
+
+The raw `logLik` values do **not** match (RTMB's Laplace-integrated
+marginal likelihood and `mgcv`'s REML/ML-reported `logLik()` use different
+normalizing-constant conventions -- a known caveat when comparing
+TMB-based and mgcv-based likelihoods directly, not a sign of disagreement)
+-- what's reparameterization-invariant (fitted values, recovered variance
+components) is exactly what matches.
+
+This also explains, by contrast, why the same check isn't attempted
+directly on our own 49-species data: `gam()` doesn't converge on it at
+all. Diagnosis (not reproduced here): the `mrf(49) x tp(10)` tensor basis
+(490 coefficients on 49 observations, one per species, no replication) is
+so overparameterized that the fit interpolates the data almost immediately
+(deviance reaches ~1e-19, i.e. numerically zero, within the first couple
+of outer iterations even at a smaller `k = c(49, 4)`) -- once deviance is
+numerically zero, `mgcv`'s Newton-based smoothing-parameter selection has
+no well-defined gradient to converge on (a whole flat manifold of
+smoothing parameters gives the identical perfect fit) and never
+terminates. This is the same single-observation-per-tip overparameterization
+pathology documented at length in `phyloslopes_tiny_explore.R`, just
+surfacing as *non-convergence* in `mgcv`'s Newton iteration rather than as
+*boundary collapse* in RTMB's variance-component estimates -- our
+Laplace-approximation route tolerates this specific degeneracy far more
+gracefully than `mgcv`'s REML/ML machinery does.
+
 ## Isolating the mechanism
 
 Two structurally *independent* questions are tangled up inside "naive vs.

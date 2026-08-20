@@ -150,5 +150,26 @@ list(
       c("phyloslopes.html", "phyloslopes.pdf")
     },
     format = "file"
+  ),
+
+  ## -- tensor-product penalty investigation write-up --------------------
+  ## mostly self-contained (only sources phyloslopes_utils.R, re-derives its
+  ## own data/setup -- doesn't load any other target's .rda/.rds), and
+  ## HTML-only (no pdf: in its YAML). See phyloslopes_utils.R's
+  ## nllfun_spline_tensor comments for the implemented recommendation this
+  ## write-up arrives at. It also source()s clark_2024_ex.R for its
+  ## te()-vs-RTMB validation section (see that section's own comments), so
+  ## clark_r is a real dependency here, not just tracked for documentation.
+  tar_target(readme_tensor_source, "README_tensor.qmd", format = "file"),
+  tar_target(clark_r, "clark_2024_ex.R", format = "file"),
+  tar_target(
+    readme_tensor_html,
+    {
+      readme_tensor_source; utils_r; clark_r
+      status <- system2("quarto", c("render", "README_tensor.qmd"))
+      if (status != 0) stop("quarto render failed (status ", status, ")")
+      "README_tensor.html"
+    },
+    format = "file"
   )
 )
