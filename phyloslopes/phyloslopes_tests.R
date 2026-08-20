@@ -194,26 +194,38 @@ chdat_x <- c(chdat, list(Xr_joint = Xr_joint))
 fit_spline_separable <- TMBfit(MakeADFun(nllfun_spline_separable, p0_spsep, silent = TRUE,
                                          random = c("b_spline", "b_wiggly", "b_phylo")))
 
-## tensor-product smooth: eigendecompose the spline's own (rank-deficient)
-## penalty directly, cross both null- and range-space with the (always
-## full-rank) phylo indicator -- see phyloslopes.qmd for why we can't just
-## feed mgcv's raw tensor penalty to dgmrf()/dmvnorm() (NaN on a singular Q)
+## tensor-product smooth: split the spline's own (rank-deficient) penalty
+## into null- and range-space first, via smooth2random() (not a separate
+## eigendecomposition -- its trans.D is 1/sqrt(eigenvalue) per range-space
+## direction, in the same column order as Xr; see README_tensor.qmd), then
+## cross both blocks with the (always full-rank) phylo indicator. The range
+## block gets a Wood (2006, sec 4.1.8)-style multiple-term penalty (phylo-
+## shrinkage plus the TPS's own smoothness-eigenvalue shrinkage, each with
+## its own scale) rather than a pure Kronecker product -- see
+## phyloslopes.qmd/README_tensor.qmd for why we can't just feed mgcv's raw
+## tensor penalty to dgmrf()/dmvnorm() (NaN on a singular Q), and why the
+## multiple-term range block beats the single-scale pure-Kronecker-product
+## one.
 sm_full <- smoothCon(s(log_bm, k = 10), data = chdat)  ## no absorb.cons -- want the full null space
-S_spline <- sm_full[[1]]$S[[1]]
-ev <- eigen(S_spline, symmetric = TRUE)
-null_idx <- which(ev$values < 1e-8 * max(ev$values))
-range_idx <- which(ev$values >= 1e-8 * max(ev$values))
-Xf_null <- sm_full[[1]]$X %*% ev$vectors[, null_idx, drop = FALSE]
-Xr_range <- sm_full[[1]]$X %*% ev$vectors[, range_idx, drop = FALSE] %*%
-  diag(1/sqrt(ev$values[range_idx]), nrow = length(range_idx))
+sm2ran_full <- smooth2random(sm_full[[1]], "", type = 2)
+Xf_null <- sm2ran_full$Xf                                        ## null (constant + linear) design
+Xr_range <- sm2ran_full$rand$Xr                                  ## wiggly (range) design, Wood's sqrt(D) reparam
 Kn <- ncol(Xf_null); Kr <- ncol(Xr_range)
+d_range <- 1 / sm2ran_full$trans.D[seq_len(Kr)]^2                ## true TPS range-space eigenvalues
 tZphylo <- as(t(Zphylo), "dgCMatrix")
 Xnull_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xf_null, "dgCMatrix")))
 Xrange_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xr_range, "dgCMatrix")))
 
+## range-block penalty components, precomputed once (pure functions of
+## data, not parameters -- see nllfun_spline_tensor)
+Sphylo <- solve(vcmat)
+Qr_phylo <- kronecker(Sphylo, diag(Kr))
+Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
+
 p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
-                    logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
-chdat_x <- c(chdat, list(Xnull_joint = Xnull_joint, Xrange_joint = Xrange_joint))
+                    logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
+chdat_x <- c(chdat, list(Xnull_joint = Xnull_joint, Xrange_joint = Xrange_joint,
+                         Qr_phylo = Qr_phylo, Qr_smooth = Qr_smooth))
 fit_spline_tensor <- TMBfit(MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
                                       random = c("b_null", "b_range")))
 
@@ -315,10 +327,26 @@ for (p in spline_pairs) {
   check_loglik_equal(spline_fits[[p[1]]], spline_fits[[p[2]]], label1 = p[1], label2 = p[2])
 }
 
-## the tensor-product smooth is weakly informed here and should collapse
-## back to the tip-only intercept-only group -- a cross-group check
-check_fixef_equal(fit_spline_tensor, fit_dense, label1 = "fit_spline_tensor", label2 = "fit_dense")
-check_loglik_equal(fit_spline_tensor, fit_dense, label1 = "fit_spline_tensor", label2 = "fit_dense")
+## NOT an equality check (unlike the pairs above): fit_spline_tensor and
+## fit_dense are genuinely different, non-nested model structures (tensor
+## adds a phylo-correlated spline-wiggle component dense doesn't have), so
+## there's no reason to expect exact agreement. Under the OLD single-scale
+## (pure Kronecker-product) range-block construction, tensor's wiggle
+## component always degenerated to exactly zero here, making it collapse
+## to a bit-for-bit copy of fit_dense (beta and logLik agreed to ~1e-9) --
+## that was mistakenly treated as an invariant to assert on. The hybrid
+## range-block fix (nllfun_spline_tensor, phyloslopes_utils.R;
+## README_tensor.qmd) gives the wiggle component a genuinely useful second
+## smoothing scale, so it no longer degenerates: logLik improves
+## (-6.16 vs. dense's -6.66) and beta shifts by a few percent. Kept here as
+## a reporting line, not an assertion -- see phyloslopes_combo.R for the
+## fuller null/additive/separable/tensor comparison on this same data.
+cat(sprintf("\nfit_spline_tensor vs fit_dense (informational, not asserted equal):\n"))
+cat(sprintf("  logLik: tensor = %.4f, dense = %.4f\n",
+            get_loglik(fit_spline_tensor), get_loglik(fit_dense)))
+cat(sprintf("  fixef:  tensor = %s\n          dense  = %s\n",
+            paste(round(get_fixef(fit_spline_tensor), 4), collapse = ", "),
+            paste(round(get_fixef(fit_dense), 4), collapse = ", ")))
 
 cat("all consistency checks passed.\n")
 

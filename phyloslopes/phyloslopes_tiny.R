@@ -120,23 +120,30 @@ Kw <- ncol(Xr)
 Xr_joint <- tensor.prod.model.matrix(list(as(Zphylo, "dgCMatrix"), as(Xr, "dgCMatrix")))
 
 ## tensor-product smooth: needs the *full* (non-absorb.cons) null space --
-## eigendecompose the spline's own marginal penalty into null (constant +
-## linear, unpenalized, Kn = 2) and range (wiggly, penalized, Kr = 2) space
-## first, rather than feeding the raw rank-deficient penalty into a shared
-## Kronecker-sum precision (see phyloslopes_tiny_explore.R for why not)
+## split the spline's own marginal penalty into null (constant + linear,
+## unpenalized, Kn = 2) and range (wiggly, penalized, Kr = 2) space first,
+## rather than feeding the raw rank-deficient penalty into a shared
+## Kronecker-sum precision (see phyloslopes_tiny_explore.R for why not).
+## Via smooth2random(), not a separate eigendecomposition: its trans.D
+## component is 1/sqrt(eigenvalue) per range-space direction, in the same
+## column order as Xr -- see README_tensor.qmd for the verification that
+## this is identical (up to an immaterial per-column sign flip) to doing
+## the eigendecomposition by hand
 sm_full <- smoothCon(s(x_rep, k = 4), data = data.frame(x_rep = x_rep))
-S_spline <- sm_full[[1]]$S[[1]]               ## 4x4 penalty, rank-deficient (2-dim null space)
-Xspline <- sm_full[[1]]$X                     ## nobs x 4 spline basis
-ev <- eigen(S_spline, symmetric = TRUE)
-null_idx <- which(ev$values < 1e-8 * max(ev$values))
-range_idx <- which(ev$values >= 1e-8 * max(ev$values))
-Xf_null <- Xspline %*% ev$vectors[, null_idx, drop = FALSE]
-Xr_range <- Xspline %*% ev$vectors[, range_idx, drop = FALSE] %*%
-  diag(1/sqrt(ev$values[range_idx]), nrow = length(range_idx))   ## Wood's sqrt(D) reparameterization
+sm2ran_full <- smooth2random(sm_full[[1]], "", type = 2)
+Xf_null <- sm2ran_full$Xf                     ## nobs x 2: [linear, constant]
+Xr_range <- sm2ran_full$rand$Xr               ## nobs x 2, Wood's sqrt(D) reparameterization
 Kn <- ncol(Xf_null); Kr <- ncol(Xr_range)
 stopifnot(Kn == 2, Kr == 2)
+d_range <- 1 / sm2ran_full$trans.D[seq_len(Kr)]^2  ## true TPS range-space eigenvalues
 Xnull_joint <- tensor.prod.model.matrix(list(as(Zphylo, "dgCMatrix"), as(Xf_null, "dgCMatrix")))
 Xrange_joint <- tensor.prod.model.matrix(list(as(Zphylo, "dgCMatrix"), as(Xr_range, "dgCMatrix")))
+
+## range-block penalty components, precomputed once (pure functions of
+## data, not parameters -- see nllfun_spline_tensor)
+Sphylo <- solve(vcmat)
+Qr_phylo <- kronecker(Sphylo, diag(Kr))
+Qr_smooth <- kronecker(diag(ntip), diag(d_range))
 
 cat(sprintf("\n=== Xfull (fixed-effect design, %d x %d: intercept + linear-in-x) ===\n",
             nrow(Xfull), ncol(Xfull)))
@@ -195,9 +202,9 @@ obj_sep <- MakeADFun(nllfun_spline_separable, p0_sep, silent = TRUE,
                      random = c("b_spline", "b_wiggly", "b_phylo"))
 fit_sep <- TMBfit(obj_sep)
 
-chdat_x <- lst(log_rs = y, X = Xfull, Xnull_joint, Xrange_joint, Kr, vcmat)
+chdat_x <- lst(log_rs = y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat)
 p0_tensor <- list(beta = rep(0, 2), b_null = rep(0, ntip * Kn), b_range = rep(0, ntip * Kr),
-                  logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
+                  logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
 obj_tensor <- MakeADFun(nllfun_spline_tensor, p0_tensor, silent = TRUE,
                         random = c("b_null", "b_range"))
 fit_tensor <- TMBfit(obj_tensor)
@@ -234,8 +241,8 @@ print(c(additive = logLik.TMB(fit_add), separable = logLik.TMB(fit_sep),
 ## used here, without re-deriving it
 save(chtree, vcmat, Q_dense, Q_tips, Q_full_raw, Q_noroot, Q_tips_mrf_schur,
      Z_edge, Z_species, nrep, x, x_rep, species_rep, Zphylo,
-     Xfull, Xr, Xr_joint, Xspline, S_spline, Xf_null, Xr_range, Kn, Kr,
-     Xnull_joint, Xrange_joint, sim_dat, sm, sm_full,
+     Xfull, Xr, Xr_joint, Xf_null, Xr_range, Kn, Kr, d_range,
+     Xnull_joint, Xrange_joint, sim_dat, sm, sm2ran, sm_full, sm2ran_full,
      beta0, beta1, sd_f, sd_wiggly, sd_phylo, sigma_resid,
      b_spline_true, b_wiggly_true, b_phylo_true,
      file = "phyloslopes_tiny.rda")

@@ -53,6 +53,15 @@ separable, tensor-product). Write-up: `phyloslopes.qmd`.
   `nllfun_spline_*`, sharing the same machinery so they stay directly
   nested/comparable); saves to `phyloslopes_combo.rda`
 - `phyloslopes.qmd` -- the write-up itself
+- `README_tensor.qmd` -- standalone deep-dive on the tensor-product-smooth
+  construction (`nllfun_spline_tensor`): Wood (2006, sec. 4.1.8)'s
+  single-penalty-vs-multiple-term-penalty distinction, why the naive
+  `te()`-extracted construction and the null/range-decomposed one differ,
+  and the derivation of the "hybrid" range-block fix (separate null-space
+  scales, kept from the original construction, plus a Wood-style
+  multiple-term penalty for the range block instead of a pure Kronecker
+  product) now implemented in `nllfun_spline_tensor`. Not wired into
+  `_targets.R` -- render by hand with `quarto render README_tensor.qmd`.
 
 ## Running things
 

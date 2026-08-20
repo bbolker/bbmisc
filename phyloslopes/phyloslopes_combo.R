@@ -7,10 +7,16 @@
 ##   - separable: additive plus a phylogenetically-correlated copy of the
 ##                wiggle coefficients on top of the (still-present) iid
 ##                one (nllfun_spline_separable)
-##   - tensor:    genuine tensor-product smooth of phylogeny x log_bm,
-##                built by eigendecomposing the spline's own null (constant
-##                + linear) / range (wiggly) space first, then crossing
-##                each with phylogeny separately (nllfun_spline_tensor)
+##   - tensor:    genuine tensor-product smooth of phylogeny x log_bm, built
+##                by splitting the spline's own null (constant + linear) /
+##                range (wiggly) space first (via smooth2random(), not a
+##                separate eigendecomposition -- see README_tensor.qmd),
+##                then crossing each with phylogeny: the null block gets its
+##                own separate per-direction scales, and the range block
+##                gets a Wood (2006)-style multiple-term penalty (phylo-
+##                shrinkage plus the TPS's own smoothness-eigenvalue
+##                shrinkage, each with its own scale) rather than a pure
+##                Kronecker product (nllfun_spline_tensor)
 ##
 ## Analogous to phyloslopes_linear.R (which does the same null/additive/
 ## separable comparison for a *linear*, not spline, log_bm effect) but not
@@ -101,32 +107,42 @@ obj_spsep <- MakeADFun(nllfun_spline_separable, p0_spsep, silent = TRUE,
 fit_separable <- TMBfit(obj_spsep)
 
 ## -- tensor-product smooth -------------------------------------------------
-## needs a *fresh* (non-absorb.cons) smoothCon() call: sm above already has
-## the constant direction folded away (a 9-dim basis with a 1-dim null
-## space), which would leave only one combined null-space scale instead of
-## two separately-shrinkable ones
+## needs a *fresh* (non-absorb.cons) smoothCon()/smooth2random() pair: sm/
+## sm2ran above already have the constant direction folded away (a 9-dim
+## basis with a 1-dim null space), which would leave only one combined
+## null-space scale instead of two separately-shrinkable ones.
+## smooth2random()'s trans.D is 1/sqrt(eigenvalue) for each range-space
+## direction (dummy 1's for the null-space ones), in the same column order
+## as Xr -- so 1/trans.D^2 recovers the raw penalty eigenvalues the
+## range-block's multiple-term penalty needs, no separate eigen() call
 X <- model.matrix(~ log_bm, data = chdat)
 sm_full <- smoothCon(s(log_bm, k = 10), data = chdat)  ## no absorb.cons -- want the full null space
-S_spline <- sm_full[[1]]$S[[1]]
-ev <- eigen(S_spline, symmetric = TRUE)
-null_idx <- which(ev$values < 1e-8 * max(ev$values))
-range_idx <- which(ev$values >= 1e-8 * max(ev$values))
-Xf_null <- sm_full[[1]]$X %*% ev$vectors[, null_idx, drop = FALSE]                 ## 49 x 2: [linear, constant]
-Xr_range <- sm_full[[1]]$X %*% ev$vectors[, range_idx, drop = FALSE] %*%
-  diag(1/sqrt(ev$values[range_idx]), nrow = length(range_idx))                    ## 49 x 8, Wood's sqrt(D) reparam
+sm2ran_full <- smooth2random(sm_full[[1]], "", type = 2)
+Xf_null <- sm2ran_full$Xf                                                          ## 49 x 2: [linear, constant]
+Xr_range <- sm2ran_full$rand$Xr                                                    ## 49 x 8, Wood's sqrt(D) reparam
 Kn <- ncol(Xf_null); Kr <- ncol(Xr_range)
+d_range <- 1 / sm2ran_full$trans.D[seq_len(Kr)]^2                                  ## true TPS range-space eigenvalues
 
 tZphylo <- as(t(Zphylo), "dgCMatrix")
 Xnull_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xf_null, "dgCMatrix")))   ## 49 x 98
 Xrange_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xr_range, "dgCMatrix"))) ## 49 x 392
 
+## range-block penalty components, precomputed once (pure functions of
+## data, not parameters -- see nllfun_spline_tensor)
+Sphylo <- solve(vcmat)
+Qr_phylo <- kronecker(Sphylo, diag(Kr))
+Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
+
 ## the two null-space directions (constant and linear-in-log_bm) need
 ## SEPARATE scales -- a single shared scale can't shrink away the
 ## (unsupported) phylo-slope variation without also killing the
-## (well-supported) phylo-intercept variation
+## (well-supported) phylo-intercept variation. The range (wiggly) block
+## similarly needs two scales, not one: a pure Kronecker-product penalty
+## only lets the optimizer trade off overall phylo-shrinkage, with no way
+## to separately penalize wiggliness -- see README_tensor.qmd
 p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
-                    logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
-chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Kr, vcmat))
+                    logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
+chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat))
 obj_sptensor <- MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
                           random = c("b_null", "b_range"))
 fit_tensor <- TMBfit(obj_sptensor)

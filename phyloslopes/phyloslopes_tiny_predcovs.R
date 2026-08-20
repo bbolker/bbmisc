@@ -43,10 +43,12 @@ load("phyloslopes_tiny.rda")
 ntip <- length(chtree$tip.label)
 Kw <- ncol(Xr)
 Xf <- Xfull[, -1, drop = FALSE]  ## Xfull = cbind(1, Xf); only Xfull was saved
-ev <- eigen(S_spline, symmetric = TRUE)
-null_idx <- which(ev$values < 1e-8 * max(ev$values))
-range_idx <- which(ev$values >= 1e-8 * max(ev$values))
-stopifnot(length(null_idx) == Kn, length(range_idx) == Kr)
+## tensor range-block penalty components (pure functions of data, not
+## parameters, so cheaply recomputed here rather than saved -- see
+## nllfun_spline_tensor / phyloslopes_tiny.R)
+Sphylo <- solve(vcmat)
+Qr_phylo <- kronecker(Sphylo, diag(Kr))
+Qr_smooth <- kronecker(diag(ntip), diag(d_range))
 
 ## -- refit the three structures -----------------------------------------
 ## (TMB/RTMB ADFun objects hold C++ pointers and don't survive a save()/
@@ -76,10 +78,10 @@ obj_sep <- MakeADFun(nllfun_spline_separable, p0_sep, silent = TRUE,
                      random = c("b_spline", "b_wiggly", "b_phylo"))
 fit_sep <- TMBfit(obj_sep)
 
-chdat_x <- lst(log_rs = sim_dat$y, X = Xfull, Xnull_joint, Xrange_joint, Kr, vcmat)
+chdat_x <- lst(log_rs = sim_dat$y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat)
 chdat_x_tensor <- chdat_x
 p0_tensor <- list(beta = rep(0, 2), b_null = rep(0, ntip * Kn), b_range = rep(0, ntip * Kr),
-                  logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
+                  logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
 obj_tensor <- MakeADFun(nllfun_spline_tensor, p0_tensor, silent = TRUE,
                         random = c("b_null", "b_range"))
 fit_tensor <- TMBfit(obj_tensor)
@@ -137,16 +139,19 @@ get_XfXr <- function(x0, h) {
        Xf_d = der[, 1, drop = FALSE], Xr_d = der[, -1, drop = FALSE])
 }
 
-## tensor: Xf_null/Xr_range are a linear reparameterization of sm_full[[1]]$X
-## (the raw, unconstrained basis) via the null/range eigenvectors already
-## used when building them -- reuse the same transform directly
+## tensor: Xf_null/Xr_range (from smooth2random(), used when fitting) are a
+## linear reparameterization of sm_full[[1]]$X (the raw, unconstrained
+## basis) -- recover that reparameterization matrix by (exact) least
+## squares against the already-known Xf_null/Xr_range, same trick as
+## get_XfXr()/Tmat above, rather than redoing the eigendecomposition
+Tmat_nr <- solve(crossprod(sm_full[[1]]$X), crossprod(sm_full[[1]]$X, cbind(Xf_null, Xr_range)))
 get_null_range <- function(x0, h) {
   bd <- basis_deriv(sm_full[[1]], x0, h)
-  Dr <- diag(1 / sqrt(ev$values[range_idx]), nrow = length(range_idx))
-  list(Xf_null = bd$val %*% ev$vectors[, null_idx, drop = FALSE],
-       Xr_range = bd$val %*% ev$vectors[, range_idx, drop = FALSE] %*% Dr,
-       Xf_null_d = bd$deriv %*% ev$vectors[, null_idx, drop = FALSE],
-       Xr_range_d = bd$deriv %*% ev$vectors[, range_idx, drop = FALSE] %*% Dr)
+  val <- bd$val %*% Tmat_nr; der <- bd$deriv %*% Tmat_nr
+  list(Xf_null = val[, seq_len(Kn), drop = FALSE],
+       Xr_range = val[, Kn + seq_len(Kr), drop = FALSE],
+       Xf_null_d = der[, seq_len(Kn), drop = FALSE],
+       Xr_range_d = der[, Kn + seq_len(Kr), drop = FALSE])
 }
 
 ## -- sanity check: predicted value at each species' OWN x must reproduce

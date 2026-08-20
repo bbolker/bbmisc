@@ -6,6 +6,17 @@
 ifun <- function(x, main = "") image(Matrix(x), sub = "",
                           xlab = "", ylab = "", main = main)
 
+## coerce a (possibly AD-typed) dense/sparse matrix into something
+## RTMB::dgmrf() accepts as Q: dgmrf() needs an object with a proper "Dim"
+## slot (a Matrix-package S4 class, or RTMB's own "adsparse"), which neither
+## a plain base "matrix" nor a bare AD-typed dense matrix ("advector" with a
+## dim attribute) has -- passing either directly gives an opaque
+## "length-0 dimension vector" error from inside dgmrf()
+to_Q <- function(P) {
+  if (inherits(P, "advector")) as(as(P, "sparseMatrix"), "adsparse")
+  else Matrix::Matrix(P, sparse = TRUE)
+}
+
 TMBfit <- function(obj, optimizer = nlminb, response = NULL) {
   fit <- optimizer(obj$par, obj$fn, obj$gr)
   ret <- list(fit = fit, obj = obj)
@@ -436,15 +447,31 @@ nllfun_spline_separable <- function(params) {
 ## tensor-product smooth: phylo x [null-space of spline] (constant + linear,
 ## phylo-varying, diagonal/uncorrelated with *separate* scales for the two
 ## directions) + phylo x [range-space of spline] (wiggly, phylo-varying,
-## single scale). Both terms use vcmat directly (always full rank), never a
-## rank-deficient precision matrix -- the spline's own null space is
+## MULTIPLE-TERM Kronecker-*sum* penalty: phylo-shrinkage (Sphylo x I_Kr)
+## plus the TPS's own smoothness-eigenvalue shrinkage (I_ntip x
+## diag(d_range)), each with its own scale). The spline's own null space is
 ## resolved via eigendecomposition of its *marginal* penalty before
-## crossing with phylo (see phyloslopes.qmd), not by feeding mgcv's raw
-## (rank-deficient) tensor penalty straight into dgmrf()/dmvnorm(), which
-## gives NaN. NB: needs *two* separate null-space scales (logpsd_null,
-## length 2) -- a single shared scale can't shrink away the (unsupported)
-## phylo-slope variation without also killing the (well-supported)
-## phylo-intercept variation, giving a much worse fit
+## crossing with phylo (see phyloslopes.qmd/README_tensor.qmd), not by
+## feeding mgcv's raw (rank-deficient) tensor penalty straight into
+## dgmrf()/dmvnorm(), which gives NaN.
+##
+## Two design choices, both justified at length in README_tensor.qmd (which
+## also explains why RTMB doesn't choke on the rank-deficient TPS penalty
+## S_spline in the first place -- only ever used inside an always-full-rank
+## sum, never alone):
+## - the null block needs *two* separate scales (logpsd_null, length 2): a
+##   single shared scale can't shrink away the (unsupported) phylo-slope
+##   variation without also killing the (well-supported) phylo-intercept
+##   variation -- worth ~4.4 nats on the real 49-species data;
+## - the range block needs the multiple-term (not pure-Kronecker-*product*)
+##   recipe: per Wood (2006, sec 4.1.8), a pure product `Sphylo x I_Kr`
+##   alone gives the optimizer only one knob (phylo-shrinkage), with no way
+##   to separately trade off smoothness against fit the way GAM smoothing
+##   normally does -- worth another ~0.5 nats, and beats even the fully
+##   naive te()-extracted construction (which gets multiple-term range but
+##   loses the separate null-space scales, since S2's null block is exactly
+##   zero there, forcing one shared null scale no matter how the rest of
+##   the model is built)
 nllfun_spline_tensor <- function(params) {
   getAll(params, chdat_x)
   mu <- drop(X %*% beta + Xnull_joint %*% b_null + Xrange_joint %*% b_range)
@@ -452,29 +479,21 @@ nllfun_spline_tensor <- function(params) {
   ADREPORT(mu)
   resid <- log_rs - mu
   REPORT(resid)
-  ## Kr (wiggly range-space dimension) comes from chdat_x (set alongside
-  ## Xr_range, before chdat_x is built) -- not recomputed here, so it can't
-  ## silently diverge from the basis actually used to build Xrange_joint
-  ##
-  ## Sigma = scale^2 * Sigma_unsc, with the scale factor applied via
-  ## dmvnorm's scale= argument (elementwise on the residual) instead of
-  ## baked into Sigma itself -- Sigma_unsc_null/range are then pure
-  ## functions of data (vcmat, dimensions), not parameters, so RTMB caches
-  ## them instead of rebuilding the full Kronecker product on every
-  ## objective/gradient evaluation. logpsd_null has one scale per
-  ## null-space direction (not a single shared scale), so its scale
-  ## vector repeats exp(logpsd_null) once per species, matching
-  ## Xnull_joint/b_null's [species-outer, null-dim-inner] column order;
-  ## logpsd_range is a single shared scale, so it broadcasts as-is.
-  ## (Verified equivalent to the previous kronecker(vcmat,
-  ## diag(exp(2*logpsd_null)))-style construction to floating-point
-  ## precision on a test case -- nll/gradient/refit all match to ~1e-13.)
+  ## null block: Sigma_unsc_null is a pure function of data (vcmat, Kn), not
+  ## parameters, so RTMB caches it instead of rebuilding the Kronecker
+  ## product on every objective/gradient evaluation; logpsd_null has one
+  ## scale per null-space direction, so its scale vector repeats
+  ## exp(logpsd_null) once per species, matching Xnull_joint/b_null's
+  ## [species-outer, null-dim-inner] column order
   Sigma_unsc_null <- kronecker(vcmat, diag(length(logpsd_null)))
-  Sigma_unsc_range <- kronecker(vcmat, diag(Kr))
   pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_unsc_null,
                         scale = rep(exp(logpsd_null), nrow(vcmat)), log = TRUE)
-  pen_range <- -dmvnorm(b_range, rep(0, length(b_range)), Sigma = Sigma_unsc_range,
-                         scale = exp(logpsd_range), log = TRUE)
+  ## range block: Qr_phylo (= kron(Sphylo, I_Kr)) and Qr_smooth (= kron(I_ntip,
+  ## diag(d_range))) are, like Sigma_unsc_null above, pure functions of data
+  ## (chdat_x) -- cached across evaluations; only the two scalar multipliers
+  ## depend on parameters
+  Q_range <- (1/exp(logsigma1_range)^2) * Qr_phylo + (1/exp(logsigma2_range)^2) * Qr_smooth
+  pen_range <- -dgmrf(b_range, 0, Q = to_Q(Q_range), log = TRUE)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen_null + pen_range
 }

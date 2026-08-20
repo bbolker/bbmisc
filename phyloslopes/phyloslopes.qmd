@@ -470,36 +470,39 @@ fit_spline_separable <- TMBfit(obj_spsep)
 
 ### tensor-product smooth
 
-For a genuine tensor-product smooth of phylogeny x `log_bm`, `Sphylo = solve(vcmat)` is always full rank (no null space of its own), so *any* direction of the spline crossed with it stays fully regularized -- there's no risk of feeding `dgmrf()`/`dmvnorm()` a rank-deficient precision as long as we handle the *spline's own* null space (constant + linear, rank-deficient by construction) before crossing it with phylogeny, rather than trying to eigendecompose the full rank-deficient joint tensor penalty (or worse, passing it straight to `dgmrf()`, which silently returns `NaN` for a singular `Q`). `mgcv::smooth2random()` can't be used here directly for a `te()` term (only `t2()`, whose all-iid ANOVA-style reformulation exists to keep every marginal precision-free -- exactly the kind of arbitrary-precision-matrix restriction RTMB's `dgmrf()` doesn't need); instead we eigendecompose the spline's own 10x10 penalty directly. Note this needs a *fresh* (non-`absorb.cons`) `smoothCon()` call: `sm` above already has the constant direction folded away (a 9-dim basis with a 1-dim null space), which would leave only one combined null-space scale instead of two separately-shrinkable ones.
+For a genuine tensor-product smooth of phylogeny x `log_bm`, `Sphylo = solve(vcmat)` is always full rank (no null space of its own), so *any* direction of the spline crossed with it stays fully regularized -- there's no risk of feeding `dgmrf()`/`dmvnorm()` a rank-deficient precision as long as we handle the *spline's own* null space (constant + linear, rank-deficient by construction) before crossing it with phylogeny, rather than trying to eigendecompose the full rank-deficient joint tensor penalty (or worse, passing it straight to `dgmrf()`, which silently returns `NaN` for a singular `Q`). `mgcv::smooth2random()` can't be used here directly for a `te()` term (only `t2()`, whose all-iid ANOVA-style reformulation exists to keep every marginal precision-free -- exactly the kind of arbitrary-precision-matrix restriction RTMB's `dgmrf()` doesn't need); instead we reuse `smooth2random()` on the *marginal* spline smooth, exactly as `spline_setup` above already does for additive/separable -- no separate `eigen()` call needed. `smooth2random()`'s `trans.D` component is `1/sqrt(d_i)` for each range-space eigenvalue (dummy `1`s appended for the null-space directions), in exactly the same column order as `Xr` -- verified numerically (`1/trans.D^2` reproduces a manual eigendecomposition's eigenvalues exactly, and the two `Xr`s agree column-by-column up to an immaterial sign flip) -- so `d_range <- 1/trans.D[seq_len(Kr)]^2` recovers the raw eigenvalues `nllfun_spline_tensor`'s range-block penalty needs, with no duplicated computation. Note this needs a *fresh* (non-`absorb.cons`) `smoothCon()`/`smooth2random()` pair: `sm`/`sm2ran` above already have the constant direction folded away (a 9-dim basis with a 1-dim null space), which would leave only one combined null-space scale instead of two separately-shrinkable ones.
 
 ```{r spline_tensor_setup}
 sm_full <- smoothCon(s(log_bm, k = 10), data = chdat)  ## no absorb.cons -- want the full null space
-S_spline <- sm_full[[1]]$S[[1]]
-ev <- eigen(S_spline, symmetric = TRUE)
-null_idx <- which(ev$values < 1e-8 * max(ev$values))
-range_idx <- which(ev$values >= 1e-8 * max(ev$values))
-Xf_null <- sm_full[[1]]$X %*% ev$vectors[, null_idx, drop = FALSE]                 ## 49 x 2: [linear, constant]
-Xr_range <- sm_full[[1]]$X %*% ev$vectors[, range_idx, drop = FALSE] %*%
-  diag(1/sqrt(ev$values[range_idx]), nrow = length(range_idx))                    ## 49 x 8, Wood's sqrt(D) reparam
+sm2ran_full <- smooth2random(sm_full[[1]], "", type = 2)
+Xf_null <- sm2ran_full$Xf                                                          ## 49 x 2: [linear, constant]
+Xr_range <- sm2ran_full$rand$Xr                                                    ## 49 x 8, Wood's sqrt(D) reparam
 Kn <- ncol(Xf_null); Kr <- ncol(Xr_range)
+d_range <- 1 / sm2ran_full$trans.D[seq_len(Kr)]^2                                  ## true TPS range-space eigenvalues (pre-whitening)
 
 tZphylo <- as(t(Zphylo), "dgCMatrix")
 Xnull_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xf_null, "dgCMatrix")))   ## 49 x 98
 Xrange_joint <- tensor.prod.model.matrix(list(tZphylo, as(Xr_range, "dgCMatrix"))) ## 49 x 392
+
+## range-block penalty components, precomputed once (pure functions of data,
+## not parameters -- see nllfun_spline_tensor)
+Sphylo <- solve(vcmat)
+Qr_phylo <- kronecker(Sphylo, diag(Kr))
+Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
 ```
-The two null-space directions (constant and linear-in-`log_bm`) need *separate* scales -- a single shared scale can't shrink away the (unsupported) phylo-slope variation without also killing the (well-supported) phylo-intercept variation, giving a much worse fit than necessary:
+The two null-space directions (constant and linear-in-`log_bm`) need *separate* scales -- a single shared scale can't shrink away the (unsupported) phylo-slope variation without also killing the (well-supported) phylo-intercept variation, giving a much worse fit than necessary. The range (wiggly) block similarly needs *two* separate scales, not one: a pure Kronecker-product penalty (`Sphylo x I_Kr`, one knob) only lets the optimizer trade off overall phylo-shrinkage, with no way to separately penalize wiggliness the way GAM smoothing normally does. Following Wood (2006, sec. 4.1.8)'s "multiple term" recipe for the range block specifically -- `Sphylo x I_Kr` plus the TPS's own eigenvalue-weighted smoothness penalty `I_ntip x diag(d_range)`, each with its own scale -- recovers that missing degree of freedom. See `README_tensor.qmd` for the full derivation, including why a *naive* application of this same multiple-term recipe to the *whole* tensor penalty (no null/range split at all) is well-posed but strictly worse here, since it can only give the null space one shared scale.
 
 ```{r spline_tensor}
 #| cache: true
 p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
-                    logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
-chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Kr, vcmat))
+                    logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
+chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat))
 obj_sptensor <- MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
                           random = c("b_null", "b_range"))
 fit_spline_tensor <- TMBfit(obj_sptensor)
 ```
 
-`fixef(fit_spline_tensor)` and `logLik(fit_spline_tensor)` match `fit_dense`/`fit_prec` (the very first tip-only phylo-intercept models) exactly -- both extra components (phylo-slope, phylo-wiggle) shrink cleanly to zero for this weak-signal dataset, and (unlike the earlier random-slopes tensor-product exploration) the profiled Hessian has no negative eigenvalues, just the boundary-flat directions expected from variance components at zero -- a well-posed fit, not a saddle.
+Unlike the null/range decomposition with a pure-product range block (which collapsed all the way to `fit_dense`/`fit_prec`'s tip-only fit), this version finds real extra signal: `logLik(fit_spline_tensor)` beats both the old pure-product-range construction and the naive `te()`-extracted construction discussed in `README_tensor.qmd` -- confirming that the separate null-space scales and the multiple-term range-block penalty are both independently worth having, not substitutes for one another. As before (and unlike the earlier random-slopes tensor-product exploration), the profiled Hessian has no negative eigenvalues -- a well-posed fit, not a saddle. It still does *not* beat `fit_spline_additive`/`fit_spline_separable` (logLik -6.144 there vs. -6.163 here) -- the tensor smooth's extra flexibility (and extra parameters, penalized further by AIC) simply isn't earning its keep on this weak-signal, 49-species dataset; see `phyloslopes_combo.R`'s comparison for the complete four-way ranking.
 
 ## To do
 
