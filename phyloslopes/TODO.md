@@ -1,5 +1,6 @@
 # TODO
 
+* clean up this file!
 * keep working on `phyloslopes`
    * clean up/integrate/throw out junk
    * prettify tables (check PDF output for glitches)
