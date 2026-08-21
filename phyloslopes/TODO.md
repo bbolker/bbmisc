@@ -11,6 +11,19 @@
 * can we do the TP+phylo tensor smooth with `internal_nodes = TRUE` (with root dropped)? Does that improve efficiency as in the intercept-only case?
 * try on larger examples where everything won't collapse to singular/simpler fits?
 * understand Schur-complement vs `solve(vcmat)` differences (see below)
+* explore the pattern of Hessian sparsity for `nllfun_edge`/`fit_edge`
+  (edge-based `Z`, `phylo.to.Z()`) vs. `nllfun_prec`/`fit_prec_allnodes_noroot`
+  (sparse `Q`, all internal nodes included but root dropped) vs.
+  `nllfun1`/`fit_dense` (dense `Sigma = vcmat`) -- standard (R)TMB advice is
+  that approaches mapping each observation to a *single* latent variable
+  (definitely `fit_prec_allnodes_noroot`'s sparse Q; maybe `fit_dense`'s
+  dense Sigma too, at least in the sense of not adding extra overlapping
+  structure) should give a sparser/better-conditioned joint Hessian than one
+  mapping each observation to several *overlapping* latent variables (the
+  edge-based `Z`, where every observation touches every edge on its root
+  path). We don't see that pattern in `phyloslopes_bench1.R`'s timings --
+  maybe the example (49 tips) just isn't big enough for the difference to
+  show up yet?
 * decide what if anything needs to be kept from last item below
 * the ML vs. REML distinction (`gam(..., method=)` vs. our RTMB fits'
   implicit ML, since only `b` is integrated out via Laplace, not `beta` --
