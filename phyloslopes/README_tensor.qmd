@@ -180,8 +180,9 @@ cat("rank(S1):", Matrix::rankMatrix(S1), " rank(S2):", Matrix::rankMatrix(S2),
 chdat_x <- c(chdat, lst(X, tX = tX_naive, tp1 = Matrix(S1, sparse = TRUE), tp2 = Matrix(S2, sparse = TRUE)))
 p0_naive <- list(beta = rep(0, 2), b = rep(0, ncol(tX_naive)), logsigma1 = 0, logsigma2 = 0, logsd_resid = 0)
 obj_naive <- MakeADFun(nllfun_tensor, p0_naive, silent = TRUE, random = "b")
-fit_naive <- nlminb(obj_naive$par, obj_naive$fn, obj_naive$gr,
-                    control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+fit_naive <- with(obj_naive,
+                  nlminb(par, fn, gr,
+                         control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 H_naive <- numDeriv::jacobian(obj_naive$gr, fit_naive$par)
 ev_naive <- eigen(H_naive, symmetric = TRUE, only.values = TRUE)$values
 
@@ -240,8 +241,9 @@ chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Kr, vcmat))
 p0_old <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
               logsd = 0, logpsd_null = rep(0, Kn), logpsd_range = 0)
 obj_old <- MakeADFun(nllfun_old_pure_product, p0_old, silent = TRUE, random = c("b_null", "b_range"))
-fit_current <- nlminb(obj_old$par, obj_old$fn, obj_old$gr,
-                      control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+fit_current <- with(obj_old,
+                    nlminb(par, fn, gr,
+                           control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 cat("old pure-product-range logLik:", -fit_current$objective, "\n")
 cat("naive (te()-extracted) logLik:", -fit_naive$objective, "\n")
 ```
@@ -287,8 +289,9 @@ chdat_x <- lst(log_rs = dat_cc$y, X = X_clark, tX, tp1 = Matrix(S1, sparse = TRU
 p0 <- list(beta = 0, b = rep(0, ncol(tX)), logsigma1 = 0, logsigma2 = 0, logsd_resid = 0)
 obj_rtmb <- MakeADFun(nllfun_tensor, p0, silent = TRUE, random = "b")
 t_rtmb <- system.time({
-  fit_rtmb <- nlminb(obj_rtmb$par, obj_rtmb$fn, obj_rtmb$gr,
-                     control = list(rel.tol = 1e-12, eval.max = 2000, iter.max = 2000))
+  fit_rtmb <- with(obj_rtmb,
+                   nlminb(par, fn, gr,
+                          control = list(rel.tol = 1e-12, eval.max = 2000, iter.max = 2000)))
 })
 pl_rtmb <- obj_rtmb$env$parList(par = obj_rtmb$env$last.par.best)
 mu_rtmb <- drop(X_clark %*% fit_rtmb$par["beta"] + tX %*% pl_rtmb$b)
@@ -349,6 +352,36 @@ Two structurally *independent* questions are tangled up inside "naive vs.
 current": how the null (constant+linear) block is scaled, and how the range
 (wiggle) block is penalized. Untangling them:
 
+Worth noting first what the null-space design `Xf_null` actually *is*:
+empirically, it's exactly `model.matrix(~1+log_bm)` up to a linear
+reparameterization (`cor(Xf_null[,1], log_bm) = -1`, and
+`rank(cbind(model.matrix(~1+log_bm), Xf_null)) == rank(model.matrix(~1+log_bm))`
+-- same column space, just centered/scaled/sign-flipped, not the same raw
+numbers). So the "null block" penalty is nothing more exotic than a
+phylogenetic-covariance prior on an ordinary intercept-and-slope model --
+the same object `phyloslopes_linear.R`'s `nllfun_sep`/`nllfun_dense_slopes`
+already put a prior on, just expressed on the spline's reparameterized
+intercept/slope basis instead of raw `~1+log_bm`. Seen that way, there's a
+natural menu of precision structures for the null block, exactly mirroring
+the choices already available for the plain linear model:
+
+- **homogeneous diagonal** (one scale shared by both directions) --
+  `nllfun_nullspace_shared` below, `Sigma = vcmat %x% (psd^2 * I_Kn)`
+- **heterogeneous diagonal** (separate scale per direction, still
+  independent) -- `nllfun_tensor_nullspace` below (and the null block of
+  `nllfun_spline_tensor`), `Sigma = vcmat %x% diag(psd_1^2, ..., psd_Kn^2)`
+- **unstructured/general positive-definite** (separate scales *plus* a
+  correlation between directions) -- not implemented for the null block
+  here; this is the generalization `nllfun_sep`/`nllfun_dense_slopes` give
+  the plain linear intercept+slope model, and is TODO item 2 below (a model
+  more complex than the current "hybrid," letting the null-space directions
+  correlate rather than just have independent scales)
+
+The comparison below only distinguishes the first two -- but framed this
+way, it's really re-litigating the same one-scale-vs-many-scales question
+`phyloslopes_linear.R` already answers for the raw linear model, on the
+spline's reparameterized null-space basis instead.
+
 ```{r mechanism, message = FALSE}
 ## (1) null-space block ALONE, one shared scale for both directions
 nllfun_nullspace_shared <- function(params) {
@@ -363,16 +396,17 @@ nllfun_nullspace_shared <- function(params) {
 }
 chdat_x <- c(chdat, lst(X, tX = Xnull_joint, vcmat, Kn))
 p0 <- list(beta = rep(0, 2), b = rep(0, ncol(Xnull_joint)), logpsd_shared = 0, logsd_resid = 0)
-fit_null_shared <- nlminb(MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")$par,
-                          MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")$fn,
-                          MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")$gr,
-                          control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+obj_null_shared <- MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")
+fit_null_shared <- with(obj_null_shared,
+                        nlminb(par, fn, gr,
+                               control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 
 ## (2) null-space block ALONE, separate scales (nllfun_tensor_nullspace)
 p0b <- list(beta = rep(0, 2), b = rep(0, ncol(Xnull_joint)), logpsd_null = rep(0, Kn), logsd_resid = 0)
 obj_null_sep <- MakeADFun(nllfun_tensor_nullspace, p0b, silent = TRUE, random = "b")
-fit_null_sep <- nlminb(obj_null_sep$par, obj_null_sep$fn, obj_null_sep$gr,
-                       control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+fit_null_sep <- with(obj_null_sep,
+                     nlminb(par, fn, gr,
+                            control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 
 ## (3) hybrid: SAME separate null scales as the old construction above, but
 ## the range block rebuilt the multiple-term way (Sphylo x I + I x
@@ -387,8 +421,9 @@ chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat
 p0c <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
            logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
 obj_hybrid <- MakeADFun(nllfun_spline_tensor, p0c, silent = TRUE, random = c("b_null", "b_range"))
-fit_hybrid <- nlminb(obj_hybrid$par, obj_hybrid$fn, obj_hybrid$gr,
-                     control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))
+fit_hybrid <- with(obj_hybrid,
+                   nlminb(par, fn, gr,
+                          control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 
 data.frame(
   model = c("null-only, 1 shared scale", "null-only, separate scales",
