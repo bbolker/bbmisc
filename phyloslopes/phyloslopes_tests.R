@@ -222,12 +222,17 @@ Sphylo <- solve(vcmat)
 Qr_phylo <- kronecker(Sphylo, diag(Kr))
 Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
 
+## cor_null (fixed at 0 via map=) is nllfun_spline_tensor's optional
+## null-space-direction correlation -- see its header comment; us2 was
+## already defined above (line ~129) for the separable-model fits
 p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
-                    logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
+                    logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
+                    logsigma1_range = 0, logsigma2_range = 0)
 chdat_x <- c(chdat, list(Xnull_joint = Xnull_joint, Xrange_joint = Xrange_joint,
-                         Qr_phylo = Qr_phylo, Qr_smooth = Qr_smooth))
+                         Qr_phylo = Qr_phylo, Qr_smooth = Qr_smooth, vcmat = vcmat, us2 = us2))
 fit_spline_tensor <- TMBfit(MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
-                                      random = c("b_null", "b_range")))
+                                      random = c("b_null", "b_range"),
+                                      map = list(cor_null = factor(NA))))
 
 ## -- consistency-check machinery ----------------------------------------------
 

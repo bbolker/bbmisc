@@ -35,7 +35,7 @@ separable, tensor-product). Write-up: `phyloslopes.qmd`.
   identifiability investigation `phyloslopes_tiny.R` grew out of: why the
   naive Kronecker-*sum* tensor-product construction has a genuine
   sigma_1/sigma_2 non-identifiability, and why the null/range-decomposed
-  Kronecker-*product* construction avoids it (see `TODO.md` item 3)
+  Kronecker-*product* construction avoids it
 - `phyloslopes_tiny_predcovs.R` -- for each of the tiny example's
   structures (as estimated, plus additive/separable refit with their
   random-effects variance-component hyperparameters fixed at their true
@@ -57,21 +57,31 @@ separable, tensor-product). Write-up: `phyloslopes.qmd`.
   construction (`nllfun_spline_tensor`): Wood (2006, sec. 4.1.8)'s
   single-penalty-vs-multiple-term-penalty distinction, why the naive
   `te()`-extracted construction and the null/range-decomposed one differ,
-  and the derivation of the "hybrid" range-block fix (separate null-space
+  the derivation of the "hybrid" range-block fix (separate null-space
   scales, kept from the original construction, plus a Wood-style
   multiple-term penalty for the range block instead of a pure Kronecker
-  product) now implemented in `nllfun_spline_tensor`. Not wired into
-  `_targets.R` -- render by hand with `quarto render README_tensor.qmd`.
+  product) now implemented in `nllfun_spline_tensor`, a validation of the
+  `te()`-vs-RTMB equivalence against an independent worked example (Clark
+  2024's blog post, `clark_2024_ex.R`), and the null block's optional
+  `cor_null` correlation parameter (mapped to 0 by default -- see
+  `nllfun_spline_tensor`'s header comment). Wired into `_targets.R`
+  (`readme_tensor_html`, with `clark_2024_ex.R` as a file dependency).
+- `clark_2024_ex.R` -- reproduces the worked example from Clark (2024)'s
+  blog post verbatim (see `phyloslopes.bib`), used by `README_tensor.qmd`
+  to validate the `te()` + `nllfun_tensor` construction against an
+  independent, well-posed case (unlike the real 49-species data, where
+  `gam()`'s own smoothing-parameter selection doesn't converge).
 
 ## Running things
 
 `_targets.R` orchestrates most of the scripts above (`targets::tar_make()`).
 Every sourced/rendered file has a small "source-tracking" sentinel target
 (`utils_r`, `tiny_r`, `linear_r`, `combo_r`, `tests_r`, `bench1_r`,
-`bench1_plot_r`, `qmd_source`, ...) that just tracks that file's hash, so
-editing e.g. `phyloslopes_utils.R` correctly invalidates every downstream
-target that sources it -- `targets`' static dependency analysis can't see
-*inside* a `source()`d script's own nested `source()`/render() calls.
+`bench1_plot_r`, `qmd_source`, `readme_tensor_source`, `clark_r`, ...) that
+just tracks that file's hash, so editing e.g. `phyloslopes_utils.R`
+correctly invalidates every downstream target that sources it --
+`targets`' static dependency analysis can't see *inside* a `source()`d
+script's own nested `source()`/render() calls.
 
 Two targets (`bench_setup_rds`: ~15 model refits + consistency checks;
 `bench_rds`: a ~1000-fit microbenchmark) are expensive (~10+ min each) and

@@ -375,23 +375,19 @@ nllfun_tensor <- function(params) {
 ## "eigendecompose into null/range, give each its own Kronecker PRODUCT"
 ## recipe collapses to a single Kronecker-product term with no range
 ## component at all: structurally the separable-model family
-## (nllfun_dense_slopes/nllfun_sep), just with independent (not correlated)
-## per-trait-direction scales instead of a full 2x2 covariance. Verified
-## (phyloslopes_tiny_explore.R) that this avoids the sigma_1/sigma_2 non-identifiability
-## nllfun_tensor's Kronecker *sum* has for a trivial (identity, no-null-
-## space) trait penalty like diag(2)
-nllfun_tensor_nullspace <- function(params) {
-  getAll(params, chdat_x)
-  mu <- drop(X %*% beta + tX %*% b)
-  REPORT(mu)
-  ADREPORT(mu)
-  resid <- log_rs - mu
-  REPORT(resid)
-  Sigma_full <- kronecker(vcmat, diag(exp(2*logpsd_null), nrow = length(logpsd_null)))
-  pen <- -dmvnorm(b, rep(0, length(b)), Sigma = Sigma_full, log = TRUE)
-  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd_resid), log = TRUE))
-  lik + pen
-}
+## (nllfun_dense_slopes/nllfun_sep) -- which is why this no longer needs its
+## own function. It used to live here as `nllfun_tensor_nullspace`, with
+## independent (not correlated) per-trait-direction scales via
+## `diag(exp(2*logpsd_null))`; `nllfun_sep` already IS that model plus a
+## correlation parameter (`kronecker(phylomat, us2$corr(corval))`, `scale =
+## exp(logrsd)`), so the old function is just `nllfun_sep` with
+## `map = list(corval = factor(NA))` (and, for a single shared scale instead
+## of two, additionally `logrsd = factor(c(1, 1))`) -- confirmed to reproduce
+## it exactly (see README_tensor.qmd's "Isolating the mechanism" section).
+## Verified (phyloslopes_tiny_explore.R) that giving the trait dimensions
+## their own scales (however parameterized) avoids the sigma_1/sigma_2
+## non-identifiability `nllfun_tensor`'s Kronecker *sum* has for a trivial
+## (identity, no-null-space) trait penalty like diag(2).
 
 ## -- RTMB negative log-likelihoods for phylogenetic + spline models ---------
 ## (McGillycuddy et al.'s propto+s() additive model, and separable/tensor-
@@ -472,6 +468,20 @@ nllfun_spline_separable <- function(params) {
 ##   loses the separate null-space scales, since S2's null block is exactly
 ##   zero there, forcing one shared null scale no matter how the rest of
 ##   the model is built)
+##
+## The null block's `cor_null` parameter (new -- README_tensor.qmd, "null
+## block" section) generalizes the two null-space scales' independence: it's
+## the same `kronecker(phylomat, us2$corr(corval))` recipe `nllfun_sep` uses
+## for the linear intercept+slope model, transplanted onto the spline's
+## reparameterized null-space basis (`Xnull_joint`/`Xf_null`, which *is*
+## `model.matrix(~1+x)` up to a linear reparameterization -- so this is
+## really the same phylogenetic prior on an intercept+slope pair either way).
+## `map = list(cor_null = factor(NA))` fixes it at 0 (independent, the
+## behavior above), reproducing the old hard-coded `diag(Kn)` construction
+## exactly; freeing it lets the phylo-intercept and phylo-slope null-space
+## directions correlate (TODO item 2) -- worth ~0.56 nats on the real data,
+## but lands near a correlation boundary (rho ~ -0.996), so treat that gain
+## as suggestive, not a reason to make it the default
 nllfun_spline_tensor <- function(params) {
   getAll(params, chdat_x)
   mu <- drop(X %*% beta + Xnull_joint %*% b_null + Xrange_joint %*% b_range)
@@ -479,13 +489,11 @@ nllfun_spline_tensor <- function(params) {
   ADREPORT(mu)
   resid <- log_rs - mu
   REPORT(resid)
-  ## null block: Sigma_unsc_null is a pure function of data (vcmat, Kn), not
-  ## parameters, so RTMB caches it instead of rebuilding the Kronecker
-  ## product on every objective/gradient evaluation; logpsd_null has one
-  ## scale per null-space direction, so its scale vector repeats
-  ## exp(logpsd_null) once per species, matching Xnull_joint/b_null's
-  ## [species-outer, null-dim-inner] column order
-  Sigma_unsc_null <- kronecker(vcmat, diag(length(logpsd_null)))
+  ## null block: Sigma_unsc_null depends only on data (vcmat, us2) plus
+  ## cor_null -- logpsd_null has one scale per null-space direction, so its
+  ## scale vector repeats exp(logpsd_null) once per species, matching
+  ## Xnull_joint/b_null's [species-outer, null-dim-inner] column order
+  Sigma_unsc_null <- kronecker(vcmat, us2$corr(cor_null))
   pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_unsc_null,
                         scale = rep(exp(logpsd_null), nrow(vcmat)), log = TRUE)
   ## range block: Qr_phylo (= kron(Sphylo, I_Kr)) and Qr_smooth (= kron(I_ntip,

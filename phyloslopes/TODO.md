@@ -19,15 +19,23 @@
   random-effect variances themselves (e.g. spline wiggliness) are the
   focal quantity of interest -- than for "old-style" random effects, where
   they're usually a nuisance parameter to be integrated out/ignored
-* investigate a model more complex than the current "hybrid" tensor
+* ~~investigate a model more complex than the current "hybrid" tensor
   (`nllfun_spline_tensor`), which gives the phylo-intercept and
   phylo-linear-slope null-space directions *independent* (diagonal,
   uncorrelated) penalties (`logpsd_null`, length 2) -- what about letting
   them *correlate*, the way `nllfun_sep`/`nllfun_dense_slopes` give
   intercept/slope a full unstructured 2x2 covariance instead of
-  independent scales? Probably not worth it for the real 49-species
-  example (already pushing the data's limits), but worth having in the
-  model space for completeness
+  independent scales?~~ done -- see `README_tensor.qmd`'s "null block"
+  section. No new function needed: `nllfun_spline_tensor`'s null block now
+  takes a `cor_null` parameter (`kronecker(phylomat, us2$corr(cor_null))`
+  in place of the old hard-coded `diag(Kn)`), and the old
+  `nllfun_tensor_nullspace` was removed entirely -- it, and this
+  generalization, are both just `nllfun_sep` (+ `map=`) reused, since the
+  null-space design *is* `model.matrix(~1+log_bm)` up to a linear
+  reparameterization. As guessed, not worth it on the real 49-species
+  example: freeing the correlation gains a little logLik but lands on a
+  correlation boundary (rho ~ -1), so `cor_null`/`corval` stay mapped to 0
+  by default everywhere
 * "null" (as in "null-space") for the phylo-intercept/phylo-slope terms in
   `nllfun_spline_tensor` is potentially misleading terminology: those
   terms are in the null space of the *thin-plate spline's* wiggliness

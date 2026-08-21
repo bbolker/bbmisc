@@ -6,7 +6,7 @@
 ## a low-k (k=4) thin-plate spline on the same small simulated data set. For
 ## the (much larger) fitting/identifiability investigation this grew out of
 ## -- including why the naive Kronecker-sum tensor-product construction is
-## avoided here -- see phyloslopes_tiny_explore.R and TODO.md item 3.
+## avoided here -- see phyloslopes_tiny_explore.R.
 
 library(ape)
 library(Matrix)
@@ -202,11 +202,16 @@ obj_sep <- MakeADFun(nllfun_spline_separable, p0_sep, silent = TRUE,
                      random = c("b_spline", "b_wiggly", "b_phylo"))
 fit_sep <- TMBfit(obj_sep)
 
-chdat_x <- lst(log_rs = y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat)
+## cor_null (fixed at 0 via map=) is nllfun_spline_tensor's optional
+## null-space-direction correlation -- see its header comment
+us2 <- unstructured(2)
+chdat_x <- lst(log_rs = y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2)
 p0_tensor <- list(beta = rep(0, 2), b_null = rep(0, ntip * Kn), b_range = rep(0, ntip * Kr),
-                  logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
+                  logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
+                  logsigma1_range = 0, logsigma2_range = 0)
 obj_tensor <- MakeADFun(nllfun_spline_tensor, p0_tensor, silent = TRUE,
-                        random = c("b_null", "b_range"))
+                        random = c("b_null", "b_range"),
+                        map = list(cor_null = factor(NA)))
 fit_tensor <- TMBfit(obj_tensor)
 
 cat("\n=== fixed effects (intercept, linear-in-x) across structures ===\n")

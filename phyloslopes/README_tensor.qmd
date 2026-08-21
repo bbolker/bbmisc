@@ -17,8 +17,9 @@ eigendecomposing the spline's own (rank-deficient) penalty into a null space
 separate Kronecker-product term crossed with the (always full-rank) phylogenetic
 precision. (That describes the construction as it stood when this investigation
 started; the range-space block has since changed as a direct result of the
-findings below -- see "Recommendation".) `TODO.md` item 8 asked whether this
-eigendecomposition is actually necessary, given that RTMB can (in principle)
+findings below -- see "Recommendation".) `TODO.md` asked (now marked done,
+pointing back here) whether this eigendecomposition is actually necessary,
+given that RTMB can (in principle)
 accept arbitrary precision matrices in `dgmrf()`/`dmvnorm()` -- could we instead
 build the tensor-product smooth via `mgcv::smooth.construct()` directly (as in
 Clark 2024's blog post) and use its raw `$X`/`$S` output with no decomposition
@@ -365,17 +366,22 @@ intercept/slope basis instead of raw `~1+log_bm`. Seen that way, there's a
 natural menu of precision structures for the null block, exactly mirroring
 the choices already available for the plain linear model:
 
+All three are now just `nllfun_sep` (for the null-space-only demo below) or
+`nllfun_spline_tensor`'s null block (for the real model), with `map=`
+picking which structure applies -- no separate function per structure:
+
 - **homogeneous diagonal** (one scale shared by both directions) --
-  `nllfun_nullspace_shared` below, `Sigma = vcmat %x% (psd^2 * I_Kn)`
+  `corval`/`cor_null` fixed at 0 *and* the two scales tied together,
+  `Sigma = vcmat %x% (psd^2 * I_Kn)`
 - **heterogeneous diagonal** (separate scale per direction, still
-  independent) -- `nllfun_tensor_nullspace` below (and the null block of
-  `nllfun_spline_tensor`), `Sigma = vcmat %x% diag(psd_1^2, ..., psd_Kn^2)`
+  independent) -- `corval`/`cor_null` fixed at 0, scales free,
+  `Sigma = vcmat %x% diag(psd_1^2, ..., psd_Kn^2)`
 - **unstructured/general positive-definite** (separate scales *plus* a
-  correlation between directions) -- not implemented for the null block
-  here; this is the generalization `nllfun_sep`/`nllfun_dense_slopes` give
-  the plain linear intercept+slope model, and is TODO item 2 below (a model
-  more complex than the current "hybrid," letting the null-space directions
-  correlate rather than just have independent scales)
+  correlation between directions) -- `corval`/`cor_null` free,
+  `Sigma = vcmat %x% (D us2$corr(corval) D)`; this is the same
+  generalization `nllfun_sep`/`nllfun_dense_slopes` already give the plain
+  linear intercept+slope model, and resolves TODO item 2 below (see point 3
+  after the comparison table for how well it does on the real data)
 
 The comparison below only distinguishes the first two -- but framed this
 way, it's really re-litigating the same one-scale-vs-many-scales question
@@ -383,56 +389,81 @@ way, it's really re-litigating the same one-scale-vs-many-scales question
 spline's reparameterized null-space basis instead.
 
 ```{r mechanism, message = FALSE}
-## (1) null-space block ALONE, one shared scale for both directions
-nllfun_nullspace_shared <- function(params) {
-  getAll(params, chdat_x)
-  mu <- drop(X %*% beta + tX %*% b)
-  REPORT(mu); ADREPORT(mu)
-  resid <- log_rs - mu; REPORT(resid)
-  Sigma_full <- kronecker(vcmat, diag(rep(exp(2*logpsd_shared), Kn), nrow = Kn))
-  pen <- -dmvnorm(b, rep(0, length(b)), Sigma = Sigma_full, log = TRUE)
-  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd_resid), log = TRUE))
-  lik + pen
-}
-chdat_x <- c(chdat, lst(X, tX = Xnull_joint, vcmat, Kn))
-p0 <- list(beta = rep(0, 2), b = rep(0, ncol(Xnull_joint)), logpsd_shared = 0, logsd_resid = 0)
-obj_null_shared <- MakeADFun(nllfun_nullspace_shared, p0, silent = TRUE, random = "b")
+## (1)+(2)+(3) null-space block ALONE, via nllfun_sep -- Kn == 2 always for a
+## TPS null space, so nllfun_sep's hard-coded unstructured(2) applies as-is.
+## This REPLACES the two local/removed functions this chunk used to define
+## (nllfun_nullspace_shared here, nllfun_tensor_nullspace in
+## phyloslopes_utils.R): both are just nllfun_sep with map= fixing corval at
+## 0 (independent null-space directions), confirmed to reproduce their fits
+## to numerical precision (see "The null-space design Xf_null..." above --
+## this IS that same phylo-prior-on-intercept+slope model, just reused
+## directly instead of reimplemented)
+us2 <- unstructured(2)
+chdat_x <- c(chdat, lst(X, phylomat = vcmat, scale = 1, Z = Xnull_joint, us2))
+p0_null <- list(beta = rep(0, 2), b = matrix(0, nrow(vcmat), 2), corval = 0,
+               logrsd = rep(0, 2), logsdres = 0)
+
+## (1) one shared scale: tie logrsd together as well as fixing corval = 0
+obj_null_shared <- MakeADFun(nllfun_sep, p0_null, silent = TRUE, random = "b",
+                             map = list(corval = factor(NA), logrsd = factor(c(1, 1))))
 fit_null_shared <- with(obj_null_shared,
                         nlminb(par, fn, gr,
                                control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 
-## (2) null-space block ALONE, separate scales (nllfun_tensor_nullspace)
-p0b <- list(beta = rep(0, 2), b = rep(0, ncol(Xnull_joint)), logpsd_null = rep(0, Kn), logsd_resid = 0)
-obj_null_sep <- MakeADFun(nllfun_tensor_nullspace, p0b, silent = TRUE, random = "b")
+## (2) separate scales, still independent: only corval fixed
+obj_null_sep <- MakeADFun(nllfun_sep, p0_null, silent = TRUE, random = "b",
+                          map = list(corval = factor(NA)))
 fit_null_sep <- with(obj_null_sep,
                      nlminb(par, fn, gr,
                             control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 
-## (3) hybrid: SAME separate null scales as the old construction above, but
+## (3) let the two null-space directions CORRELATE too (corval free) -- new
+## capability, TODO item 2
+obj_null_cor <- MakeADFun(nllfun_sep, p0_null, silent = TRUE, random = "b")
+fit_null_cor <- with(obj_null_cor,
+                     nlminb(par, fn, gr,
+                            control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
+
+## (4) hybrid: SAME separate null scales as the old construction above, but
 ## the range block rebuilt the multiple-term way (Sphylo x I + I x
 ## diag(true TPS eigenvalues)) instead of the old pure Kronecker product
 ## (Sphylo x I alone). This is now exactly what nllfun_spline_tensor itself
 ## implements (see Recommendation below) -- called directly here, not a
 ## local copy, so this comparison also doubles as a check that the real
-## function reproduces the derivation
+## function reproduces the derivation. cor_null = 0 (mapped) matches (2)'s
+## independence assumption; (5) below frees it, matching (3)'s
 Qr_phylo <- kronecker(Sphylo, diag(Kr))
 Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
-chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat))
+chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2))
 p0c <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
-           logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
-obj_hybrid <- MakeADFun(nllfun_spline_tensor, p0c, silent = TRUE, random = c("b_null", "b_range"))
+           logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
+           logsigma1_range = 0, logsigma2_range = 0)
+obj_hybrid <- MakeADFun(nllfun_spline_tensor, p0c, silent = TRUE, random = c("b_null", "b_range"),
+                        map = list(cor_null = factor(NA)))
 fit_hybrid <- with(obj_hybrid,
                    nlminb(par, fn, gr,
                           control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 
+## (5) hybrid, letting the null-space directions correlate too
+obj_hybrid_cor <- MakeADFun(nllfun_spline_tensor, p0c, silent = TRUE, random = c("b_null", "b_range"))
+fit_hybrid_cor <- with(obj_hybrid_cor,
+                       nlminb(par, fn, gr,
+                              control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
+
 data.frame(
   model = c("null-only, 1 shared scale", "null-only, separate scales",
+           "null-only, correlated",
            "old (separate null + pure-product range)",
            "hybrid == current nllfun_spline_tensor (separate null + multiple-term range)",
+           "hybrid, correlated null-space",
            "naive te() (1 shared null + multiple-term range)"),
-  logLik = round(c(-fit_null_shared$objective, -fit_null_sep$objective,
-                   -fit_current$objective, -fit_hybrid$objective, -fit_naive$objective), 4)
+  logLik = round(c(-fit_null_shared$objective, -fit_null_sep$objective, -fit_null_cor$objective,
+                   -fit_current$objective, -fit_hybrid$objective, -fit_hybrid_cor$objective,
+                   -fit_naive$objective), 4)
 )
+rho <- function(fit, nm) { th <- fit$par[nm]; unname(th / sqrt(1 + th^2)) }
+cat("null-only correlated: rho =", rho(fit_null_cor, "corval"), "\n")
+cat("hybrid correlated:    rho =", rho(fit_hybrid_cor, "cor_null"), "\n")
 ```
 
 This cleanly separates two independent effects:
@@ -453,6 +484,16 @@ This cleanly separates two independent effects:
    against fit -- a pure Kronecker product can only "shrink everything
    toward phylogenetic similarity or don't," with no way to separately
    control smoothness.
+3. **Letting the null-space directions correlate helps a little, but lands
+   on a correlation boundary.** Freeing `corval`/`cor_null` (rows 3 and 6)
+   gains another ~0.11 nats (null-only) or ~0.56 nats (hybrid), with the
+   estimated correlation landing at rho ~ -1 in both cases (printed above).
+   That's TODO item 2, answered: the capability is worth having (it's now
+   just `nllfun_sep`/`nllfun_spline_tensor` with `cor_null`/`corval` freed,
+   no new function needed), but a boundary estimate on 49 data points is a
+   sign of a model reaching for more flexibility than the data actually
+   support, not a reason to make correlation the default -- both
+   `phyloslopes_combo.R` and `phyloslopes.qmd` keep it mapped to 0.
 
 The naive `te()` fit sits between the two extremes: it gets the multiple-term
 range benefit but loses the separate-null-scales benefit (one shared scale,
@@ -485,3 +526,13 @@ Wood's own argument about effective-degrees-of-freedom range. Implemented:
 unchanged, rather than switching wholesale to the naive `te()`-extracted
 version (which would sacrifice the separate null-space scales that are worth
 more than the range-space fix on their own).
+
+Separately, `nllfun_spline_tensor`'s null block now takes a `cor_null`
+parameter (`kronecker(phylomat, us2$corr(cor_null))` in place of the old
+hard-coded `diag(Kn)`), and `nllfun_tensor_nullspace` has been removed from
+`phyloslopes_utils.R` entirely -- it's just `nllfun_sep` with `map =
+list(corval = factor(NA))`, confirmed to reproduce it exactly (see
+"Isolating the mechanism" above). Every call site keeps `cor_null` mapped to
+0 by default (independent null-space directions, matching the old
+behavior); freeing it is a legitimate but not-default option (see point 3
+above).

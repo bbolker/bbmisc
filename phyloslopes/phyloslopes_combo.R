@@ -140,11 +140,19 @@ Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
 ## similarly needs two scales, not one: a pure Kronecker-product penalty
 ## only lets the optimizer trade off overall phylo-shrinkage, with no way
 ## to separately penalize wiggliness -- see README_tensor.qmd
+##
+## cor_null (kept fixed at 0 here via map=) lets the null-space directions'
+## scales correlate instead of being independent -- see nllfun_spline_tensor's
+## header and README_tensor.qmd's "null block" section; not used by default
+## since freeing it lands near a correlation boundary on this data
+us2 <- unstructured(2)
 p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
-                    logsd = 0, logpsd_null = rep(0, Kn), logsigma1_range = 0, logsigma2_range = 0)
-chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat))
+                    logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
+                    logsigma1_range = 0, logsigma2_range = 0)
+chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2))
 obj_sptensor <- MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
-                          random = c("b_null", "b_range"))
+                          random = c("b_null", "b_range"),
+                          map = list(cor_null = factor(NA)))
 fit_tensor <- TMBfit(obj_sptensor)
 
 ## -- store as a named list ---------------------------------------------

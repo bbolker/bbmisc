@@ -1,7 +1,7 @@
 ## phyloslopes_tiny_explore.R -- exploratory scratch companion to
 ## phyloslopes_tiny.R. Keeps the full tensor-product (phylo x
-## intercept-slope) identifiability investigation (TODO.md item 3):
-## fitting, multi-start, the ntip=5 vs. ntip=10 / X-Z-aliasing / seed-
+## intercept-slope) identifiability investigation: fitting, multi-start,
+## the ntip=5 vs. ntip=10 / X-Z-aliasing / seed-
 ## robustness / phylo-x-TPS / null-space-only checks. phyloslopes_tiny.R
 ## itself has been pared back down to a clean/minimal worked example of
 ## how X, Z, and the penalty matrices (Sigma/Q) look under different
@@ -228,8 +228,8 @@ cat(sprintf("logLik tensor-product (correct, Kronecker sum):     %.3f\n", logLik
 ## specific to the trivial (diag(2), no null/range structure) trait
 ## penalty in the *linear* case -- i.e. would it also show up for a genuine
 ## tensor-product smooth of phylogeny x a thin-plate spline? Findings below;
-## see TODO.md item 3 and phyloslopes.qmd's tensor-product section for the
-## write-up this feeds into.
+## see phyloslopes.qmd's tensor-product section for the write-up this
+## feeds into.
 ## =============================================================================
 
 ## -- (a)/(b): ntip = 10 (not 5), multi-start, and intercept-only X ----------
@@ -389,6 +389,12 @@ cat(sprintf("\n=== (d) phylo x TPS: naive Kronecker-sum nll=%.4f (sigma1=%.4g si
 ## Kronecker-product term with no range component at all: nllfun_tensor_
 ## nullspace (phyloslopes_utils.R). Refit on the *same* ntip=5 data that
 ## made nllfun_tensor's sigma_1 diverge above.
+## FROZEN-RECORD NOTE: nllfun_tensor_nullspace has since been removed from
+## phyloslopes_utils.R (superseded by nllfun_sep + map = list(corval =
+## factor(NA)), which reproduces it exactly -- see README_tensor.qmd's
+## "null block" section), so this chunk no longer runs as-is; per this
+## file's header, it's a frozen record of the investigation, not meant to
+## stay in sync
 chdat_x <- lst(log_rs = sim_dat$y, X = Xmat_rep, tX = tX_rep, vcmat)
 p0_nullspace <- list(beta = rep(0, 2), b = rep(0, ncol(tX)), logpsd_null = rep(0, 2), logsd_resid = 0)
 obj_nullspace <- MakeADFun(nllfun_tensor_nullspace, p0_nullspace, silent = TRUE, random = "b")
