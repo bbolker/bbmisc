@@ -100,3 +100,97 @@ deliberately stops at 7500 tips -- 10000 is memory-prohibitive on this
 machine. `phyloslopes.qmd` still displays its output
 (`phyloslopes_testinv_plot.png`), which must already exist on disk before
 rendering.
+
+## `nllfun_*` functions (`phyloslopes_utils.R`)
+
+All are RTMB negative-log-likelihoods with the same calling convention:
+`getAll(params, chdat_x)` pulls in both the current parameter values and
+whatever fixed design matrices/data the model needs (nothing is picked up
+as a free variable from the calling environment), then each returns a
+single penalized-negative-log-likelihood scalar for `MakeADFun()`. Listed
+here are the 9 actively used ones, grouped by what they model; two more
+(`nllfun_independent_slopes`, `nllfun_tensor`) are defined but excluded --
+see the note at the end.
+
+### Standalone phylogenetic covariance
+
+Compared for fitting-time efficiency in `phyloslopes.qmd`'s "Cost of
+fitting intercept-only phylogeny terms" section and `phyloslopes_bench1.R`
+(alongside glmmTMB's `propto()`); all three fit the identical model (a
+single phylogenetically-correlated random intercept), differing only in
+how the phylogenetic covariance is represented:
+
+- **`nllfun1`** -- dense covariance: `b ~ MVN(0, vcmat)` via `dmvnorm()`
+  on the full `ntip x ntip` matrix.
+- **`nllfun_prec`** -- sparse precision matrix via `dgmrf()`; used twice
+  with different inputs -- once with the tip-only precision
+  (`solve(vcmat)`, sparsified) and once with the all-internal-nodes
+  precision (`MRFtools::mrf_penalty(..., internal_nodes = TRUE)` with the
+  root dropped via `drop_mrf_root()`).
+- **`nllfun_edge`** -- edge-based `Z` (`phylo.to.Z()`, tips-to-ancestral-edges
+  mapping scaled by `sqrt(edge.length)`): `b` is plain iid `N(0, tau^2)`,
+  no covariance/precision matrix needed at all, since the edge-weighted
+  `Z` already induces the right tip covariance by construction.
+
+### Linear x phylogenetic models
+
+Combine phylogeny with a plain linear (`log_bm`) fixed effect, giving each
+species a phylogenetically-correlated intercept and/or slope deviation.
+Used in `phyloslopes.qmd`'s "linear effects" section and
+`phyloslopes_linear.R`:
+
+- **`nllfun_sep`** -- separable (Kronecker-product) phylo x intercept-slope
+  covariance: `b` (ntip x 2) gets `Sigma = vcmat %x% Sigma_trait`, with
+  `Sigma_trait` a free `unstructured(2)` covariance (two log-sds + a
+  correlation), via `dseparable()`.
+- **`nllfun_dense_slopes`** -- the same separable model, but built as one
+  dense `2*ntip`-length multivariate normal (`kronecker(vcmat, Sigma2)`
+  passed straight to `dmvnorm()`) rather than via `dseparable()` --
+  brute-force ground truth for `nllfun_sep`/`nllfun_edge_slopes`.
+- **`nllfun_edge_slopes`** -- the same separable covariance again, but
+  realized edge-by-edge: each edge gets an iid 2-vector (intercept-
+  innovation, slope-innovation) with shared `2x2` covariance `Sigma2`,
+  and Brownian summation up the tree reproduces `Sigma2 %x% vcmat`
+  exactly, without ever forming a `ntip x ntip` matrix.
+
+### Spline x phylogenetic models
+
+Combine phylogeny with a thin-plate-spline (TPS) smooth in `log_bm`
+instead of a linear term. Used in `phyloslopes.qmd`'s "combinations of
+thin-plate splines and phylogenetic effects" section and
+`phyloslopes_combo.R`; see `README_tensor.qmd` for the full derivation:
+
+- **`nllfun_spline_additive`** -- independent (summed, not crossed) iid
+  spline-wiggle random effect plus a phylogenetically-correlated random
+  intercept -- matches McGillycuddy et al.'s `propto()+s()` model exactly.
+- **`nllfun_spline_separable`** -- additive's structure plus a second,
+  phylogenetically-correlated copy of the wiggly spline coefficients
+  (one extra diagonal scale across the wiggly dimensions, added on top of
+  the still-present iid copy) -- nests additive as that scale -> 0.
+- **`nllfun_spline_tensor`** -- a genuine tensor-product smooth of
+  phylogeny x `log_bm`: the spline's own null space (constant + linear)
+  and range space (wiggly) are split first (via `smooth2random()`, not a
+  separate eigendecomposition), then each is crossed with phylogeny
+  separately. The null block gets two independent per-direction scales
+  (`logpsd_null`, plus an optional `cor_null` correlation, mapped to 0 by
+  default) rather than one shared scale; the range block gets a Wood
+  (2006, sec. 4.1.8)-style multiple-term penalty (phylo-shrinkage plus the
+  TPS's own smoothness-eigenvalue shrinkage, each with its own scale)
+  rather than a pure Kronecker product.
+
+### Excluded: historical/superseded functions
+
+- **`nllfun_independent_slopes`** -- independent (uncorrelated)
+  phylogenetic intercept + phylogenetic slope penalties. Never called
+  anywhere in the project; the "independent" linear model is instead fit
+  via glmmTMB's `propto()` in `phyloslopes_linear.R`, which does the same
+  job without a bespoke RTMB function.
+- **`nllfun_tensor`** -- naive Kronecker-*sum* tensor-product random
+  slopes (`Q = (1/sigma_1^2)*tp1 + (1/sigma_2^2)*tp2`, built from
+  `tensor.prod.penalties()`). Only called from `phyloslopes_tiny_explore.R`
+  (an archived investigation) and `README_tensor.qmd` (validating the
+  naive `te()`-extraction approach before it's superseded by
+  `nllfun_spline_tensor`'s null/range-decomposed construction) -- not used
+  by the current pipeline. On a trivial (identity, no-null-space) trait
+  penalty like `diag(2)`, this construction has a genuine, reproducible
+  `sigma_1`/`sigma_2` non-identifiability (see `phyloslopes_tiny_explore.R`).
