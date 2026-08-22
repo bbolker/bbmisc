@@ -51,9 +51,9 @@ bench <- microbenchmark(
     chdat_x <- c(chdat, list(phyloprec = Qprec_tip))
     TMBfit(MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b"))
   },
-  RTMB_prec_allnodes_noroot = {
-    chdat_x <- c(chdat, list(Z = Z_noroot, phyloprec = Q_noroot))
-    TMBfit(MakeADFun(nllfun_prec, p0_noroot, silent = TRUE, random = "b"))
+  RTMB_prec_allnodes = {
+    chdat_x <- c(chdat, list(Z = Z_allnodes, phyloprec = Q_allnodes))
+    TMBfit(MakeADFun(nllfun_prec, p0_allnodes, silent = TRUE, random = "b"))
   },
   RTMB_edge = {
     chdat_x <- c(chdat, list(Z = Z_edge))

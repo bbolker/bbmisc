@@ -3,7 +3,7 @@ author: Ben Bolker
 title: "Notes on implementing phylogenetic random effects"
 date: today
 bibliography: phyloslopes.bib
-csl: ieee.csl
+csl: harvard-cite-them-right.csl
 format:
     html:
        embed-resources: true
@@ -39,6 +39,10 @@ library(cowplot)
 library(broom.mixed) ## for tidy()
 ```
 
+```{r utils}
+source("phyloslopes_utils.R")
+```
+
 <!-- https://github.com/orgs/quarto-dev/discussions/1793 -->
 <!-- LaTeX doesn't like newcommand in math mode; Pandoc doesn't care -->
 \newcommand{\bA}{\mathbf A}
@@ -51,25 +55,24 @@ library(broom.mixed) ## for tidy()
 
 This note covers two different topics:
 
-* varying approaches to implementing phylogenetic random-effect terms in models
-* varying approaches to combining phylogenetic terms with other terms in models
+* **implementing phylogenetic random-effect terms**: comparing computational efficiency of different methods for implementing a simple phylogenetic covariance term, i.e. a Brownian-motion evolutionary model of a single response [intercept-only random effect] on a tree. 
+* **combining phylogenetic terms with other dimensions of variation**:
+what are our options when fitting a random-slopes phylogenetic model, or a model with both phylogenetic covariance and a functional smooth (say, a thin-plate [penalized regression] spline)? This question parallels the examples in the 'GAM mafia' hierarchical-GAMs paper [@pedersenHierarchicalGeneralizedAdditive2019]; however, the hierarchical grouping variables there are unstructured iid groups, whereas I want to allow for phylogenetic structure among groups. This note is also similar to the suggestion by the example that @clarkPhylogeneticSmoothing2024 gives, although I consider more different options.
 
-The first topic is purely computational; we are looking at various ways to implement the same model (a Brownian-motion evolutionary model of a single response [intercept-only random effect] on a tree). In the second topic, we are considering qualitatively different models.
+This note is inspired by a manuscript in progress with Maeve McGillycuddy *et al.* on the `propto` functionality in `glmmTMB`; it also draws on an older, incomplete project (manuscript/R package) with Mike Li ([phyloglmm](https://github.com/wzmli/phyloglmm/)).
 
-This note is inspired by a manuscript in progress with Maeve McGillycuddy *et al.* on the `propto` functionality in `glmmTMB`; it is related to an older, incomplete project (manuscript/R package) with Mike Li ([phyloglmm](https://github.com/wzmli/phyloglmm/)).
+Most of the examples below will be implemented in [RTMB](https://kaskr.r-universe.dev/RTMB) for flexibility and comparability, although I'll also compare some results with `glmmTMB` equivalents. I'm also going to stick to optimization/MLE fits for now, not considering Bayesian/sampling approaches. (The `phyloglmm` repo does a wider comparison across packages.)
 
-Most of the examples below will be implemented in [RTMB](https://kaskr.r-universe.dev/RTMB) for flexibility and comparability, although I'll also compare to the `propto` functionality in `glmmTMB`; I'm also going to stick to optimization/MLE fits for now, not considering Bayesian/sampling approaches. (The `phyloglmm` repo does a wider comparison across packages.)
-
-## Implementing phylogenetic terms
+## Implementing simple phylogenetic terms
 
 Some of the choices in implementing a phylogenetic correlation/random effect term:
 
-* should the phylogenetic structure be incorporated in the random-effects model matrix ($\bZ$) or in the covariance matrix ($\bSigma$)? (As pointed out e.g. by @hefleyBasisFunctionApproach2017, the covariance matrix between *observations* is $\bSigma_{\textrm{obs}} = \bZ \bSigma \bZ^\top$, so any division of $\bZ$ and $\bSigma$ that gives the same $\bSigma_{\textrm{obs}}$ gives an equivalent fit to the data.
-* should we model on the covariance scale ($\bSigma$) or the precision scale ($\bQ$) ? In general $\bSigma$ will be dense, while $\bQ$ will generally be at lease somewhat sparse. At least for Brownian-motion phylogenetic model, the covariance (or precision) matrix only needs to be constructed once. 
-    * computing the precision matrix scales badly (${\cal O}(n^3)$) but is manageable up to moderately large trees (e.g. $\approx$ 8 minutes for a tree with 7500 tips)
-    * computing on the covariance scale can be convenient for dealing with singular fits, but computing on the precision scale is generally advantageous both because of sparse-matrix computation and because the penalty/MVN-log-likelihood computation uses $\bQ$ directly.
+* should the phylogenetic structure be incorporated in the random-effects model matrix ($\bZ$) or in the covariance matrix ($\bSigma$)? (As pointed out e.g. by @hefleyBasisFunctionApproach2017, because the covariance matrix between *observations* is $\bSigma_{\textrm{obs}} = \bZ \bSigma \bZ^\top$, any combination of $\bZ$ and $\bSigma$ that give the same $\bSigma_{\textrm{obs}}$ will give an equivalent fit to the data. At the two extremes, we can encode all of the structure in $\bSigma$ (so that $\bZ$ becomes an indicator matrix for species) or all of the structure in $\bZ$ (so that $\bSigma$ becomes $\sigma^2_{\textrm{phylo}} \bI$).
+* if $\bSigma$ has non-trivial structure, should we build the model on the covariance scale ($\bSigma$) or the precision scale ($\bQ$) ? In general $\bQ$ will be sparser than $\bSigma$.
+    * inverting the phylogenetic covariance to get the precision matrix scales badly (${\cal O}(n^3)$) but is manageable up to moderately large trees (e.g. $\approx$ 8 minutes for a tree with 7500 tips). At least for the Brownian-motion phylogenetic model, the covariance (or precision) matrix only needs to be constructed once.
+    * computing on the covariance scale can be convenient for dealing with singular fits [@batesFitting2015], but computing on the precision scale is generally advantageous both because of sparse-matrix computation and because the penalty/MVN-log-likelihood computation uses $\bQ$ directly.
 
-For the examples below, I will use both the phylogenetic running-speed data set from @garlandDoes1993 (as provided by the `ade4` R package) [$\approx$ 50 speces], used in McGillycuddy *et al.*'s ms., and the fish phylogeny as provided by the `fishtree` R package) [$\approx$ 11K species] [@raboskyinverse2018a].
+For the examples below, I will use both the phylogenetic running-speed data set from @garlandDoes1993 (as provided by the `ade4` R package) [$\approx$ 50 species], used in McGillycuddy *et al.*'s ms., and the fish phylogeny as provided by the `fishtree` R package) [$\approx$ 11K species] [@raboskyinverse2018a].
 
 ### Cost of computing $\bSigma$ / $\bQ$
 
@@ -82,8 +85,8 @@ knitr::include_graphics("phyloslopes_testinv_plot.png")
 
 where:
 
-* `vcv`: compute phylogenetic covariance matrix from phylogeny
-* `solve`: invert $\bSigma \to \bQ$ for previous step
+* `vcv`: compute phylogenetic covariance matrix $\bSigma$ from phylogeny
+* `solve`: invert $\bSigma$ to get $\bQ$
 * `mrf_tips`: compute $\bQ$ based on tips only (no internal nodes) using `MRFtools::mrf_penalty.phylo`
 * `mrf_tips_sparse`: convert previous object to a sparse matrix
 * `mrf_full`: compute $\bQ$ including internal nodes (with `mrf_penalty.phylo`)
@@ -93,15 +96,15 @@ where:
 
 ### Cost of fitting intercept-only phylogeny terms
 
+While it's useful to know how expensive it is to compute $\bSigma$ or $\bQ$,
+the actual model-fitting step probably takes longer (because we have to evaluate
+expressions involving $\bSigma$ or $\bQ$ hundreds of times).
+
 McGillycuddy et al. fit the model `log_rs ~ f(log_bm) + propto(0 + species | g, vcmat)` i.e.,
 "log of running speed is linearly related to (a function of) log of body mass; phylogenetic covariance among species
 follows the covariance matrix `vcmat`") to the data from @garlandDoes1993. They first consider a (log-log) linear model
 for body mass, then a thin-plate spline. I'll start with the linear model, to focus on the computational cost of 
 the phylogenetic term. I'll first show how to set up a series of `RTMB` models that implement different methods:
-
-```{r utils}
-source("phyloslopes_utils.R")
-```
 
 ```{r read-chunks, include=FALSE}
 knitr::read_chunk("phyloslopes_utils.R")
@@ -110,10 +113,11 @@ knitr::read_chunk("phyloslopes_utils.R")
 #### basic setup/glmmTMB model
 
 ```{r setup}
+## FIXME: put this code elsewhere?
 data("carniherbi49", package = "ade4")
 chtree <- read.tree(text=carniherbi49$tre2)
 chtree$tip.label <- fixup_species(chtree$tip.label)
-vcmat <- vcv(chtree)
+vcmat <- vcv(chtree)  ## covariance matrix
 chdat <- carniherbi49$tab2 |>
   mutate(log_bm = log(bodymass),
          log_rs = log(runningspeed),
@@ -126,6 +130,8 @@ chdat <- carniherbi49$tab2 |>
 stopifnot(identical(sort(rownames(vcmat)), sort(as.character(chdat$species))))
 save(chdat, chtree, vcmat, file = "phyloslopes.rda")
 ```
+
+The first model fitted by McGillycuddy *et al.*:
 
 ```{r fit1}
 fit_propto_glmmTMB <- glmmTMB(log_rs ~ log_bm + propto(0 + species | g, vcmat),
@@ -147,19 +153,12 @@ Z <- fac2sparse(chdat$species)
 us2 <- unstructured(2)
 rt <- mkReTrms(findbars(~ (1 + log_bm | species)),
                fr = chdat, calc.lambdat = FALSE)
-## move data into required wrapper: nllfun_* read X, Z, vcmat (and anything
-## else beyond `params`) from chdat_x -- nothing from the calling
-## environment -- so they're bundled in explicitly here, not left to be
-## picked up as free variables
+## move data into required wrapper
 chdat_x <- c(chdat, lst(X, Z, vcmat))
 p0 <- list(beta = rep(0, 2), b = rep(0, nrow(vcmat)), logsd=0, logpsd = 0)
 obj <- MakeADFun(nllfun1, p0, silent = TRUE, random = "b")
 fit_propto_TMB <- TMBfit(obj) ## wrapper to run nlminb() and store results
-```
-
-Confirming the match:
-
-```{r glmmTMB_rtmb_check}
+## check match
 stopifnot(all.equal(fixef(fit_propto_TMB), fixef(fit_propto_glmmTMB)$cond,
                     check.attributes = FALSE, tolerance = 1e-7))
 ```
@@ -180,7 +179,6 @@ chdat_x <- c(chdat, lst(X, Z, phyloprec = Matrix(solve(vcmat), sparse = TRUE)))
 obj <- MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b")
 ```
 
-
 #### RTMB with internal-nodes precision matrix
 
 `MRFtools::mrf_penalty()` offers the option (with `internal_nodes = TRUE`) of generating a penalty matrix that includes all of the internal nodes. To use this, we have to be a little careful because this full matrix includes the root, and is thus rank-deficient ($\textrm{rank}(\bQ) = \textrm{dim}(\bQ)-1$): the classic Brownian-motion "no fixed origin" singularity, since shifting every node (including the root) by the same constant leaves all edge contrasts unchanged. We drop the root's row/column from the precision matrix (and the corresponding column from `Z`), and change the length of `b` to match:
@@ -188,31 +186,30 @@ obj <- MakeADFun(nllfun_prec, p0, silent = TRUE, random = "b")
 ```{r phylo_prec_allnodes}
 ntip <- length(chtree$tip.label)
 Q_full_raw <- mrf_penalty(chtree, "brownian", internal_nodes = TRUE)
-Q_noroot <- drop_mrf_root(chtree, Q_full_raw)
+Q_allnodes <- drop_mrf_root(chtree, Q_full_raw)
 ## fac2sparse() returns levels x observations (the "Zt" convention); use
 ## placeholder levels 1:Nnode for the (never-observed -> all-zero-column)
 ## internal nodes, then transpose to the usual observations x levels form
 Z_full <- t(fac2sparse(factor(chdat$species,
                               levels = c(seq_len(chtree$Nnode), chtree$tip.label)),
                        drop.unused.levels = FALSE))
-Z_noroot <- Z_full[, -1]
-p0_noroot <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
-chdat_x <- c(chdat, lst(X, Z = Z_noroot, phyloprec = Q_noroot))
-obj_noroot <- MakeADFun(nllfun_prec, p0_noroot, silent = TRUE, random = "b")
-fit_prec_allnodes_noroot <- TMBfit(obj_noroot)
+Z_allnodes <- Z_full[, -1]
+p0_allnodes <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
+chdat_x <- c(chdat, lst(X, Z = Z_allnodes, phyloprec = Q_allnodes))
+obj_prec_allnodes <- MakeADFun(nllfun_prec, p0_allnodes, silent = TRUE, random = "b")
+fit_prec_allnodes <- TMBfit(obj_prec_allnodes)
 ```
 
 These results are equivalent.
 
 #### RTMB with Z-encoding
 
-As pointed out above, and in the `phyloglmm` repo, we can encode the phylogenetic covariance in $\bZ$ instead of in $\bSigma$: this leaves $\bSigma$ as a indicator matrix for species (an identity matrix for this particular data set, which samples each species once). `phylo.to.Z()` builds a tip x edge matrix with a `sqrt(edge.length)` entry wherever an edge is ancestral to a tip, so `Z %*% b` with `b` iid unit-scale reproduces `vcv(chtree)` exactly -- no covariance/precision matrix needed ... the corresponding RTMB function uses
+As pointed out above, and in the `phyloglmm` repo, we can encode the phylogenetic covariance in $\bZ$ instead of in $\bSigma$: this leaves $\bSigma$ as a indicator matrix for species (an identity matrix for this particular data set, which samples each species once). `phylo.to.Z()` builds a tip x edge matrix with a `sqrt(edge.length)` entry wherever an edge is ancestral to a tip, so `Z %*% b` with `b` iid unit-scale reproduces `vcv(chtree)` exactly -- no covariance/precision matrix needed ... the corresponding RTMB function can simplify the penalty term since the penalty matrix is diagonal: we don't need `dmvnorm`/`dgmrf` any more, can just use `sum(dnorm(...))` for the penalty:
 
 ```{r rtmb_edge}
 #| eval: false
 pen <- -sum(dnorm(b, 0, sd = exp(logpsd), log = TRUE))
 ```
-for the penalty.
 
 Setup:
 
@@ -235,7 +232,7 @@ knitr::include_graphics("phyloslopes_bench1.png")
 Where
 
 * `RTMB_edge`: construction with phylogenetic structure in $\bZ$
-* `RTMB_prec_allnodes_noroot`: with `mrf_penalty(., internal_nodes = TRUE)`
+* `RTMB_prec_allnodes`: with `mrf_penalty(., internal_nodes = TRUE)`
 * `RMB_prec_tip`: with `mrf_penalty(., internal_nodes = FALSE)`
 * `RTMB_dense`: with raw $\bSigma$ via `dmvnorm`
 * `glmmTMB_obj_only`: optimizing the `glmmTMB` object, no overhead
@@ -247,22 +244,49 @@ For what it's worth `phyr` is much faster: median (n=100) = 13.5 ms, 5th/95th pe
 
 ## Phylogenetic covariance combinations with other terms
 
-All the models above are *additive*: effectively, the species-level intercepts are phylogenetically correlated, 
-but --- whether we model it as a linear term or a smooth (thin-plate spline) term, the effect of body mass on running speed
+### linear case
+
+All the models above are additive: the species-level intercepts are phylogenetically correlated, 
+but the effect of body mass on running speed (which we are modeling as a simple linear term here, but will switch to a thin-plate spline below)
 is assumed to be homogeneous across species. As @schielzethConclusionsSupportOverconfident2009 (and many others) note,
 modeling only variation of intercepts among clusters and not variation of effects (in this case the effect of body mass on running speed)
 across clusters can be overoptimistic/anticonservative (not to mention missing potentially interesting phylogenetic variation).
+We could use the hierarchical-GAM machinery from @pedersenHierarchicalGeneralizedAdditive2019 to model *independent* variation across
+species, but what if we want to incorporate phylogenetic covariance?
 
-In addition to the intercept-only/additive model above, we'll fit three models:
+In addition to the intercept-only/additive model above, we'll fit two models:
 
 * independent phylogenetic variation in slopes and intercepts
 * *separable* phylogenetic variation (implemented in two ways: via `dseparable` and via `phylo.Z` setup)
-* tensor-product combination of phylogenetic variation with a linear model
 
-* In a separable model, we construct the combined covariance matrix as $\kron{\mathbf A}{\mathbf B}$; that is, the element corresponding to the covariance between $ij$ and $kl$ (say, species $i$ and $j$ and spline parameters $k$ and $l$ will be $\sigma_{A,ij} \cdot \sigma_{B,kl}$. We do have to be a little bit careful about identifiability; if both $\bA$ and $\bB$ have overall adjustable scale parameters, then the Kronecker product will be jointly unidentifiable). With only a small loss of generality, suppose that $\textrm{diag}(\bB)$ is homogeneous and (without further loss of generality) equal to 1; then there will be repeated $\bA$ blocks along the diagonal of the product (assuming I have the Kronecker product defined the right way around). The basis matrices stay the same.
-* the tensor product smooth is a little bit more complicated. As described in @woodGeneralizedAdditiveModels2017 section 5.6, we have to combine the model matrices for each term via rowwise Kronecker products (see `mgcv::tensor.prod.model.matrix`), and to generate a series of penalty matrices (two in this case) as $\kron{\bA}{\bI_B}$ and $\kron{\bI}{\bI_A}$. The Claude-generated code I use here does *not* (I think) use the reparameterization suggested on pp. 230-231 of @woodGeneralizedAdditiveModels2017; I think that means that 
+In a separable model, we construct the combined covariance matrix as $\kron{\mathbf A}{\mathbf B}$; that is, the element corresponding to the covariance between $ij$ and $kl$ (say, species $i$ and $j$ and spline parameters $k$ and $l$ will be $\sigma_{A,ij} \cdot \sigma_{B,kl}$. We do have to be careful about identifiability; if both $\bA$ and $\bB$ have overall adjustable scale parameters, then the Kronecker product will be jointly unidentifiable). With only a small loss of generality, suppose that $\textrm{diag}(\bB)$ is homogeneous and (without further loss of generality) equal to 1; then there will be repeated $\bA$ blocks along the diagonal of the product (assuming I have the Kronecker product defined the right way around). The basis matrices stay the same.
+
+In theory, we could also fit a tensor-product smooth for this case (discussed more below), but in this case (where the model we are crossing with the phylogenetic structure, a simple linear regression, has no penalized/wiggly component), it would collapse to the separable case.
+
+The null model (i.e. `~ 1 + (0 + propto | species, phylo)`), the additive linear model (adding a fixed effect of `log_bm`), and a model with independent random slopes (adding `(0 + bm | species)`) can all be fitted in the current version of `glmmTMB`; the separable model requires `RTMB` at present.
+
+```{r nllfun_sep}
+#| eval: false
+```
+
+(`mk_f_phylo` and `mk_f_cov` are helper functions, defined upstream, to generate phylogenetic and unstructured covariance MVN density functions)
+
+Even the plain additive model barely improves the fit over the null model in this case; the independent model fit is singular and collapses back to the additive model; and the separable model gives a minor improvement.
+
+```{r compare-linear-fits}
+load("phyloslopes_linear.rda")
+tt <- bbmle::AICtab(phyloslopes_linear_models, logLik = TRUE)
+print(as.data.frame(tt), digits = 2)
+```
+
+---
+
+* the tensor product smooth is a little bit more complicated. As described in @woodGeneralizedAdditiveModels2017 section 5.6, we have to combine the model matrices for each term via rowwise Kronecker products (see `mgcv::tensor.prod.model.matrix`), and to generate a series of penalty matrices (two in this case) as $\kron{\bA}{\bI_B}$ and $\kron{\bI}{\bI_A}$.[^tensor-reparam] As also described below, we have to make sure to separate the components of $\bZ$ that correspond to the nullspace of the penalty and treat them as (unpenalized) fixed effects. This is done manually below, not using the built-in `te()` machinery from `mgcv` ... I may take another crack at this later, as it would definitely be simpler and easier to explain to use existing machinery (as in @clarkPhylogeneticSmoothing2024) to set up the structures that RTMB needs.
+
+[^tensor-reparam]: The Claude-generated code I use here does *not* (I think) use the reparameterization suggested on pp. 230-231 of @woodGeneralizedAdditiveModels2017; I think that means that 
 > the penalties no longer have the interpretation in terms of (averaged) function shape that is inherited from the marginal smooths ...
-but I think (??) we still get the same overall fits. As also described below, we have to make sure to separate the components of $\bZ$ that correspond to the nullspace of the penalty and treat them as (unpenalized) fixed effects. This is done manually below, not using the built-in `te()` machinery from `mgcv` ... I may take another crack at this later, as it would definitely be simpler and easier to explain to use existing machinery (as in @clarkPhylogeneticSmoothing2024) to set up the structures that RTMB needs.
+but I think (??) we still get the same overall fits. 
+
 
 ### tiny example
 
@@ -288,18 +312,6 @@ cowplot::plot_grid(plotlist = Map(ifun, covs1, names(covs1)))
 ```
 
 I still haven't figured out a great way to illustrate the differences among these approaches.
-
-### linear effects
-
-I briefly explored comparisons of linear-additive models (i.e. `~ log_bm + (0 + propto | species, phylo)`), fitting a null model (phylogenetic intercept term only); an additive model as above; a model with independent random slopes `(0 + bm | species)`; and a separable model. In this example, if we tried to construct a tensor-product smooth between the linear term and the phylogenetic term, it would be unidentifiable/would reduce to the separable model because the null space dimension (2) is equal to the full dimension of the model ...
-
-Even the plain additive model barely improves the fit over the null model in this case; the independent model fit is singular and collapses back to the additive model; and the separable model gives a minor improvement.
-
-```{r compare-linear-fits}
-load("phyloslopes_linear.rda")
-tt <- bbmle::AICtab(phyloslopes_linear_models, logLik = TRUE)
-print(as.data.frame(tt), digits = 2)
-```
 
 ### spline effects
 

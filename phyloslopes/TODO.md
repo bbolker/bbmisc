@@ -4,6 +4,7 @@
 * keep working on `phyloslopes`
    * clean up/integrate/throw out junk
    * prettify tables (check PDF output for glitches)
+* what do @garlandDoes1993 actually do with these data? Are there more interesting (larger) examples? What is the typical scale of phylogenies/models people are fitting these days, and how often would random slopes/tensor-product smooths be relevant?
 * downstream: can `MRFtools` do a better job maintaining sparsity throughout the `mrf_full`/`mrf_full_sparse` benchmark steps?
 * `phylo.to.Z` FIXME in `phyloslopes_utils.R`: rename to `phylo_to_Z`?
 * ~~see if we can do the tensor-product construction via `te()` and pull out the stuff we need, rather than doing the eigendecomposition ourselves? Is this problem somehow specific to what we're trying to do here? (How does it differ from @clarkPhylogeneticSmoothing2024 ?)~~ done -- see `README_tensor.qmd`. Yes, straightforwardly (`nllfun_tensor`, reusing `smooth.construct()`'s raw `$X`/`$S` directly, no decomposition needed -- `S1` alone keeps the summed `Q` full rank regardless of `S2`'s deficiency). Not specific to our problem: it's Wood (2006, sec 4.1.8)'s standard "multiple term penalty" recipe, the same one mgcv's own `te()` uses by default. It turned out to still lose to a *hybrid* construction -- keep `nllfun_spline_tensor`'s separate null-space scales, but rebuild its range block the multiple-term way too -- which is now implemented (`Qr_phylo`/`Qr_smooth` in `nllfun_spline_tensor`, built via `smooth2random()`'s `trans.D` rather than a separate `eigen()` call).

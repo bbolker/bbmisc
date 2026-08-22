@@ -225,32 +225,24 @@ mk_f_cov <- function(us2, corval, logrsd) {
 nllfun1 <- function(params) {
   getAll(params, chdat_x)
   mu <- drop(X %*% beta + Z %*% b)
-  REPORT(mu)
-  ADREPORT(mu)
   resid <- log_rs - mu
-  REPORT(resid)
   pen <- -dmvnorm(b, 0, Sigma = vcmat, scale = exp(logpsd), log = TRUE)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen
 }
 
-## independent phylogenetic intercepts and slopes: extends nllfun1 by adding
-## a separate phylogenetic penalty for species-level slope deviations.
-## Z (nobs x ntip) maps species intercepts to observations; Z_slope (nobs x
-## ntip) maps species slopes to observations, typically as a weighted
-## species indicator (diag(covariate) %*% Z or more generally Khatri-Rao
-## product). Both b_int and b_slope are penalized independently via vcmat
-nllfun_independent_slopes <- function(params) {
-  getAll(params, chdat_x)
-  mu <- drop(X %*% beta + Z %*% b_int + Z_slope %*% b_slope)
-  REPORT(mu)
-  ADREPORT(mu)
-  resid <- log_rs - mu
-  REPORT(resid)
-  pen_int <- -dmvnorm(b_int, 0, Sigma = vcmat, scale = exp(logpsd_int), log = TRUE)
-  pen_slope <- -dmvnorm(b_slope, 0, Sigma = vcmat, scale = exp(logpsd_slope), log = TRUE)
-  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
-  lik + pen_int + pen_slope
+## @knitr add_reports
+## overly fancy machinery  for adding REPORT/ADREPORT statements to an existing objective function
+## could add 'resid <- log_rs - mu' as well but we might want to be clever/fancy about substituting
+##  the name of the response variable (i.e. not hard-coding log_rs)
+## (the main point is so that the code included in the body of the report can be cleaner)
+add_reports <- function(f) {
+  b <- as.list(body(f))
+  n <- length(b)                     ## includes the leading `{`
+  new_stmts <- list(quote(REPORT(resid)), quote(REPORT(mu)), quote(ADREPORT(mu)))
+  b <- append(b, new_stmts, after = n - 1)   ## insert right before the final statement
+  body(f) <- as.call(b)
+  f
 }
 
 ## @knitr nllfun_prec
@@ -284,26 +276,27 @@ nllfun_edge <- function(params) {
   lik + pen
 }
 
-#' @knitr nllfun_sep
-## separable (phylogenetic x intercept-slope covariance) parameterization
-## modular: should be able to handle various separable cor structures
-## NB: Z (= t(rt$Zt) from mkReTrms) has columns ordered [species-outer,
+## @knitr nllfun_sep_comment
+
+## NB for code below: Z (= t(rt$Zt) from mkReTrms) has columns ordered [species-outer,
 ## trait-inner] (each species' intercept/slope columns adjacent); b is
 ## ntip x 2 (species x trait), so it must be flattened the same way via
 ## c(t(b)), *not* c(b) (which would flatten trait-outer/species-inner and
 ## silently permute b relative to Z's columns)
+
+## @knitr nllfun_sep
+## separable (phylogenetic x intercept-slope covariance) parameterization
+## modular: should be able to handle various separable cor structures
 nllfun_sep <- function(params) {
   getAll(params, chdat_x)
   mu <- drop(X %*% beta + Z %*% c(t(b)))
-  REPORT(mu)
-  ADREPORT(mu)
   resid <- log_rs - mu
-  REPORT(resid)
   pen <- -dseparable(mk_f_phylo(phylomat, scale), mk_f_cov(us2, corval, logrsd))(b)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsdres), log = TRUE))
   lik + pen
 }
 
+## @knitr nllfun_edge
 ## edge-based random-slopes: KR (from KhatriRao(t(phylo.to.Z(tree)), t(J)))
 ## maps each observation to 2 columns per edge (intercept-innovation,
 ## slope-innovation), so b (length 2*nedge) is naturally 96 iid-across-edges

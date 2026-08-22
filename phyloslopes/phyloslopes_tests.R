@@ -86,7 +86,7 @@ root_name <- paste0("N", root_id)
 ord_names <- c(root_name, setdiff(internal_names, root_name), chtree$tip.label)
 stopifnot(all(ord_names %in% rownames(Q_full_raw)))
 Q_full <- as(Q_full_raw[ord_names, ord_names], "CsparseMatrix")
-Q_noroot <- Q_full[-1, -1]
+Q_allnodes <- Q_full[-1, -1]
 
 ## fac2sparse() returns levels x observations (the "Zt" convention); use
 ## placeholder levels 1:Nnode for the (never-observed -> all-zero-column)
@@ -94,11 +94,11 @@ Q_noroot <- Q_full[-1, -1]
 Z_full <- t(fac2sparse(factor(chdat$species,
                               levels = c(seq_len(chtree$Nnode), chtree$tip.label)),
                        drop.unused.levels = FALSE))
-Z_noroot <- Z_full[, -1]
+Z_allnodes <- Z_full[, -1]
 
-p0_noroot <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
-chdat_x <- c(chdat, list(Z = Z_noroot, phyloprec = Q_noroot))
-fit_prec_allnodes_noroot <- TMBfit(MakeADFun(nllfun_prec, p0_noroot, silent = TRUE, random = "b"))
+p0_allnodes <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
+chdat_x <- c(chdat, list(Z = Z_allnodes, phyloprec = Q_allnodes))
+fit_prec_allnodes <- TMBfit(MakeADFun(nllfun_prec, p0_allnodes, silent = TRUE, random = "b"))
 
 ## -- fit: RTMB + edge-based Z-matrix (phylo.to.Z) ----------------------------
 ## phylo.to.Z() builds a tip x edge matrix with sqrt(edge.length) entries on
@@ -117,8 +117,13 @@ fit_edge <- TMBfit(MakeADFun(nllfun_edge, p0_edge, silent = TRUE, random = "b"))
 ## to match the (RE)ML convention used everywhere else here
 chdat_phyr <- chdat
 rownames(chdat_phyr) <- as.character(chdat_phyr$species)
-fit_phyr <- pglmm_compare(log_rs ~ log_bm, family = "gaussian",
-                          data = chdat_phyr, phy = chtree, REML = FALSE)
+## suppressWarnings(): phyr's internal pglmm() calls lme4::nobars() directly
+## (not reformulas::nobars()), which raises a deprecation/forwarding warning
+## on every call -- harmless, and not something we can fix from here
+fit_phyr <- suppressWarnings(
+  pglmm_compare(log_rs ~ log_bm, family = "gaussian",
+                data = chdat_phyr, phy = chtree, REML = FALSE)
+)
 
 ## -- random-slopes models -----------------------------------------------
 ## three independent parameterizations of a correlated-random-slopes
@@ -288,11 +293,10 @@ check_loglik_equal <- function(fit1, fit2, label1, label2, tolerance = 1e-3) {
 }
 
 ## -- consistency checks: all pairs of the six (equivalent) parameterizations
-fits <- list(fit_dense = fit_dense, fit_prec = fit_prec,
-             fit_propto_glmmTMB = fit_propto_glmmTMB,
-             fit_prec_allnodes_noroot = fit_prec_allnodes_noroot,
-             fit_edge = fit_edge,
-             fit_phyr = fit_phyr)
+fits <- lst(fit_dense, fit_prec, fit_propto_glmmTMB,
+            fit_prec_allnodes,
+            fit_edge, 
+            fit_phyr)
 pairs <- combn(names(fits), 2, simplify = FALSE)
 for (p in pairs) {
   check_fixef_equal(fits[[p[1]]], fits[[p[2]]], label1 = p[1], label2 = p[2])
@@ -365,15 +369,13 @@ cat("all consistency checks passed.\n")
 ## them up as free variables from the calling environment (see the comment
 ## above nllfun1), not from chdat_x -- they must exist under exactly these
 ## names wherever those functions are called
-bench_setup <- list(
-  chdat = chdat, chtree = chtree, vcmat = vcmat,
-  X = X, Z = Z,
-  p0 = p0, Qprec_tip = Qprec_tip,
-  Z_noroot = Z_noroot, Q_noroot = Q_noroot, p0_noroot = p0_noroot,
-  Z_edge = Z_edge, p0_edge = p0_edge,
-  chdat_phyr = chdat_phyr,
-  rt = rt, p2 = p2,
-  Zdense = Zdense, p0_ds = p0_ds,
-  KR = KR, p0_es = p0_es
+bench_setup <- tibble::lst(
+  chdat, chtree, vcmat, X, Z, p0, Qprec_tip,
+  Z_allnodes, Q_allnodes, p0_allnodes,
+  Z_edge, p0_edge,
+  chdat_phyr,
+  rt, p2,
+  Zdense, p0_ds,
+  KR, p0_es
 )
 saveRDS(bench_setup, "phyloslopes_bench_setup.rds")
