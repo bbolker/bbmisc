@@ -233,7 +233,7 @@ Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
 ## cor_null (fixed at 0 via map=) is nllfun_spline_tensor's optional
 ## null-space-direction correlation -- see its header comment; us2 was
 ## already defined above (line ~129) for the separable-model fits
-p0_sptensor <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
+p0_sptensor <- list(beta = rep(0, 2), b_null = matrix(0, nrow(vcmat), Kn), b_range = rep(0, nrow(vcmat)*Kr),
                     logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
                     logsigma1_range = 0, logsigma2_range = 0)
 chdat_x <- c(chdat, list(Xnull_joint = Xnull_joint, Xrange_joint = Xrange_joint,

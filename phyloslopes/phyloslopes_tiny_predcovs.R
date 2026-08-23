@@ -74,7 +74,8 @@ fit_add <- TMBfit(obj_add)
 chdat_x <- lst(log_rs = sim_dat$y, Xfull, Xr, Xr_joint, Zphylo, Kw, vcmat)
 chdat_x_sep <- chdat_x
 p0_sep <- modifyList(p0_add, list(b_wiggly = rep(0, ntip * Kw), logpsd_f = -10))
-obj_sep <- MakeADFun(nllfun_spline_separable, p0_sep, silent = TRUE,
+## apply add_reports() to augment the function with REPORT(resid)/ADREPORT(mu)
+obj_sep <- MakeADFun(add_reports(nllfun_spline_separable), p0_sep, silent = TRUE,
                      random = c("b_spline", "b_wiggly", "b_phylo"))
 fit_sep <- TMBfit(obj_sep)
 
@@ -83,10 +84,11 @@ fit_sep <- TMBfit(obj_sep)
 us2 <- unstructured(2)
 chdat_x <- lst(log_rs = sim_dat$y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2)
 chdat_x_tensor <- chdat_x
-p0_tensor <- list(beta = rep(0, 2), b_null = rep(0, ntip * Kn), b_range = rep(0, ntip * Kr),
+p0_tensor <- list(beta = rep(0, 2), b_null = matrix(0, ntip, Kn), b_range = rep(0, ntip * Kr),
                   logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
                   logsigma1_range = 0, logsigma2_range = 0)
-obj_tensor <- MakeADFun(nllfun_spline_tensor, p0_tensor, silent = TRUE,
+## apply add_reports() to augment the function with REPORT(resid)/ADREPORT(mu)
+obj_tensor <- MakeADFun(add_reports(nllfun_spline_tensor), p0_tensor, silent = TRUE,
                         random = c("b_null", "b_range"),
                         map = list(cor_null = factor(NA)))
 fit_tensor <- TMBfit(obj_tensor)
@@ -116,7 +118,8 @@ p0_sep_true <- modifyList(p0_sep, list(logsd_f = log(sd_f), logpsd_f = log(sd_wi
                                         logpsd = log(sd_phylo)))
 map_sep_true <- list(logsd_f = factor(NA), logpsd_f = factor(NA), logpsd = factor(NA))
 chdat_x <- chdat_x_sep
-obj_sep_true <- MakeADFun(nllfun_spline_separable, p0_sep_true, silent = TRUE,
+## apply add_reports() to augment the function with REPORT(resid)/ADREPORT(mu)
+obj_sep_true <- MakeADFun(add_reports(nllfun_spline_separable), p0_sep_true, silent = TRUE,
                           random = c("b_spline", "b_wiggly", "b_phylo"), map = map_sep_true)
 fit_sep_true <- TMBfit(obj_sep_true)
 
@@ -181,11 +184,16 @@ check_additive_style <- function(obj, fit, pl, bi, i, chdat_x_i, wig_idx = NULL)
   if (!is.null(wig_idx)) mu_pred <- mu_pred + bi$Xr %*% pl$b_wiggly[wig_idx]
   stopifnot(isTRUE(all.equal(c(mu_pred), mu_report, tolerance = 1e-6)))
 }
-check_tensor_style <- function(obj, fit, pl, bi, bi_nr, i, null_idx_i, range_idx_i, chdat_x_i) {
+## pl$b_null is an ntip x Kn matrix (its natural shape as a MakeADFun
+## parameter, matching nllfun_sep's `b` convention) -- species i's row is
+## just pl$b_null[i, ], no linear-index bookkeeping needed. pl$b_range is
+## still a plain flat vector (species-outer, range-dim-inner), so it still
+## needs range_idx_i
+check_tensor_style <- function(obj, fit, pl, bi, bi_nr, i, range_idx_i, chdat_x_i) {
   chdat_x <<- chdat_x_i
   mu_report <- unique(obj$report()$mu[species_rep == chtree$tip.label[i]])
   mu_pred <- c(1, bi$Xf) %*% fit$fit$par[1:2] +
-    bi_nr$Xf_null %*% pl$b_null[null_idx_i] + bi_nr$Xr_range %*% pl$b_range[range_idx_i]
+    bi_nr$Xf_null %*% pl$b_null[i, ] + bi_nr$Xr_range %*% pl$b_range[range_idx_i]
   stopifnot(isTRUE(all.equal(c(mu_pred), mu_report, tolerance = 1e-6)))
 }
 
@@ -198,8 +206,8 @@ for (i in seq_len(ntip)) {
   check_additive_style(obj_sep_true, fit_sep_true, pl_sep_true, bi, i, chdat_x_sep, wig_idx)
 
   bi_nr <- get_null_range(x[i], h)
-  null_idx_i <- ((i - 1) * Kn + 1):(i * Kn); range_idx_i <- ((i - 1) * Kr + 1):(i * Kr)
-  check_tensor_style(obj_tensor, fit_tensor, pl_tensor, bi, bi_nr, i, null_idx_i, range_idx_i, chdat_x_tensor)
+  range_idx_i <- ((i - 1) * Kr + 1):(i * Kr)
+  check_tensor_style(obj_tensor, fit_tensor, pl_tensor, bi, bi_nr, i, range_idx_i, chdat_x_tensor)
 }
 cat("Prediction-basis sanity checks passed for all 5 models (all", ntip, "species).\n")
 
@@ -207,8 +215,14 @@ cat("Prediction-basis sanity checks passed for all 5 models (all", ntip, "specie
 ## model's parameter vector, given named blocks of the value/derivative
 ## contribution -- a block is either a single row (shared across all
 ## species, e.g. beta/b_spline) or a list of ntip species-specific rows
-## (e.g. b_phylo, b_wiggly, b_null, b_range)
-make_A <- function(pnames, blocks_val, blocks_deriv) {
+## (e.g. b_phylo, b_wiggly, b_null, b_range). Species-specific blocks are
+## normally stored as a plain vector parameter, flattened [species-outer,
+## dim-inner] (a contiguous chunk of `chunk` entries per species, in
+## pnames/TMB's internal order) -- but b_null is an ntip x Kn *matrix*
+## parameter (see nllfun_spline_tensor), which TMB flattens column-major,
+## i.e. [dim-outer, species-inner]; pass layout = "inner" for such a block
+## to index it accordingly instead of assuming contiguous per-species chunks
+make_A <- function(pnames, blocks_val, blocks_deriv, layout = list()) {
   npar <- length(pnames)
   A_val <- matrix(0, ntip, npar); A_slope <- matrix(0, ntip, npar)
   for (nm in names(blocks_val)) {
@@ -216,8 +230,10 @@ make_A <- function(pnames, blocks_val, blocks_deriv) {
     v <- blocks_val[[nm]]; d <- blocks_deriv[[nm]]
     if (is.list(v)) {
       chunk <- length(idx) / ntip
+      inner <- identical(layout[[nm]], "inner")
+      if (inner) idx <- matrix(idx, nrow = ntip, ncol = chunk)  ## idx[i, ] = species i's positions
       for (i in seq_len(ntip)) {
-        ii <- idx[((i - 1) * chunk + 1):(i * chunk)]
+        ii <- if (inner) idx[i, ] else idx[((i - 1) * chunk + 1):(i * chunk)]
         A_val[i, ii] <- v[[i]]; A_slope[i, ii] <- d[[i]]
       }
     } else {
@@ -251,7 +267,8 @@ A_tensor <- make_A(names(obj_tensor$env$last.par.best),
        b_range = lapply(seq_len(ntip), function(i) b0_nullrange$Xr_range)),
   list(beta = c(0, b0_XfXr$Xf_d),
        b_null = lapply(seq_len(ntip), function(i) b0_nullrange$Xf_null_d),
-       b_range = lapply(seq_len(ntip), function(i) b0_nullrange$Xr_range_d)))
+       b_range = lapply(seq_len(ntip), function(i) b0_nullrange$Xr_range_d)),
+  layout = list(b_null = "inner"))
 
 ## additive/true, separable/true: identical block specification to
 ## A_add/A_sep (beta, b_spline, b_phylo[, b_wiggly] all still present and

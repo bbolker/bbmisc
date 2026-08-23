@@ -179,6 +179,9 @@ cat("rank(S1):", Matrix::rankMatrix(S1), " rank(S2):", Matrix::rankMatrix(S2),
    "(out of", nrow(S1), ")\n")
 
 chdat_x <- c(chdat, lst(X, tX = tX_naive, tp1 = Matrix(S1, sparse = TRUE), tp2 = Matrix(S2, sparse = TRUE)))
+chdat_x_naive <- chdat_x  ## snapshot -- report() re-evaluates the closure
+## fresh from .GlobalEnv's chdat_x, not a frozen tape, so this needs
+## restoring (<<-) before any later obj_naive$report() call
 p0_naive <- list(beta = rep(0, 2), b = rep(0, ncol(tX_naive)), logsigma1 = 0, logsigma2 = 0, logsd_resid = 0)
 obj_naive <- MakeADFun(nllfun_tensor, p0_naive, silent = TRUE, random = "b")
 fit_naive <- with(obj_naive,
@@ -435,7 +438,8 @@ fit_null_cor <- with(obj_null_cor,
 Qr_phylo <- kronecker(Sphylo, diag(Kr))
 Qr_smooth <- kronecker(diag(nrow(vcmat)), diag(d_range))
 chdat_x <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2))
-p0c <- list(beta = rep(0, 2), b_null = rep(0, nrow(vcmat)*Kn), b_range = rep(0, nrow(vcmat)*Kr),
+chdat_x_hybrid <- chdat_x  ## snapshot -- shared by (4)/(5)/(6) below, restore before report()
+p0c <- list(beta = rep(0, 2), b_null = matrix(0, nrow(vcmat), Kn), b_range = rep(0, nrow(vcmat)*Kr),
            logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
            logsigma1_range = 0, logsigma2_range = 0)
 obj_hybrid <- MakeADFun(nllfun_spline_tensor, p0c, silent = TRUE, random = c("b_null", "b_range"),
@@ -450,20 +454,63 @@ fit_hybrid_cor <- with(obj_hybrid_cor,
                        nlminb(par, fn, gr,
                               control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
 
+## (6) hybrid, RESTRICTED to reduce exactly to naive te(): cor_null = 0 (no
+## null-space correlation -- te()'s S1 = kron(Sphylo, I) is isotropic across
+## the null-space directions) AND both entries of the null block's scale
+## tied to logsigma1_range (the range block's OWN phylo-shrinkage scale) --
+## te()'s S1 applies the SAME sigma1 uniformly across the whole (undecomposed)
+## 10-dim spline direction, null space included, so sigma2 never touches the
+## null space (S2's null block is exactly zero) and sigma1 is shared, not
+## separate, across the null space. map= alone can't tie a parameter to a
+## *different* parameter's value, so this needs a small restricted copy of
+## nllfun_spline_tensor that drops logpsd_null/cor_null as free parameters
+## and reuses logsigma1_range directly for the null block's scale
+nllfun_spline_tensor_te <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Xnull_joint %*% c(t(b_null)) + Xrange_joint %*% b_range)
+  resid <- log_rs - mu
+  pen_null <- -dseparable(mk_f_phylo(vcmat, 1),
+                          mk_f_cov(us2, 0, rep(logsigma1_range, ncol(b_null))))(b_null)
+  Q_range <- exp(-2*logsigma1_range) * Qr_phylo + exp(-2*logsigma2_range) * Qr_smooth
+  pen_range <- -dgmrf(b_range, Q = to_Q(Q_range), log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen_null + pen_range
+}
+p0_te <- list(beta = rep(0, 2), b_null = matrix(0, nrow(vcmat), Kn), b_range = rep(0, nrow(vcmat)*Kr),
+             logsd = 0, logsigma1_range = 0, logsigma2_range = 0)
+## add_reports(): needs REPORT(mu) for the fitted-value comparison below,
+## same as the nllfun_spline_* pattern used elsewhere
+obj_restricted <- MakeADFun(add_reports(nllfun_spline_tensor_te), p0_te, silent = TRUE,
+                            random = c("b_null", "b_range"))
+fit_restricted <- with(obj_restricted,
+                       nlminb(par, fn, gr,
+                              control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
+
 data.frame(
   model = c("null-only, 1 shared scale", "null-only, separate scales",
            "null-only, correlated",
            "old (separate null + pure-product range)",
            "hybrid == current nllfun_spline_tensor (separate null + multiple-term range)",
            "hybrid, correlated null-space",
+           "hybrid, RESTRICTED to null scale = logsigma1_range, cor_null = 0",
            "naive te() (1 shared null + multiple-term range)"),
   logLik = round(c(-fit_null_shared$objective, -fit_null_sep$objective, -fit_null_cor$objective,
                    -fit_current$objective, -fit_hybrid$objective, -fit_hybrid_cor$objective,
-                   -fit_naive$objective), 4)
+                   -fit_restricted$objective, -fit_naive$objective), 4)
 )
 rho <- function(fit, nm) { th <- fit$par[nm]; unname(th / sqrt(1 + th^2)) }
 cat("null-only correlated: rho =", rho(fit_null_cor, "corval"), "\n")
 cat("hybrid correlated:    rho =", rho(fit_hybrid_cor, "cor_null"), "\n")
+## restore each model's own chdat_x snapshot before report() -- it
+## re-evaluates the objective's R closure fresh from .GlobalEnv's chdat_x
+## rather than replaying a frozen tape (see phyloslopes_tiny_predcovs.R for
+## the same gotcha)
+chdat_x <- chdat_x_hybrid
+mu_restricted <- obj_restricted$report()$mu
+chdat_x <- chdat_x_naive
+mu_naive <- obj_naive$report()$mu
+cat("max|fitted(restricted) - fitted(naive te())|:", max(abs(mu_restricted - mu_naive)), "\n")
+cat("cor(fitted(restricted), fitted(naive te())):  ", cor(mu_restricted, mu_naive), "\n")
 ```
 
 This cleanly separates two independent effects:
@@ -494,6 +541,24 @@ This cleanly separates two independent effects:
    sign of a model reaching for more flexibility than the data actually
    support, not a reason to make correlation the default -- both
    `phyloslopes_combo.R` and `phyloslopes.qmd` keep it mapped to 0.
+4. **Constraining the hybrid to literally collapse onto naive `te()` doesn't
+   work.** Row 7 above (`nllfun_spline_tensor_te`) ties `cor_null = 0` and
+   both `logpsd_null` entries to `logsigma1_range` -- the restriction that
+   *should*, in principle, reduce the hybrid's null block down to exactly
+   what naive `te()`'s `S1 = kron(Sphylo, I_10)` implicitly gives it (one
+   scale, shared uniformly across the whole 10-dim spline direction, null
+   space included). It doesn't reproduce naive `te()`: logLik $-10.69$ vs.
+   $-6.53$, fitted-value correlation only $0.97$ (confirmed via 8 random
+   restarts, all converging to the identical optimum -- not a bad start).
+   Diagnosis: `smooth2random()`'s null/range split is a
+   *penalty-whitening* reparameterization (built to diagonalize the TPS's
+   own penalty), not an *identity-preserving* one, so the "$I_{10}$" that
+   `S1` treats as isotropic across the whole (undecomposed) spline
+   direction does not simply decompose into "$I_{K_n}$ (null) + something
+   (range)" once transformed into our null/range-decomposed coordinates.
+   This is exactly the caveat `[^tensor-reparam]` already raised in
+   passing -- confirmed here to actually matter, not just a theoretical
+   worry. See "Further reduction checks" below for more on this.
 
 The naive `te()` fit sits between the two extremes: it gets the multiple-term
 range benefit but loses the separate-null-scales benefit (one shared scale,
@@ -536,3 +601,150 @@ list(corval = factor(NA))`, confirmed to reproduce it exactly (see
 0 by default (independent null-space directions, matching the old
 behavior); freeing it is a legitimate but not-default option (see point 3
 above).
+
+## Further reduction checks: naive `te()` vs. additive, and a tunable range penalty
+
+Two follow-up questions, prompted by point 4 above: does *naive* `te()`
+(not just the hybrid) reduce to the additive model under some parameter
+limit? And could a more flexible range-block penalty be designed
+specifically to make a tensor construction reduce cleanly to additive?
+
+```{r reduction-setup, message = FALSE}
+## additive fit, for comparison -- not fit anywhere else in this document
+sm <- smoothCon(s(log_bm, k = 10), data = chdat, absorb.cons = TRUE)
+sm2ran <- smooth2random(sm[[1]], "", type = 2)
+Xf <- sm2ran$Xf; Xfull <- cbind(1, Xf); Xr <- sm2ran$rand$Xr; Kw <- ncol(Xr)
+p0_add <- list(beta = rep(0, 2), b_spline = rep(0, Kw), b_phylo = rep(0, nrow(vcmat)),
+              logsd = 0, logsd_f = 0, logpsd = 0)
+chdat_x <- c(chdat, lst(Xfull, Xr, Zphylo, vcmat))
+chdat_x_add <- chdat_x
+obj_add <- MakeADFun(add_reports(nllfun_spline_additive), p0_add, silent = TRUE,
+                     random = c("b_spline", "b_phylo"))
+fit_add <- with(obj_add, nlminb(par, fn, gr, control = list(rel.tol = 1e-13)))
+mu_add <- obj_add$report()$mu
+cat("additive logLik:", -fit_add$objective, "\n")
+```
+
+### Does naive `te()` reduce to additive?
+
+`nllfun_tensor`'s only two scales are `sigma1` (phylo-shrinkage, uniform
+across the *whole* undecomposed 10-dim spline direction) and `sigma2`
+(wiggliness, uniform across species). Additive needs a phylo-random
+*intercept only* (no phylo-random slope) plus a flat, non-phylogenetic
+wiggle term -- naive `te()` has no way to decouple those, so the natural
+thing to try is sending `sigma1 -> infinity` (removing phylo structure
+everywhere) and seeing whether the result approaches additive:
+
+```{r te-to-additive}
+for (fixval in c(5, 10, 15, 20)) {
+  p0_try <- p0_naive; p0_try$logsigma1 <- fixval
+  chdat_x <- chdat_x_naive
+  obj_try <- MakeADFun(add_reports(nllfun_tensor), p0_try, silent = TRUE, random = "b",
+                       map = list(logsigma1 = factor(NA)))
+  fit_try <- try(with(obj_try, nlminb(par, fn, gr,
+                                      control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000))),
+                silent = TRUE)
+  if (inherits(fit_try, "try-error")) { cat("logsigma1 =", fixval, ": FAILED (NaN)\n"); next }
+  chdat_x <- chdat_x_naive
+  mu_try <- obj_try$report()$mu
+  cat("logsigma1 =", fixval, " logLik:", round(-fit_try$objective, 2),
+     " cor(mu, mu_add):", round(cor(mu_try, mu_add), 4), "\n")
+}
+```
+
+Fitted values *do* converge to additive's ($\mathrm{cor} = 1$, max
+difference $\approx 10^{-9}$ by `logsigma1 = 15`) -- but the logLik gets
+monotonically *worse* as `logsigma1` grows ($-311, -556, -801$, then `NaN`
+at `logsigma1 = 20`), not better or flat. This is not a reduction to
+additive, it's a collapse into a degenerate, unpenalized-random-effect
+limit: `S1` is the *only* thing regularizing the null space (`S2`'s null
+block is exactly zero, per the earlier "Why doesn't RTMB choke..."
+section), so sending `sigma1 -> infinity` makes the joint precision
+singular in exactly those $2 \times 49$ null-space directions. An
+unregularized random effect can trivially interpolate any particular
+fitted curve -- including additive's -- which is why the *point estimates*
+converge while the *model* (and its marginal likelihood) diverges. So: no,
+naive `te()` cannot reduce to additive in any well-posed sense, for the
+same structural reason it can't reduce to the hybrid (point 4 above) --
+it only has two scale knobs, with no way to regularize the null and range
+spaces independently.
+
+### A tunable range-block penalty: `psi`
+
+Could a generalized range-block penalty be designed to reduce cleanly to
+additive? Replace the hybrid's `Qr_smooth = kron(I_ntip, diag(d_range))`
+with `kron(I_ntip, diag(d_range^psi))`: `psi = 1` recovers the current
+hybrid exactly (raw TPS eigenvalues); `psi = 0` makes it flat
+(proportional to $I_{K_r}$), which is the structure a flat/iid wiggle
+prior (additive's own) needs. (An earlier version of this multiplied by
+`mean(d_range)` as well, to keep the penalty's overall magnitude
+comparable across `psi` -- unnecessary, since any overall constant is
+absorbed by the free `logsigma2_range` scale regardless of `psi`;
+confirmed by fitting with and without it and getting an identical result.)
+
+```{r psi-generalization}
+Qr_smooth0 <- kronecker(diag(nrow(vcmat)), diag(rep(1, Kr)))  ## psi = 0
+
+nllfun_spline_tensor_psi0 <- function(params) {
+  getAll(params, chdat_x)
+  mu <- drop(X %*% beta + Xnull_joint %*% c(t(b_null)) + Xrange_joint %*% b_range)
+  resid <- log_rs - mu
+  pen_null <- -dseparable(mk_f_phylo(vcmat, 1), mk_f_cov(us2, cor_null, logpsd_null))(b_null)
+  Q_range <- exp(-2*logsigma1_range) * Qr_phylo + exp(-2*logsigma2_range) * Qr_smooth0
+  pen_range <- -dgmrf(b_range, Q = to_Q(Q_range), log = TRUE)
+  lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
+  lik + pen_null + pen_range
+}
+chdat_x_psi0 <- c(chdat, lst(X, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth0, vcmat, us2))
+
+## same idea as the te()-to-additive sweep: kill the null block's random-slope
+## direction (logpsd_null[2] -> -Inf) and the range block's phylo term
+## (logsigma1_range -> Inf), and see whether logsigma1_range needs to be
+## "large enough" or whether (unlike naive te()) the fit is already stable
+for (fixval in c(15, 30, 50, 80, 120)) {
+  p0_psi0 <- list(beta = rep(0, 2), b_null = matrix(0, nrow(vcmat), Kn), b_range = rep(0, nrow(vcmat)*Kr),
+                  logsd = 0, logpsd_null = c(0, -20), cor_null = 0,
+                  logsigma1_range = fixval, logsigma2_range = 0)
+  chdat_x <- chdat_x_psi0
+  obj_psi0 <- MakeADFun(add_reports(nllfun_spline_tensor_psi0), p0_psi0, silent = TRUE,
+                        random = c("b_null", "b_range"),
+                        map = list(cor_null = factor(NA), logpsd_null = factor(c(1, NA)),
+                                   logsigma1_range = factor(NA)))
+  fit_psi0 <- with(obj_psi0, nlminb(par, fn, gr,
+                                    control = list(rel.tol = 1e-13, eval.max = 3000, iter.max = 3000)))
+  chdat_x <- chdat_x_psi0
+  mu_psi0 <- obj_psi0$report()$mu
+  cat("logsigma1_range =", fixval, " logLik:", round(-fit_psi0$objective, 4),
+     " cor(mu, mu_add):", round(cor(mu_add, mu_psi0), 4), "\n")
+}
+```
+
+`psi = 0` fixes the *well-posedness* problem naive `te()` had: logLik and
+fitted values are completely stable across a 15-120 range of
+`logsigma1_range` (unlike naive `te()`'s monotonic divergence) --
+`Qr_smooth0` alone is already full rank, so killing the phylo term doesn't
+remove the range block's only source of regularization. That's real
+progress. But the fit still doesn't match additive: logLik $-12.8$ vs.
+$-6.1$, $\mathrm{cor}(\mu) = 0.86$, stable at that value rather than
+approaching 1.
+
+The reason is the same basis mismatch flagged in point 4 above: `Xr_range`
+(tensor's range design, from a *fresh, non-`absorb.cons`* `smoothCon()`)
+and `Xr` (additive's, from an `absorb.cons` `smoothCon()`) are different
+parameterizations of the same 8-dimensional function space, related by
+some reparameterization matrix that is not necessarily orthogonal.
+`smooth2random()` whitens each basis so that a flat prior gives the
+correct penalty *in that basis's own coordinates* -- but "flat in
+`Xr_range`'s coordinates" (`psi = 0`) only equals "flat in `Xr`'s
+coordinates" (additive's actual structure) if that reparameterization
+preserves the inner product, which it apparently doesn't.
+
+**Status: open.** `psi` is a genuine fix for identifiability/well-posedness
+-- a real improvement over naive `te()`'s degenerate limit, and plausibly
+useful as a tunable smoothing-shape parameter in its own right, independent
+of the reduction question. But confirming an *exact* reduction to additive
+would need one more step: reconciling `Xr_range` against `Xr` via the same
+kind of least-squares basis recovery (`Tmat`/`Tmat_nr`) that
+`phyloslopes_tiny_predcovs.R` already uses for prediction, and checking
+whether that reconciliation happens to be orthogonal. Not pursued further
+here.

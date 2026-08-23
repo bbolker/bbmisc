@@ -414,25 +414,21 @@ nllfun_spline_additive <- function(params) {
 ## *nests* the additive model as logpsd_f -> -Inf (needs the baseline
 ## b_spline term above, or it loses that flexibility entirely and can only
 ## collapse all the way to the intercept-only model)
+# @knitr nllfun_spline_separable
 nllfun_spline_separable <- function(params) {
   getAll(params, chdat_x)
   mu <- drop(Xfull %*% beta + Xr %*% b_spline + Xr_joint %*% b_wiggly + Zphylo %*% b_phylo)
-  REPORT(mu)
-  ADREPORT(mu)
   resid <- log_rs - mu
-  REPORT(resid)
-  pen_spline <- -sum(dnorm(b_spline, 0, sd = exp(logsd_f), log = TRUE))
-  ## Kw (wiggly dimension) comes from chdat_x (set alongside Xr, before
-  ## chdat_x is built) -- not recomputed here, so it can't silently diverge
-  ## from the Xr actually used to build Xr_joint
-  Sigma_wiggly <- exp(2*logpsd_f) * diag(Kw)
+  Sigma_wiggly <- diag(Kw)
   Sigma_full <- kronecker(vcmat, Sigma_wiggly)
-  pen_wiggly <- -dmvnorm(b_wiggly, rep(0, length(b_wiggly)), Sigma = Sigma_full, log = TRUE)
-  pen_phylo <- -dmvnorm(b_phylo, 0, Sigma = vcmat, scale = exp(logpsd), log = TRUE)
+  pen_spline <- -sum(dnorm(b_spline, 0, sd = exp(logsd_f), log = TRUE))
+  pen_phylo <- -dmvnorm(b_phylo, Sigma = vcmat, scale = exp(logpsd), log = TRUE)
+  pen_wiggly <- -dmvnorm(b_wiggly, Sigma = Sigma_full, scale = exp(logpsd_f), log = TRUE)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen_spline + pen_wiggly + pen_phylo
 }
 
+# @knitr tensor-comments
 ## tensor-product smooth: phylo x [null-space of spline] (constant + linear,
 ## phylo-varying, diagonal/uncorrelated with *separate* scales for the two
 ## directions) + phylo x [range-space of spline] (wiggly, phylo-varying,
@@ -475,26 +471,23 @@ nllfun_spline_separable <- function(params) {
 ## directions correlate (TODO item 2) -- worth ~0.56 nats on the real data,
 ## but lands near a correlation boundary (rho ~ -0.996), so treat that gain
 ## as suggestive, not a reason to make it the default
+
+## @knitr nllfun_spline_tensor
 nllfun_spline_tensor <- function(params) {
   getAll(params, chdat_x)
-  mu <- drop(X %*% beta + Xnull_joint %*% b_null + Xrange_joint %*% b_range)
-  REPORT(mu)
-  ADREPORT(mu)
+  ## b_null is an ntip x Kn matrix (its natural shape for dseparable() below),
+  ## so it must be flattened via c(t(b_null)) -- not c(b_null) -- to match
+  ## Xnull_joint's [species-outer, null-dim-inner] column order, exactly as
+  ## nllfun_sep's own b/Z multiply does
+  mu <- drop(X %*% beta + Xnull_joint %*% c(t(b_null)) + Xrange_joint %*% b_range)
   resid <- log_rs - mu
-  REPORT(resid)
-  ## null block: Sigma_unsc_null depends only on data (vcmat, us2) plus
-  ## cor_null -- logpsd_null has one scale per null-space direction, so its
-  ## scale vector repeats exp(logpsd_null) once per species, matching
-  ## Xnull_joint/b_null's [species-outer, null-dim-inner] column order
-  Sigma_unsc_null <- kronecker(vcmat, us2$corr(cor_null))
-  pen_null <- -dmvnorm(b_null, rep(0, length(b_null)), Sigma = Sigma_unsc_null,
-                        scale = rep(exp(logpsd_null), nrow(vcmat)), log = TRUE)
-  ## range block: Qr_phylo (= kron(Sphylo, I_Kr)) and Qr_smooth (= kron(I_ntip,
-  ## diag(d_range))) are, like Sigma_unsc_null above, pure functions of data
-  ## (chdat_x) -- cached across evaluations; only the two scalar multipliers
-  ## depend on parameters
-  Q_range <- (1/exp(logsigma1_range)^2) * Qr_phylo + (1/exp(logsigma2_range)^2) * Qr_smooth
-  pen_range <- -dgmrf(b_range, 0, Q = to_Q(Q_range), log = TRUE)
+  ## null block: the same phylo x unstructured(Kn) covariance nllfun_sep puts
+  ## on a plain intercept+slope pair (see README_tensor.qmd's "null block"
+  ## section)
+  pen_null <- -dseparable(mk_f_phylo(vcmat, 1), mk_f_cov(us2, cor_null, logpsd_null))(b_null)
+  ## range block
+  Q_range <- exp(-2*logsigma1_range) * Qr_phylo + exp(-2*logsigma2_range) * Qr_smooth
+  pen_range <- -dgmrf(b_range, Q = to_Q(Q_range), log = TRUE)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen_null + pen_range
 }

@@ -206,7 +206,7 @@ fit_sep <- TMBfit(obj_sep)
 ## null-space-direction correlation -- see its header comment
 us2 <- unstructured(2)
 chdat_x <- lst(log_rs = y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2)
-p0_tensor <- list(beta = rep(0, 2), b_null = rep(0, ntip * Kn), b_range = rep(0, ntip * Kr),
+p0_tensor <- list(beta = rep(0, 2), b_null = matrix(0, ntip, Kn), b_range = rep(0, ntip * Kr),
                   logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
                   logsigma1_range = 0, logsigma2_range = 0)
 obj_tensor <- MakeADFun(nllfun_spline_tensor, p0_tensor, silent = TRUE,
