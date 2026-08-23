@@ -39,3 +39,13 @@ bench_plot_intercept <- ggplot(bench_df_intercept, aes(x = time / 1e6, y = expr)
   labs(x = "time (ms)", y = NULL,
       title = "phyloslopes: fitting time by method (random-intercept only)")
 ggsave("phyloslopes_bench1.png", bench_plot_intercept, width = 8, height = 4)
+
+## random-slopes model, standalone (no faceting) -- the three
+## sep_dseparable/dense_Kronecker/edge_KhatriRao methods from
+## phyloslopes_bench1.R's bench_slopes/phylo_bench_slopes.rds
+bench_plot_slopes <- ggplot(as.data.frame(bench_slopes), aes(x = time / 1e6, y = expr)) +
+  geom_violin(fill = "gray") +
+  scale_x_log10() +
+  labs(x = "time (ms)", y = NULL,
+      title = "phyloslopes: fitting time by method (random-slopes + intercept)")
+ggsave("phyloslopes_bench1_slopes.png", bench_plot_slopes, width = 8, height = 4)

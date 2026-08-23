@@ -112,8 +112,7 @@ predict.TMB <- function(x, se.fit = FALSE) {
 ##' @export
 ##' @importFrom Matrix t diag
 ##' @importFrom ape vcv
-## FIXME:: rename to phylo_to_Z ?
-phylo.to.Z <- function(r, stand = FALSE) {
+phylo_to_Z <- function(r, stand = FALSE) {
   ntip <- length(r$tip.label)
   Zid <- Matrix::Matrix(0.0, ncol = length(r$edge.length), nrow = ntip)
   nodes <- (ntip + 1):max(r$edge)
@@ -156,7 +155,7 @@ drop_mrf_root <- function(tree, Q, sparse = TRUE) {
   ## then "N<node id>"; reorder to [root][other internal nodes][tips] *by
   ## name*, not position, so this doesn't silently misalign if mrf_penalty()'s
   ## internal ordering convention ever changes. Root identified the same way
-  ## as in phylo.to.Z(): the internal node that never appears as an edge's
+  ## as in phylo_to_Z(): the internal node that never appears as an edge's
   ## child
   internal_ids <- (ntip + 1):(ntip + tree$Nnode)
   root_id <- internal_ids[!(internal_ids %in% tree$edge[, 2])]
@@ -260,7 +259,7 @@ nllfun_prec <- function(params) {
 }
 
 #' @knitr nllfun_edge
-## edge-based Z-matrix parameterization: Z (from phylo.to.Z()) maps tips to
+## edge-based Z-matrix parameterization: Z (from phylo_to_Z()) maps tips to
 ## their ancestral edges, scaled by sqrt(edge.length), so b ~ iid N(0, tau^2)
 ## gives Cov(Z %*% b) = tau^2 * vcv(tree) -- no covariance/precision matrix
 ## needed, just a plain iid Gaussian prior on b
@@ -297,7 +296,7 @@ nllfun_sep <- function(params) {
 }
 
 ## @knitr nllfun_edge
-## edge-based random-slopes: KR (from KhatriRao(t(phylo.to.Z(tree)), t(J)))
+## edge-based random-slopes: KR (from KhatriRao(t(phylo_to_Z(tree)), t(J)))
 ## maps each observation to 2 columns per edge (intercept-innovation,
 ## slope-innovation), so b (length 2*nedge) is naturally 96 iid-across-edges
 ## 2-blocks; Sigma2 gives their (shared, per-edge) 2x2 covariance. Brownian
@@ -307,21 +306,17 @@ nllfun_sep <- function(params) {
 nllfun_edge_slopes <- function(params) {
   getAll(params, chdat_x)
   mu <- drop(X %*% beta + KR %*% b)
-  REPORT(mu)
-  ADREPORT(mu)
   resid <- log_rs - mu
-  REPORT(resid)
   b_mat <- matrix(b, ncol = 2, byrow = TRUE)
-  D <- exp(logrsd)
-  Sigma2 <- (matrix(D, ncol = 1) %*% matrix(D, nrow = 1)) * us2$corr(corval)
-  pen <- -sum(dmvnorm(b_mat, rep(0, 2), Sigma = Sigma2, log = TRUE))
+  Sigma2 <- us2$corr(corval)
+  pen <- -sum(dmvnorm(b_mat, Sigma = Sigma2, scale = exp(logrsd), log = TRUE))
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen
 }
 
 ## dense-Kronecker random-slopes: brute-force ground truth for the
-## separable/edge-based models above. b (length 2*ntip) ~ N(0, Sigma2 %x%
-## vcmat) directly, with Zdense (= t(rt$Zt), species-outer/trait-inner)
+## separable/edge-based models above. b (length 2*ntip) ~ N(0, vcmat %x%
+## Sigma2) directly, with Zdense (= t(rt$Zt), species-outer/trait-inner)
 ## mapping b to each observation's fitted intercept+slope contribution
 nllfun_dense_slopes <- function(params) {
   getAll(params, chdat_x)
@@ -330,10 +325,8 @@ nllfun_dense_slopes <- function(params) {
   ADREPORT(mu)
   resid <- log_rs - mu
   REPORT(resid)
-  D <- exp(logrsd)
-  Sigma2 <- (matrix(D, ncol = 1) %*% matrix(D, nrow = 1)) * us2$corr(corval)
-  Sigma_full <- kronecker(vcmat, Sigma2)
-  pen <- -dmvnorm(b, rep(0, length(b)), Sigma = Sigma_full, log = TRUE)
+  Sigma_full <- kronecker(vcmat, us2$corr(corval))
+  pen <- -dmvnorm(b, Sigma = Sigma_full, scale = rep(exp(logrsd), nrow(vcmat)), log = TRUE)
   lik <- -sum(dnorm(log_rs, mean = mu, sd = exp(logsd), log = TRUE))
   lik + pen
 }
@@ -475,10 +468,9 @@ nllfun_spline_separable <- function(params) {
 ## @knitr nllfun_spline_tensor
 nllfun_spline_tensor <- function(params) {
   getAll(params, chdat_x)
-  ## b_null is an ntip x Kn matrix (its natural shape for dseparable() below),
+  ## b_null is an ntip x Kn matrix (natural shape for dseparable()),
   ## so it must be flattened via c(t(b_null)) -- not c(b_null) -- to match
-  ## Xnull_joint's [species-outer, null-dim-inner] column order, exactly as
-  ## nllfun_sep's own b/Z multiply does
+  ## Xnull_joint's [species-outer, null-dim-inner] column order
   mu <- drop(X %*% beta + Xnull_joint %*% c(t(b_null)) + Xrange_joint %*% b_range)
   resid <- log_rs - mu
   ## null block: the same phylo x unstructured(Kn) covariance nllfun_sep puts

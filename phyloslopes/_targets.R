@@ -4,7 +4,7 @@ tar_option_set(
   packages = c("ade4", "ape", "dplyr", "glmmTMB", "RTMB", "reformulas",
                "Matrix", "MRFtools", "phyr", "mgcv", "microbenchmark",
                "MASS", "tibble", "ggplot2", "cowplot", "broom.mixed",
-               "performance")
+               "performance", "formatR")
 )
 
 ## Every script in this project (phyloslopes_tests.R, phyloslopes_tiny.R,
@@ -13,10 +13,12 @@ tar_option_set(
 ## writes its own output file(s)) and tracks those outputs with
 ## format = "file", rather than trying to pass R objects between targets
 ## directly. Two reasons for that, not just matching the existing style:
-##   (1) TMB/RTMB ADFun objects hold C++ pointers and don't survive being
-##       cached/reloaded across a session boundary (see
-##       phyloslopes_tiny_predcovs.R's comments on this) -- so a target
-##       can never safely *return* a fitted model object anyway.
+##   (1) RTMB::MakeADFun() objects turn out to survive a plain save()/load()
+##       round-trip fine (see phyloslopes_tiny_predcovs.R's comments), but
+##       that's untested through targets' own caching mechanism, and
+##       glmmTMB's compiled-DLL-based ADFun objects are a different,
+##       likely-still-fragile case -- not worth relying on either way when
+##       reason (2) alone already justifies the current design.
 ##   (2) these scripts weren't written as functions, and turning them into
 ##       one would be a much bigger, riskier change than wiring them up as
 ##       they are.
@@ -123,7 +125,7 @@ list(
     {
       bench1_plot_r; bench_rds
       source("phyloslopes_bench1_plot.R")
-      c("phyloslopes_bench.png", "phyloslopes_bench1.png")
+      c("phyloslopes_bench.png", "phyloslopes_bench1.png", "phyloslopes_bench1_slopes.png")
     },
     format = "file"
   ),

@@ -6,7 +6,7 @@
 ##   - RTMB + dgmrf(), full tree,      (sparse precision over tips + internal
 ##     root dropped                     nodes via mrf_penalty(), root removed
 ##                                       to fix the rank deficiency)
-##   - RTMB + edge-based Z-matrix      (phylo.to.Z(): tip x edge matrix, iid
+##   - RTMB + edge-based Z-matrix      (phylo_to_Z(): tip x edge matrix, iid
 ##                                       Gaussian prior on b, no covariance/
 ##                                       precision matrix needed)
 ##   - phyr::pglmm_compare()           (independent implementation, dense
@@ -76,7 +76,7 @@ Q_full_raw <- mrf_penalty(chtree, "brownian", internal_nodes = TRUE)
 ## then "N<node id>"; reorder to [root][other internal nodes][tips] *by
 ## name*, not position, so this doesn't silently misalign if mrf_penalty()'s
 ## internal ordering convention ever changes. Root identified the same way
-## as in phylo.to.Z(): the internal node that never appears as an edge's
+## as in phylo_to_Z(): the internal node that never appears as an edge's
 ## child
 internal_ids <- (ntip + 1):(ntip + chtree$Nnode)
 root_id <- internal_ids[!(internal_ids %in% chtree$edge[, 2])]
@@ -100,13 +100,13 @@ p0_allnodes <- modifyList(p0, list(b = rep(0, chtree$Nnode + ntip - 1)))
 chdat_x <- c(chdat, list(Z = Z_allnodes, phyloprec = Q_allnodes))
 fit_prec_allnodes <- TMBfit(MakeADFun(nllfun_prec, p0_allnodes, silent = TRUE, random = "b"))
 
-## -- fit: RTMB + edge-based Z-matrix (phylo.to.Z) ----------------------------
-## phylo.to.Z() builds a tip x edge matrix with sqrt(edge.length) entries on
+## -- fit: RTMB + edge-based Z-matrix (phylo_to_Z) ----------------------------
+## phylo_to_Z() builds a tip x edge matrix with sqrt(edge.length) entries on
 ## ancestral edges, so Z_edge %*% b with b iid unit-scale reproduces vcv(tree)
 ## exactly -- no covariance/precision matrix needed, and (unlike the
 ## all-nodes precision matrix above) no root singularity, since there's no
 ## free "root value" parameter
-pZ <- phylo.to.Z(chtree)
+pZ <- phylo_to_Z(chtree)
 Z_edge <- pZ[as.character(chdat$species), ]
 p0_edge <- modifyList(p0, list(b = rep(0, nrow(chtree$edge))))
 chdat_x <- c(chdat, list(Z = Z_edge))
@@ -152,11 +152,11 @@ p0_ds <- modifyList(p0, list(b = rep(0, 2*nrow(vcmat)), logrsd = rep(0, 2), corv
 chdat_x <- c(chdat, list(Zdense = Zdense))
 fit_dense_slopes <- TMBfit(MakeADFun(nllfun_dense_slopes, p0_ds, silent = TRUE, random = "b"))
 
-## fit: edge-based (phylo.to.Z + KhatriRao), no covariance/precision matrix
+## fit: edge-based (phylo_to_Z + KhatriRao), no covariance/precision matrix
 ## needed -- see nllfun_edge_slopes in phyloslopes_utils.R
 f_slopes <- ~ 1 + (1 + log_bm | species)
 J <- eval(bquote(model.matrix(~.(findbars(f_slopes)[[1]][[2]]), data = chdat)))
-pZ <- phylo.to.Z(chtree)
+pZ <- phylo_to_Z(chtree)
 pZ_ord <- pZ[as.character(chdat$species), ]
 KR <- t(KhatriRao(t(pZ_ord), t(J)))
 ## built explicitly, not via modifyList(p0, ...): p0 carries a `logpsd`
@@ -309,8 +309,7 @@ for (p in pairs) {
 }
 
 ## -- consistency checks: all pairs of the three random-slopes parameterizations
-slopes_fits <- list(fit_sep = fit_sep, fit_dense_slopes = fit_dense_slopes,
-                    fit_edge_slopes = fit_edge_slopes)
+slopes_fits <- tibble::lst(fit_sep, fit_dense_slopes, fit_edge_slopes)
 slopes_pairs <- combn(names(slopes_fits), 2, simplify = FALSE)
 for (p in slopes_pairs) {
   check_fixef_equal(slopes_fits[[p[1]]], slopes_fits[[p[2]]], label1 = p[1], label2 = p[2])

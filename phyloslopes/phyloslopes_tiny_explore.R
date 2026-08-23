@@ -18,7 +18,7 @@ library(RTMB)
 library(numDeriv)  ## jacobian(), for the profiled-Hessian saddle-point check
 library(tibble)    ## lst(), for chdat_x construction without name = name duplication
 
-source("phyloslopes_utils.R")  ## phylo.to.Z(), drop_mrf_root()
+source("phyloslopes_utils.R")  ## phylo_to_Z(), drop_mrf_root()
 
 ## -- tiny deterministic tree ------------------------------------------------
 ## (((1,2),3),(4,5)), all edges length 1 -- not ultrametric, but simpler
@@ -45,7 +45,7 @@ Q_noroot <- drop_mrf_root(chtree, Q_full_raw)
 ## enter mu), so the observation-level covariance this implies is the tip
 ## x tip block of solve(Q_noroot) -- checked below to equal vcmat exactly.
 
-Z_edge <- phylo.to.Z(chtree)                  ## tip x edge Z (sqrt(edge.length) entries)
+Z_edge <- phylo_to_Z(chtree)                  ## tip x edge Z (sqrt(edge.length) entries)
 ## Z_edge %*% t(Z_edge) reproduces vcmat exactly (checked below)
 
 Z_species <- Diagonal(ntip, x = 1)

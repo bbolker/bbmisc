@@ -202,6 +202,76 @@ confirms the tiny-example finding (naive Kronecker-sum is well-identified
 for a *genuine* TPS penalty, unlike the trivial `diag(2)` trait case)
 generalizes to the real 49-species data.
 
+## Why is the trivial `diag(2)` case different? (the linear random-slopes pathology)
+
+Before the tensor-product-*smooth* work above, the same naive Kronecker-sum
+construction (`nllfun_tensor`) was tried on the much simpler plain linear
+random-slopes model: is the `separable` random-slopes model (`nllfun_sep`,
+phylogeny x intercept-slope covariance) nested inside this tensor-product
+model, recoverable for some choice of the free trait-precision parameters?
+
+No. For `b` laid out species-outer/trait-inner (so the separable covariance
+is $\mathbf\Sigma_{\text{full}} = \mathbf V \otimes \mathbf\Sigma_{2}$, with
+$\mathbf V = $ `vcmat`), the separable model's precision is a Kronecker
+*product*
+$$\mathbf Q_{sep} = \mathbf S_{phylo} \otimes \mathbf P_{trait,sep},$$
+while summing `-dgmrf()` over `tensor.prod.penalties(list(Sphylo, Ptrait))`
+gives a Kronecker *sum*
+$$\mathbf Q_{add} = \mathbf S_{phylo} \otimes \mathbf I_2 \;+\; \mathbf I_{ntip} \otimes \mathbf P_{trait,add}.$$
+Both are diagonalized by the same rotation $\mathbf V \otimes \mathbf I_2$,
+where $\mathbf S_{phylo} = \mathbf V\boldsymbol\Lambda \mathbf V^\top$
+($\boldsymbol\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_{49})$). In that
+basis, block $i$ of $\mathbf Q_{sep}$ is $\lambda_i \mathbf P_{trait,sep}$
+and block $i$ of $\mathbf Q_{add}$ is $\lambda_i \mathbf I_2 +
+\mathbf P_{trait,add}$. Matching every block simultaneously requires
+$$\mathbf P_{trait,add} = \lambda_i\,(\mathbf P_{trait,sep} - \mathbf I_2) \quad \text{for all } i = 1,\dots,49,$$
+which is impossible unless $\mathbf P_{trait,sep} = \mathbf I_2$ (which
+forces $\mathbf P_{trait,add}=0$, not a valid precision matrix), since
+$\mathbf S_{phylo}$'s eigenvalues are not all equal (range $\approx
+0.0032$-$3.33$ for this tree, i.e. $\mathbf S_{phylo}$ is not proportional
+to $\mathbf I_{ntip}$). So the separable model is *not* a special case of
+this tensor-product-penalty model -- Kronecker product and Kronecker sum
+are different families of precision matrices, and no choice of the free
+2x2 trait-precision parameters lets the tensor-product model exactly
+reproduce the separable one.
+
+This matches what happens numerically: fitting this model (`Sphylo`
+fixed/unscaled, `Ptrait` built from 3 free parameters -- two log-sds and a
+correlation, then inverted) converges to a much worse fit (logLik $\approx
+-180$ vs. $-6.5$ for the separable model) and lands on a genuine saddle
+point -- the profiled Hessian (via `numDeriv::jacobian(obj$gr, ...)`) has
+substantial negative eigenvalues (e.g. $-3011,-107$ from an all-zero
+start; $-55,-7.3$ from a warm start at the separable model's optimum) --
+regardless of how the trait correlation is parameterized
+(`unstructured(2)`'s internal transform vs. the glmmTMB-vignette mapping
+$\rho=\theta/\sqrt{1+\theta^2}$ give near-identical results). The
+optimizer keeps pushing the correlation toward its boundary, trying (and
+failing) to approximate the unreachable separable structure.
+
+**Follow-up (see `phyloslopes_tiny_explore.R`):** wiring up and fitting
+this exact Kronecker-sum construction (`nllfun_tensor`) on small simulated
+examples (`ntip` = 5 and 10) -- including data simulated *correctly* under
+the model itself, with strong signal (`sigma_1 = sigma_2 = 2 >>
+sigma_resid = 0.1`) and enough replication that this isn't just an
+interpolation artifact -- confirms a genuine, reproducible
+non-identifiability between the two variance-component scales (one always
+runs off toward a boundary; verified via multi-start that this is the true
+global optimum, not a bad start). It's not fixed/random (`X`/`tX`)
+aliasing. The cause is specific to `Ptrait/Strait` being a trivial,
+structureless, full-rank identity matrix (`diag(2)` here) --
+indistinguishable from a generic flat ridge, so the model can't tell
+"shrink toward phylogenetic similarity" apart from "shrink generically."
+It does **not** generalize to a genuine tensor-product smooth of phylogeny
+x a spline, per the naive-tensor check just above: a trait-side penalty
+with real internal (null/range) structure, like a TPS penalty, avoids the
+redundancy even fed into this same naive shared-`dgmrf()` construction.
+The null/range-decomposed hybrid construction documented throughout this
+note -- eigendecompose null/range space first, give each its own separate
+Kronecker-*product* term rather than summing into one shared precision --
+also sidesteps it when applied back to this plain intercept+slope case
+(this is exactly what `nllfun_sep` already is, as noted in "Isolating the
+mechanism" above).
+
 But it gives a **different fit** from the (then-current) null/range-decomposed
 `nllfun_spline_tensor` construction, not the same one reparameterized -- for
 comparison, that construction as it stood at the start of this investigation
@@ -591,6 +661,20 @@ Wood's own argument about effective-degrees-of-freedom range. Implemented:
 unchanged, rather than switching wholesale to the naive `te()`-extracted
 version (which would sacrifice the separate null-space scales that are worth
 more than the range-space fix on their own).
+
+Is the hybrid's real-data fit actually well-posed, or just a better saddle
+point than the alternatives? Checked the same way as the naive `te()` fit
+above:
+
+```{r hybrid-hessian}
+H_hybrid <- numDeriv::jacobian(obj_hybrid$gr, fit_hybrid$par)
+ev_hybrid <- eigen(H_hybrid, symmetric = TRUE, only.values = TRUE)$values
+cat("Hessian eigenvalues:", round(ev_hybrid, 4), "\n")
+```
+
+No negative eigenvalues -- a genuine local optimum, not a saddle, unlike
+the naive Kronecker-sum pathology the plain linear (`diag(2)`) random-slopes
+case has (see "Why is the trivial `diag(2)` case different?" above).
 
 Separately, `nllfun_spline_tensor`'s null block now takes a `cor_null`
 parameter (`kronecker(phylomat, us2$corr(cor_null))` in place of the old

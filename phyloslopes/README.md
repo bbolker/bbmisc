@@ -10,7 +10,7 @@ separable, tensor-product). Write-up: `phyloslopes.qmd`.
 ## Files
 
 - `phyloslopes_utils.R` -- shared helpers: RTMB negative-log-likelihoods
-  (`nllfun_*`), `phylo.to.Z()`, `drop_mrf_root()`, TMB-object accessor
+  (`nllfun_*`), `phylo_to_Z()`, `drop_mrf_root()`, TMB-object accessor
   methods (`fixef.TMB`/`logLik.TMB`/`AIC.TMB`), and a `logLik.glmmTMB`/
   `AIC.glmmTMB` hack (registered via `registerS3method()`) that bypasses
   glmmTMB's NA-on-convergence-warning safety check so a flagged fit can
@@ -127,7 +127,7 @@ how the phylogenetic covariance is represented:
   (`solve(vcmat)`, sparsified) and once with the all-internal-nodes
   precision (`MRFtools::mrf_penalty(..., internal_nodes = TRUE)` with the
   root dropped via `drop_mrf_root()`).
-- **`nllfun_edge`** -- edge-based `Z` (`phylo.to.Z()`, tips-to-ancestral-edges
+- **`nllfun_edge`** -- edge-based `Z` (`phylo_to_Z()`, tips-to-ancestral-edges
   mapping scaled by `sqrt(edge.length)`): `b` is plain iid `N(0, tau^2)`,
   no covariance/precision matrix needed at all, since the edge-weighted
   `Z` already induces the right tip covariance by construction.

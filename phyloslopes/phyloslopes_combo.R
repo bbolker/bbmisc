@@ -155,12 +155,40 @@ obj_sptensor <- MakeADFun(nllfun_spline_tensor, p0_sptensor, silent = TRUE,
                           map = list(cor_null = factor(NA)))
 fit_tensor <- TMBfit(obj_sptensor)
 
+## -- tensor-product smooth, naive te()-extracted construction ---------------
+## same species x log_bm tensor-product smooth, but built directly from
+## mgcv::smooth.construct()'s raw (undecomposed) $X/$S -- Wood (2006, sec.
+## 4.1.8)'s standard multiple-term-penalty recipe, the same one mgcv's own
+## te() uses by default -- fit here via RTMB (nllfun_tensor) rather than
+## gam()'s own REML/ML smoothing-parameter selection, which does not
+## converge on this data (the 490-coefficient tensor basis on 49
+## observations interpolates almost immediately -- see README_tensor.qmd).
+## Included alongside the better-identified hybrid `tensor` fit above so a
+## genuine mgcv-equivalent fit appears in this AIC table at all: validated
+## against mgcv::gam() directly on Clark (2024)'s worked example in
+## README_tensor.qmd (fitted-value correlation > 0.99999), and confirmed
+## there NOT to be a constrained special case of nllfun_spline_tensor (a
+## basis mismatch between the two null/range decompositions, not just a
+## parameter restriction away)
+te_spec <- te(species, log_bm, bs = c("mrf", "tp"), k = c(49, 10),
+             xt = list(list(penalty = Sphylo), NULL))
+sm_te <- smooth.construct(te_spec, data = chdat, knots = NULL)
+tX_naive <- sm_te$X
+p0_naive <- list(beta = rep(0, 2), b = rep(0, ncol(tX_naive)),
+                 logsigma1 = 0, logsigma2 = 0, logsd_resid = 0)
+chdat_x <- c(chdat, lst(X, tX = tX_naive,
+                       tp1 = Matrix(sm_te$S[[1]], sparse = TRUE),
+                       tp2 = Matrix(sm_te$S[[2]], sparse = TRUE)))
+obj_naive <- MakeADFun(nllfun_tensor, p0_naive, silent = TRUE, random = "b")
+fit_tensor_naive <- TMBfit(obj_naive)
+
 ## -- store as a named list ---------------------------------------------
 phyloslopes_combo_models <- list(
   null = fit_null,
   additive = fit_additive,
   separable = fit_separable,
-  tensor = fit_tensor
+  tensor = fit_tensor,
+  `tensor (naive te())` = fit_tensor_naive
 )
 
 ## -- quick comparison summary --------------------------------------------
