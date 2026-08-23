@@ -106,10 +106,10 @@ for (nm in names(phyloslopes_linear_models)) {
 }
 
 ## -- save the fitted models themselves, as requested ------------------------
-## NB: both glmmTMB and RTMB TMBfit objects wrap a TMB ADFun with a C++
-## pointer that goes stale on a save()/load() round-trip into a fresh R
-## session -- basic accessors used above (fixef/logLik/AIC/summary,
-## already-computed at fit time) keep working on a reloaded object, but
-## anything that needs to re-evaluate the objective (obj$fn()/obj$gr(),
-## sdreport(), update(), refitting) will not.
+## RTMB::MakeADFun() objects (the TMBfit-wrapped fits above) survive a plain
+## save()/load() round-trip into a fresh R session -- obj$fn()/obj$gr()/
+## obj$report()/sdreport() all work immediately on the reloaded object, no
+## obj$retape() needed. Call obj$retape() defensively anyway before relying
+## on a reloaded fit for anything beyond the already-computed accessors
+## (fixef/logLik/AIC/summary).
 save(phyloslopes_linear_models, chtree, vcmat, chdat, file = "phyloslopes_linear.rda")

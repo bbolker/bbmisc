@@ -50,48 +50,41 @@ Sphylo <- solve(vcmat)
 Qr_phylo <- kronecker(Sphylo, diag(Kr))
 Qr_smooth <- kronecker(diag(ntip), diag(d_range))
 
-## -- refit the three structures -----------------------------------------
-## (TMB/RTMB ADFun objects hold C++ pointers and don't survive a save()/
-## load() round-trip, so they're always refit here from the loaded design
-## matrices/data rather than loaded directly)
-## each chdat_x snapshot is also saved under a model-specific name
-## (chdat_x_add, chdat_x_sep, ...): RTMB's report() re-evaluates the
-## objective's R closure fresh on every call rather than replaying a
-## frozen tape, so it needs chdat_x (looked up by nllfun_spline_*() via
-## ordinary lexical scoping from .GlobalEnv) to still match *that* model
-## at report()-time -- not just at the MakeADFun() call that built it.
-## The sanity-check loop below restores the right snapshot before each
-## model's report() call rather than relying on chdat_x still happening
-## to hold the last-assigned value.
-chdat_x <- lst(log_rs = sim_dat$y, Xfull, Xr, Zphylo, vcmat)
-chdat_x_add <- chdat_x
-p0_add <- list(beta = rep(0, 2), b_spline = rep(0, Kw), b_phylo = rep(0, ntip),
-               logsd = 0, logsd_f = 0, logpsd = 0)
-obj_add <- MakeADFun(nllfun_spline_additive, p0_add, silent = TRUE,
-                     random = c("b_spline", "b_phylo"))
-fit_add <- TMBfit(obj_add)
+## -- reuse the fits from phyloslopes_tiny.R instead of refitting -----------
+## fit_add/fit_sep/fit_tensor and chdat_x_add/chdat_x_sep/chdat_x_tensor were
+## loaded above from phyloslopes_tiny.rda. RTMB::MakeADFun() objects survive
+## save()/load() into a fresh session (obj$fn()/obj$gr()/obj$report()/
+## sdreport() all work immediately); obj$retape() is called defensively
+## below anyway. additive's tape already has REPORT()/ADREPORT() (built into
+## nllfun_spline_additive itself), so it's reused as-is. separable/tensor
+## were built there from the REPORT-less nllfun_spline_separable/_tensor, so
+## their tapes can't retroactively gain REPORT() -- a fresh add_reports()-
+## wrapped MakeADFun() call is still needed for those, but starting from the
+## already-converged parameter values so it converges immediately rather
+## than refitting from a cold start.
+chdat_x <- chdat_x_add
+fit_add$obj$retape()
+## retape() resets the tape's internal parameter/random-effect state, so
+## last.par.best (used by get_parlist()/report() below) goes stale until a
+## fresh fn() call re-runs the inner random-effects optimization at the
+## true fitted point
+invisible(fit_add$obj$fn(fit_add$fit$par))
 
-chdat_x <- lst(log_rs = sim_dat$y, Xfull, Xr, Xr_joint, Zphylo, Kw, vcmat)
-chdat_x_sep <- chdat_x
-p0_sep <- modifyList(p0_add, list(b_wiggly = rep(0, ntip * Kw), logpsd_f = -10))
-## apply add_reports() to augment the function with REPORT(resid)/ADREPORT(mu)
+p0_sep <- fit_sep$obj$env$parList(par = fit_sep$obj$env$last.par.best)
+chdat_x <- chdat_x_sep
 obj_sep <- MakeADFun(add_reports(nllfun_spline_separable), p0_sep, silent = TRUE,
                      random = c("b_spline", "b_wiggly", "b_phylo"))
 fit_sep <- TMBfit(obj_sep)
 
-## cor_null (fixed at 0 via map=) is nllfun_spline_tensor's optional
-## null-space-direction correlation -- see its header comment
-us2 <- unstructured(2)
-chdat_x <- lst(log_rs = sim_dat$y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2)
-chdat_x_tensor <- chdat_x
-p0_tensor <- list(beta = rep(0, 2), b_null = matrix(0, ntip, Kn), b_range = rep(0, ntip * Kr),
-                  logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
-                  logsigma1_range = 0, logsigma2_range = 0)
-## apply add_reports() to augment the function with REPORT(resid)/ADREPORT(mu)
+p0_tensor <- fit_tensor$obj$env$parList(par = fit_tensor$obj$env$last.par.best)
+chdat_x <- chdat_x_tensor
 obj_tensor <- MakeADFun(add_reports(nllfun_spline_tensor), p0_tensor, silent = TRUE,
                         random = c("b_null", "b_range"),
                         map = list(cor_null = factor(NA)))
 fit_tensor <- TMBfit(obj_tensor)
+
+obj_add <- fit_add$obj
+p0_add <- obj_add$env$parList(par = obj_add$env$last.par.best)
 
 ## -- additive/separable refit with the random-effects variance-component
 ## hyperparameters FIXED at their true simulated values (sd_f, sd_wiggly,
@@ -300,11 +293,11 @@ predcovs <- list()
 ## sanity-check loop above -- it re-evaluates obj$fn()/obj$gr() fresh, so
 ## needs the matching data snapshot live, not whatever chdat_x last
 ## happened to hold
-model_defs <- list(additive = list(obj = obj_add, A = A_add, chdat_x = chdat_x_add),
-                    separable = list(obj = obj_sep, A = A_sep, chdat_x = chdat_x_sep),
-                    tensor = list(obj = obj_tensor, A = A_tensor, chdat_x = chdat_x_tensor),
-                    `additive/true` = list(obj = obj_add_true, A = A_add_true, chdat_x = chdat_x_add),
-                    `separable/true` = list(obj = obj_sep_true, A = A_sep_true, chdat_x = chdat_x_sep))
+model_defs <- list(`additive\n(fitted)` = list(obj = obj_add, A = A_add, chdat_x = chdat_x_add),
+                    `separable\n(fitted)` = list(obj = obj_sep, A = A_sep, chdat_x = chdat_x_sep),
+                    `tensor\n(fitted)` = list(obj = obj_tensor, A = A_tensor, chdat_x = chdat_x_tensor),
+                    `additive\n(true)` = list(obj = obj_add_true, A = A_add_true, chdat_x = chdat_x_add),
+                    `separable\n(true)` = list(obj = obj_sep_true, A = A_sep_true, chdat_x = chdat_x_sep))
 for (nm in names(model_defs)) {
   obj_i <- model_defs[[nm]]$obj
   A_i <- model_defs[[nm]]$A
@@ -324,6 +317,6 @@ for (nm in names(model_defs)) {
 }
 
 ## -- save (plain-data results only -- point estimates and covariance
-## matrices, never the obj/fit TMB objects themselves, which hold C++
-## pointers that don't survive a save()/load() round-trip) -----------------
+## matrices, not the obj/fit TMB objects themselves, which aren't needed
+## downstream here) -----------------
 save(x0, predcovs, file = "phyloslopes_tiny_predcovs.rda")

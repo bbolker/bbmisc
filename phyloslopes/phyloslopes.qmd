@@ -283,6 +283,7 @@ The null model (i.e. `~ 1 + (0 + propto | species, phylo)`), the additive linear
 Even the plain additive model barely improves the fit over the null model in this case; the independent model fit is singular and collapses back to the additive model; and the separable model gives a minor improvement.
 
 ```{r compare-linear-fits}
+#| echo: false
 load("phyloslopes_linear.rda")
 tt <- bbmle::AICtab(phyloslopes_linear_models, logLik = TRUE)
 print(as.data.frame(tt), digits = 2)
@@ -336,15 +337,27 @@ Starting with a very small example that will (hopefully) allow visualizizing the
 | tensor    | 3 — `logpsd_null` (×2, one per null-space direction), `logpsd_range`  | 20 — `b_null` (10) + `b_range` (10)                      | $SK$ |
 
 
-Here are plots of the covariances between the predicted values of species 1-5 at $x=3$ and their slopes at $x=3$. For this tiny example, the separable model collapses back to the additive model.
+For this tiny example, the separable model collapses back to the additive model.
 
+```{r tiny-aic}
+#| echo: false
+L <- load("phyloslopes_tiny.rda")
+tiny_models <- list(additive = fit_add, separable = fit_sep, tensor = fit_tensor)
+tt <- bbmle::AICtab(tiny_models, logLik = TRUE)
+print(as.data.frame(tt), digits = 2)
+```
+
+Here are plots of the covariances between the predicted values of species 1-5 at $x=3$ and their slopes at $x=3$; 'fitted' refers to predictions for the fitted model (at the estimated parameters), 'true' shows predictions for the original parameters used for simulation. 
+
+Here are the
 ```{r tiny-plots}
+#| echo: false
 #| fig-width: 9.4
 #| fig-height: 8.6
 L <- load("phyloslopes_tiny_predcovs.rda")
 covs1 <- lapply(predcovs, \(x) x$cov)
-covs1 <- c(covs1, list("separable-additive"= covs1[["separable"]]-covs1[["additive"]],
-                       "separable-additive/true" = covs1[["separable/true"]]-covs1[["additive/true"]]))
+covs1 <- c(covs1, list("separable-additive\n(fitted)" = covs1[["separable\n(fitted)"]]-covs1[["additive\n(fitted)"]],
+                       "separable-additive\n(true)" = covs1[["separable\n(true)"]]-covs1[["additive\n(true)"]]))
 cowplot::plot_grid(plotlist = Map(ifun, covs1, names(covs1)))
 ```
 

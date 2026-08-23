@@ -190,6 +190,7 @@ print(sim_dat)
 
 ## -- fit all three structures to the same simulated data --------------------
 chdat_x <- lst(log_rs = y, Xfull, Xr, Zphylo, vcmat)
+chdat_x_add <- chdat_x
 p0_add <- list(beta = rep(0, 2), b_spline = rep(0, Kw), b_phylo = rep(0, ntip),
                logsd = 0, logsd_f = 0, logpsd = 0)
 obj_add <- MakeADFun(nllfun_spline_additive, p0_add, silent = TRUE,
@@ -197,6 +198,7 @@ obj_add <- MakeADFun(nllfun_spline_additive, p0_add, silent = TRUE,
 fit_add <- TMBfit(obj_add)
 
 chdat_x <- lst(log_rs = y, Xfull, Xr, Xr_joint, Zphylo, Kw, vcmat)
+chdat_x_sep <- chdat_x
 p0_sep <- modifyList(p0_add, list(b_wiggly = rep(0, ntip * Kw), logpsd_f = -10))
 obj_sep <- MakeADFun(nllfun_spline_separable, p0_sep, silent = TRUE,
                      random = c("b_spline", "b_wiggly", "b_phylo"))
@@ -206,6 +208,7 @@ fit_sep <- TMBfit(obj_sep)
 ## null-space-direction correlation -- see its header comment
 us2 <- unstructured(2)
 chdat_x <- lst(log_rs = y, X = Xfull, Xnull_joint, Xrange_joint, Qr_phylo, Qr_smooth, vcmat, us2)
+chdat_x_tensor <- chdat_x
 p0_tensor <- list(beta = rep(0, 2), b_null = matrix(0, ntip, Kn), b_range = rep(0, ntip * Kr),
                   logsd = 0, logpsd_null = rep(0, Kn), cor_null = 0,
                   logsigma1_range = 0, logsigma2_range = 0)
@@ -244,10 +247,16 @@ print(c(additive = logLik.TMB(fit_add), separable = logLik.TMB(fit_sep),
 ## matrices) are included so downstream scripts (phyloslopes_tiny_predcovs.R)
 ## can call mgcv::PredictMat() on the *same* basis/knots/reparameterization
 ## used here, without re-deriving it
+## fit_add/fit_sep/fit_tensor (TMBfit-wrapped RTMB::MakeADFun() objects) and
+## their chdat_x_* snapshots are included so downstream scripts can load and
+## reuse these fits directly (obj$retape() after restoring the matching
+## chdat_x snapshot) instead of refitting from scratch -- RTMB ADFun objects
+## survive save()/load() into a fresh session
 save(chtree, vcmat, Q_dense, Q_tips, Q_full_raw, Q_noroot, Q_tips_mrf_schur,
      Z_edge, Z_species, nrep, x, x_rep, species_rep, Zphylo,
      Xfull, Xr, Xr_joint, Xf_null, Xr_range, Kn, Kr, d_range,
      Xnull_joint, Xrange_joint, sim_dat, sm, sm2ran, sm_full, sm2ran_full,
      beta0, beta1, sd_f, sd_wiggly, sd_phylo, sigma_resid,
      b_spline_true, b_wiggly_true, b_phylo_true,
+     fit_add, fit_sep, fit_tensor, chdat_x_add, chdat_x_sep, chdat_x_tensor,
      file = "phyloslopes_tiny.rda")
