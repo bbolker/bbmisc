@@ -279,7 +279,9 @@ tt <- bbmle::AICtab(phyloslopes_linear_models, logLik = TRUE)
 print(as.data.frame(tt), digits = 2)
 ```
 
----
+### thin-plate spline
+
+Moving on to the case 
 
 * the tensor product smooth is a little bit more complicated. As described in @woodGeneralizedAdditiveModels2017 section 5.6, we have to combine the model matrices for each term via rowwise Kronecker products (see `mgcv::tensor.prod.model.matrix`), and to generate a series of penalty matrices (two in this case) as $\kron{\bA}{\bI_B}$ and $\kron{\bI}{\bI_A}$.[^tensor-reparam] As also described below, we have to make sure to separate the components of $\bZ$ that correspond to the nullspace of the penalty and treat them as (unpenalized) fixed effects. This is done manually below, not using the built-in `te()` machinery from `mgcv` ... I may take another crack at this later, as it would definitely be simpler and easier to explain to use existing machinery (as in @clarkPhylogeneticSmoothing2024) to set up the structures that RTMB needs.
 
@@ -411,8 +413,6 @@ This matches what happens numerically: fitting this model (`Sphylo` fixed/unscal
 
 **Follow-up (see `phyloslopes_tiny_explore.R`):** wiring up and fitting this exact Kronecker-sum construction (`nllfun_tensor`) on small simulated examples (`ntip` = 5 and 10) -- including data simulated *correctly* under the model itself, with strong signal (`sigma_1 = sigma_2 = 2 >> sigma_resid = 0.1`) and enough replication that this isn't just an interpolation artifact -- confirms a genuine, reproducible non-identifiability between the two variance-component scales (one always runs off toward a boundary; verified via multi-start that this is the true global optimum, not a bad start). It's not fixed/random (`X`/`tX`) aliasing. The cause is specific to `Ptrait/Strait` being a trivial, structureless, full-rank identity matrix (`diag(2)` here) -- indistinguishable from a generic flat ridge, so the model can't tell "shrink toward phylogenetic similarity" apart from "shrink generically." It does **not** generalize to a genuine tensor-product smooth of phylogeny x a spline (see the "tensor-product smooth" section below): a trait-side penalty with real internal (null/range) structure, like a TPS penalty, avoids the redundancy even fed into this same naive shared-`dgmrf()` construction. The "tensor-product smooth" section's actual approach -- eigendecompose null/range space first, give each its own separate Kronecker-*product* term rather than summing into one shared precision -- also sidesteps it when applied back to this plain intercept+slope case.
 
-Clark, Nicholas. “Phylogenetic Smoothing Using Mgcv.” GAMbler, 2024. https://ecogambler.netlify.app/blog/phylogenetic-smooths-mgcv/.
-
 ## phylogenetic splines
 
 McGillycuddy *et al.*'s `propto` manuscript (`main.tex`) fits an *additive* model combining a penalized thin-plate-spline smoother of `log_bm` with a phylogenetic random intercept:
@@ -522,7 +522,6 @@ Unlike the null/range decomposition with a pure-product range block (which colla
 
 ## To do
 
-* ~~extend to phylo + smooths (need to separate fixed-effect params) [additive, separable, tensor-product]~~ done, see "phylogenetic splines" section above
 * performance comparison (single phylo structure), on simulated data (as a function of tree size):
     * glmmTMB + propto
     * RTMB + dense phylo (tips only)

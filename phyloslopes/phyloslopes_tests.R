@@ -119,11 +119,14 @@ chdat_phyr <- chdat
 rownames(chdat_phyr) <- as.character(chdat_phyr$species)
 ## suppressWarnings(): phyr's internal pglmm() calls lme4::nobars() directly
 ## (not reformulas::nobars()), which raises a deprecation/forwarding warning
-## on every call -- harmless, and not something we can fix from here
-fit_phyr <- suppressWarnings(
+## on every call. suppressMessages(): phyr's internal get_design_matrix()
+## calls the old two-arg as(x, "dgTMatrix") form, which Matrix now reports
+## via message() (not warning()) on every call. Both harmless, and not
+## something we can fix from here
+fit_phyr <- suppressWarnings(suppressMessages(
   pglmm_compare(log_rs ~ log_bm, family = "gaussian",
                 data = chdat_phyr, phy = chtree, REML = FALSE)
-)
+))
 
 ## -- random-slopes models -----------------------------------------------
 ## three independent parameterizations of a correlated-random-slopes
