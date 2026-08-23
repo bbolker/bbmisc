@@ -326,7 +326,7 @@ identical to the covariance matrix in the random-slopes linear model above. Impl
 #| tidy.opts: !expr list(comment = FALSE)
 ```
 
-This tensor-product construction is actually more flexible than `mgcv`'s default approach, which would set $\bSigma_{\textrm{null}}$ to $\sigma_{T1}^2 \bI_2$. It is (surprisingly) hard to get either this approach of `mgcv`'s to reduce to the additive model ...
+This tensor-product construction is actually more flexible than `mgcv`'s default approach, which would set $\bSigma_{\textrm{null}}$ to $\sigma_{T1}^2 \bI_2$. It is (surprisingly) hard to get either this approach or `mgcv`'s to reduce to the additive model ...
 
 [^tensor-reparam]: The Claude-generated code I use here does *not* (I think) use the reparameterization suggested on pp. 230-231 of @woodGeneralizedAdditiveModels2017; I think that means that 
 > the penalties no longer have the interpretation in terms of (averaged) function shape that is inherited from the marginal smooths ... but I think (??) we still get the same overall fits. 
@@ -335,7 +335,7 @@ Tangentially, @woodGeneralizedAdditiveModels2017 is dismissive of the value of s
 
 > For example, consider a smooth of 3 predictors constructed as a tensor product smooth of 3 cubic spline bases, each of rank 5. The resulting smooth would have 125 free parameters, but a penalty matrix of rank 27. This means that varying the weight given to the penalty would only result in the effective degrees of freedom for the smooth varying between 98 and 125: not a very useful range. By contrast, for the same marginal bases, the multiple term penalties would have rank 117, leading to a much more useful range of effective degrees of freedom of between 8 and 125.
 
-For a model combining $N$ cubic splines each with $K$ knots, the covariance matrix has dimension $K^N$; the rank of the separable model is $(K-2)^N$; and the rank of the tensor spline basis is $K^N-2^N$. Thus the difference is the most extreme for small $K$ and large $N$. The chosen values ($K=N=3$ represent a low (but not unheard of) $K$ and a large $N$ (I had trouble finding a true three-way tensor product smooth in the literature: e.g. @augustinSpacetimeModellingBlue2013 uses a 2D spatial smooth crossed with a smooth term for depth ...)
+For a model combining $N$ cubic splines each with $K$ knots, the covariance matrix has dimension $K^N$; the rank of the separable model is $(K-2)^N$; and the rank of the tensor spline basis is $K^N-2^N$. Thus the difference is the most extreme for small $K$ and large $N$. The chosen values ($K=N=3$) represent a low (but not unheard of) $K$ and a large $N$ (I had trouble finding a true three-way tensor product smooth in the literature: e.g. @augustinSpacetimeModellingBlue2013 uses a 2D spatial smooth crossed with a smooth term for depth ...)
 
 ### tiny example
 
