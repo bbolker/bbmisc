@@ -1,0 +1,81 @@
+---
+title: "LLMs"
+author: Ben Bolker
+date: today
+bibliography: LLMs.bib
+format:
+  html:
+    embed-resources: true
+---
+
+These are some notes about my thoughts on *large language models* (such as Gemini, ChatGPT, Microsoft Copilot, Claude, etc.). They are intended as a jumping-off point for class discussion.
+
+They're focused on use in undergraduate coursework, and are opinionated.
+
+## Beneficial uses of LLMs
+
+* Act as a personal tutor; answer questions, pose questions, give examples ...
+* Eliminate drudgery, allow you to focus on more important parts of their education
+* Learning how to use LLMs more effectively, for future career etc.
+* From @carriganGenerative2025, quoted by @heardThree2025:
+
+> “rubberducking” (explaining your ideas to an LLM to test and polish your ability to explain them, just as you might talk your ideas out to a friend, or your cat, or a rubber duck); asking an LLM to summarize your draft, using its errors to diagnose gaps in what you’ve written; and using an LLM to assist with translation of text between audiences (paper to blog post, for example)
+
+Carrigan advocates the use of LLMs as "interlocutors" by scholars (I'm not sure I agree)
+
+## Downsides of LLMs
+
+* Helps you avoid exercising your brain and actually learning stuff; short-circuits the learning process
+* In order to understand when LLMs are wrong (hallucinations, bullshit, confident but incorrect answers) you already need to know *the things you're trying to learn in class*
+* Do LLMs make your writing better or worse (or more average, i.e. regression to the mean?)
+* Increased dependence on mega-corporations
+
+## LLM concerns
+
+* Water/energy usage (but see @scientistseessquirrelNoPlagiarismMachine2025)
+* AI slop
+* Privacy
+* Intellectual property/fair use
+* Algorithmic bias
+* Equity (access to professional/$$ AI versions)
+* Displacement of jobs, especially creative jobs
+* Enhanced cheating on academic assessments
+* Concentration of power in Big Tech
+* Existential threats (????)
+
+## Analogies
+
+Are LLMs more like a:
+
+* calculator?
+* symbolic algebra package (e.g. Mathematica, Maple)?
+* statistics package?
+* spell-checker?
+* navigation aid?
+* compiler for programming languages?
+* forklift (at the gym)? (attributed to [Sanmay Das](https://people.cs.vt.edu/sanmay/))
+
+What tasks are we off-loading to the computer, and what is the value of being able to do those tasks unassisted? Should you have to learn to do stuff before you're allowed to let the computer do it for you?
+
+(Discuss.)
+
+## using LLMs effectively
+
+* Checking results (common sense, following up references)
+* Attribution (e.g. [McMaster Research Guide on citing AI](https://libguides.mcmaster.ca/cite-gen-ai))
+* Prompt engineering
+
+Some fun references: 
+
+* @sheckleyBattle1954
+* @rikblokReal2019 (I used Copilot to find this!)
+* @bergstromCalling2020 https://thebullshitmachines.com/
+* Stephen Heard blog posts: @heardMaking2025, @heardNavigating2024
+
+```{r llm_pic, echo = FALSE}
+knitr::include_graphics("pix/llm_pic.png", dpi = 100)
+```
+
+[Google forms link](https://forms.gle/YpstDPU7dZRmwxrh7)
+
+## References
