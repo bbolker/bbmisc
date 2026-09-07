@@ -5,14 +5,18 @@
 ## extra low-N/k case from the paper's Fig. 3b.
 sim_N_values <- c(30, 50, 200)
 
-## Balanced, independently-randomised two-level factors (-0.5/0.5), one per
-## column. Balance is exact per factor; approximate independence across
-## factors follows from randomising each factor's assignment separately.
+## Balanced, independently-randomised two-level factors, one per column.
+## Balance is exact per factor; approximate independence across factors
+## follows from randomising each factor's assignment separately. Actual
+## factors (rather than a numeric -0.5/0.5 recoding) under the global
+## sum-to-zero contrasts set in one_rep_corrections() so that, in the
+## presence of interactions, each main-effect test is of the effect at the
+## population mean of the other factors, not at a reference level.
 make_predictors <- function(N, m) {
   half <- N %/% 2
   rest <- N - 2 * half
-  lvls <- c(rep(-0.5, half), rep(0.5, half + rest))
-  X <- replicate(m, sample(lvls), simplify = FALSE)
+  lvls <- c(rep("lo", half), rep("hi", half + rest))
+  X <- replicate(m, factor(sample(lvls), levels = c("lo", "hi")), simplify = FALSE)
   names(X) <- paste0("X", seq_len(m))
   as.data.frame(X)
 }

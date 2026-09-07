@@ -1,5 +1,12 @@
 
-logit_breaks <- function(n = 6) {
+## extend = TRUE brackets the data range with one candidate break just
+## below lo and just above hi (when available), rather than only ever
+## showing breaks strictly inside [lo, hi]. Without it, a data range whose
+## endpoint falls between two candidates (e.g. 0.02, between the 0.01 and
+## 0.05 candidates) shows no break near that endpoint at all, leaving a
+## visible gap between the nearest labelled gridline and the actual edge
+## of the (expanded) panel.
+logit_breaks <- function(n = 6, extend = FALSE) {
   function(x) {
     rng <- range(x[is.finite(x) & x > 0 & x < 1])
     lo <- rng[1]; hi <- rng[2]
@@ -10,6 +17,12 @@ logit_breaks <- function(n = 6) {
     lower <- lower[lower <= 0.5]
     full  <- sort(unique(c(lower, 1 - lower)))
     keep <- full[full >= lo & full <= hi]
+    if (extend) {
+      below <- full[full < lo]
+      above <- full[full > hi]
+      if (length(below) > 0) keep <- c(max(below), keep)
+      if (length(above) > 0) keep <- c(keep, min(above))
+    }
     if (length(keep) > n) {
       decade_pts <- sort(unique(c(decades, 1 - decades)))
       thinner <- keep[keep %in% decade_pts | keep == 0.5]
@@ -55,5 +68,20 @@ scale_y_log10_shifted <- function(offset = 1, n = 10, ...) {
     breaks = function(lims) offset + axisTicks(log10(range(lims) - offset), log = TRUE, n = n),
     labels = function(b) format(b, trim = TRUE, drop0trailing = TRUE),
     ...)
+}
+
+## Secondary top x-axis showing the number of model parameters
+## k = m + choose(m, 2) at each number-of-predictors (m) tick, as in
+## Forstmeier & Schielzeth's Fig. 1 -- exact for models that include all
+## two-way interactions; for main-effects-only models k = m trivially.
+## Specific to forstmeier_sim, not part of the shared plague_virulence
+## original this file was copied from.
+k_sec_axis <- function(breaks = 1:6) {
+  ggplot2::sec_axis(
+    transform = ~ .,
+    name = "Number of predictors (with interactions)",
+    breaks = breaks,
+    labels = function(m) m + choose(m, 2)
+  )
 }
 

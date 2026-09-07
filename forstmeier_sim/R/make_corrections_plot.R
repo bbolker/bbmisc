@@ -55,11 +55,7 @@ summ <- bind_rows(
 ) |>
   mutate(
     method = factor(method, levels = method_labels),
-    group = interaction(
-      ifelse(interactions, "With 2-way interactions", "Without interactions"),
-      paste0("N = ", N),
-      sep = ", "
-    )
+    interactions_label = ifelse(interactions, "With 2-way interactions", "Without interactions")
   )
 
 ## theoretical independence expectation alpha' = 1-(1-alpha)^k is only a
@@ -78,7 +74,7 @@ nominal_ref <- summ |>
 
 theme_set(theme_bw())
 
-fig1_corrections <- ggplot(summ, aes(m, prop, colour = group, linetype = factor(N))) +
+fig1_corrections <- ggplot(summ, aes(m, prop, colour = interactions_label, linetype = factor(N))) +
   ## ymin = -Inf rather than 0: 0 is not representable on a logit scale
   annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
            fill = "grey80", alpha = 0.5) +
@@ -86,7 +82,7 @@ fig1_corrections <- ggplot(summ, aes(m, prop, colour = group, linetype = factor(
             inherit.aes = FALSE, colour = "grey50", linewidth = 2, alpha = 0.5) +
   geom_hline(data = nominal_ref, aes(yintercept = 0.05), inherit.aes = FALSE,
              colour = "grey40", linetype = "dashed", linewidth = 1) +
-  geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = group, group = interaction(group, N)),
+  geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = interactions_label, group = interaction(interactions_label, N)),
               colour = NA, alpha = 0.3, show.legend = FALSE) +
   geom_line() +
   geom_point() +
@@ -94,7 +90,8 @@ fig1_corrections <- ggplot(summ, aes(m, prop, colour = group, linetype = factor(
   scale_colour_manual(values = okabe_ito, name = NULL) +
   scale_fill_manual(values = okabe_ito, guide = "none") +
   scale_linetype_discrete(name = "N") +
-  scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
+  scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
+                     sec.axis = k_sec_axis()) +
   scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
   ylab("Proportion of models with type I errors")
 

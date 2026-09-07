@@ -1,0 +1,68 @@
+---
+title: "exploring effects of interaction-dropping in regression"
+author: "Ben Bolker"
+date: today
+format:
+  html:
+    embed-resources: true
+---
+
+```{r setup, echo=FALSE, include = FALSE}
+library("knitr")
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+This is a (Claude-assisted) exploration/extension of Forstmeier and Schielzeth's 2011 paper "Cryptic multiple hypotheses testing in linear models: overestimated effect sizes and the winner's curse" (*Behavioral Ecology and Sociobiology* 65:47-55, doi:10.1007/s00265-010-1038-5). F&S used linear regressions on null simulations (i.e., all effects equal to zero) to look at the effect of stepwise backward model selection on type~I (false positive, experimentwise) error rates, estimated effect sizes and standard errors.
+
+My main question was how the results would change if we limited the stepwise selection process only to interaction terms (i.e. always kept all main effects in the model). In addition, I explored how different multiple comparisons corrections, or looking at the estimate-wise rather than the experiment-wise error rate, might change the conclusions. (F&S do consider multiple comparisons correction, but only Bonferroni corrections.)
+
+
+First confirming that we can reconstruct F&S's Figure 1, with some minor changes (added $N=30$ as in F&S's Figure 3). The results are essentially the same, with slight differences probably due to the way that the experimental design was balanced. Without model simplification/selection, the experimentwise error rates are at below [reasons discussed later] the expected null level (gray reference lines, $1-(1-\alpha)^n$); with model simplification, they're higher, especially in the models including two-way interactions.
+
+```{r fig1}
+#| fig-cap: "Experimentwise error rates for a null regression simulation, recreating Figure 1 from Forstmeier and Schielzeth."
+knitr::include_graphics("output/fig1.png")
+```
+
+I was curious how well various multiple comparisons approaches would work on unselected and selected data.
+
+* the Dunn-Šidák correction solves the equation $p = 1-(1-\alpha)^n$ to get an $\alpha$ value that will give correct error rates for $n$ uncorrelated tests (Bonferroni, which uses $\alpha' = \alpha/n$, is an approximation to this that works for small $\alpha$). Because the tests are correlated in this case, the results are conservative, but only visibly so for $N=30$/$k=21$.
+* Holm is the usually recommended less-conservative alternative to Bonferroni: it takes correlation into account, again conservatively, but again only visibly so for the most extreme case.
+* Single-step max|T|: this correction takes the exact correlations from the linear tests into account; it is equivalent to `adjust="mvt"` in `emmeans`, and gets back exactly to the nominal $\alpha$ value in the unselected case.
+
+```{r contrasts1}
+#| fig-cap: "Experimentwise error rates using various multiple comparisons corrections methods (no model selection)."
+knitr::include_graphics("output/fig1_corrections.png")
+```
+
+For the remainder of this piece, I'm only going to look at the "with 2-way interactions" case, since I'm primarily interested in how interactions are handled.
+
+In addition to F&S's comparison (unselected model vs stepwise selection, respecting marginality, on all terms in the model), I implemented the following (**todo**: expand this)
+
+* multiple comparisons correction (Dunn-Šidák/Holm/max-\|T\|, as above), plus
+* per-parameter (estimate) rather than experiment-wise error rates
+* multiple comparisons corrections computed with the original, 'maximal' $k$ (number of comparisons), or with a naive $k$ ('minimal') based on the number of parameters remaining in the selected model
+* selection that removes non-significant interactions only, retaining all main effects
+
+The 'minimal-$k$' or per-parameter error rates in the 'interaction-selection only' case are meant to mimic the approach of a well-meaning but naive analyst ...
+
+```{r results}
+#| fig-cap: "Error rates under different scenarios"
+knitr::include_graphics("output/fig1_corrections_by_scenario.png")
+```
+
+## conclusions
+
+**Restricting `step()` to discard only interactions (never main effects) barely reduces the type I error inflation.** Across the `selected (all)` vs. `selected (interax only)` scenarios (see    `fig1_corrections_by_scenario.png`), the restricted version is consistently slightly lower than the unrestricted one across every with-interactions condition (e.g. at N=50, k=21: 0.831 vs. 0.844) but the gap is small (~1 percentage point at the most extreme condition) relative to the inflation itself. Most of the "cryptic multiple testing" problem comes from having many interaction terms available to prune in the first place, not from the additional freedom to also drop main effects.
+
+**Calibrating a correction on the selected model's own surviving terms
+("minimal" $k$) substantially undercorrects relative to calibrating on
+the pre-selection full model ("maximal" $k$, the paper's Fig. 3b
+approach).** At $N=50$, $k$=21 (selected-all scenario), minimal-$k$ Dunn-Šidák/Holm/max-\|T\| all still show $\approx$ 0.31-0.32 type I error, while
+maximal-$k$ brings them down to $\approx$ 0.18-0.19 -- both well above nominal
+0.05, but maximal is roughly half the inflation of minimal. The gap
+between the two calibrations grows with $N/k$, and even the "correct" maximal-$k$ calibration leaves substantial residual inflation at low $N$ relative to $k$, matching the paper's own finding that $P$-value adjustment on the minimal model doesn't fully solve the problem when the initial full model is (a) overfitted and (b) selected.
+
+## to do
+
+* look at error rates in main effects specifically?

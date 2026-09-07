@@ -33,9 +33,16 @@ Single-threaded BLAS/OpenMP is enforced inside parallel workers
 
 ## Simulation design
 
-For N in {30, 50, 200}, m in 1-6 factors, with and without all two-way
-interactions (`k` predictors total), each of 5000 replicates:
+For N in {30, 50, 200}, m in 1-6 balanced, independently-randomised
+two-level factors, with and without all two-way interactions (`k`
+predictors total), each of 5000 replicates:
 
+0. Predictors are coded as actual factors under the global sum-to-zero
+   contrasts `options(contrasts = c("contr.sum", "contr.poly"))` (set
+   inside `one_rep_corrections()` -- see its comment for why it can't just
+   be set once in the calling script), so that in the presence of
+   interactions each main-effect test is of the effect at the population
+   mean of the other factors, rather than at an arbitrary reference level.
 1. Fits the full model to null data (the **unselected** scenario).
 2. Simplifies it with unrestricted backward `step()` (the **selected
    (all)** scenario) and with `step()` restricted to discarding only
@@ -45,9 +52,11 @@ interactions (`k` predictors total), each of 5000 replicates:
 3. Screens each of the three resulting models under four significance
    criteria: **uncorrected** (any p < 0.05), **Dunn-Sidak**, **Holm**, and
    **single-step max-\|T\|** (a Tukey-HSD-style correction using the
-   model's actual multivariate-t null -- see `maxT_correction.R`).
+   model's actual multivariate-t null -- see `maxT_correction.R`); each
+   yields both an experimentwise indicator (`sig_*`: is at least one term
+   significant) and a per-parameter count (`n_sig_*`: how many terms are).
 
-For the two *selected* scenarios, each correction is computed two ways,
+For the two *selected* scenarios, each of the above is computed two ways,
 recorded in a `multcomp_k` column: **"minimal"** (calibrated on the
 selected model's own surviving term count -- how a user who isn't
 thinking about the search that produced it would do it) and
@@ -59,6 +68,18 @@ count). `multcomp_k` is `"none"` where the distinction doesn't apply: the
 uncorrected criterion, and the unselected scenario (which has only one
 calibration since fit and reference model coincide).
 
+The plots additionally derive a fifth, uncorrected **per-parameter error
+rate**, E[V]/k (V = how many of the original k full-model predictors are
+significant), from the `n_sig_raw_*` counts divided by `k` --
+`build_corrections_by_scenario_summary()` in
+`plot_corrections_by_scenario_core.R`. Unlike the experimentwise
+indicator, this is trivially ~alpha for the unselected scenario (each of
+the k tests is independently exact) but inflated above alpha for the
+selected scenarios: `step()`'s AIC-based retention and the final refit's
+significance check draw on overlapping evidence about the same predictor,
+so "retained" and "significant" are positively correlated rather than
+independent.
+
 ## Code layout
 
 - `R/simulate_fig1.R` -- data generation (`make_predictors`,
@@ -66,8 +87,8 @@ calibration since fit and reference model coincide).
   `step()`-based simplification strategies (`step_default()`,
   `step_interactions_only()`).
 - `R/simulate_corrections.R` -- `screen_criteria()` (the four criteria,
-  minimal/maximal calibration), `one_rep_corrections()`,
-  `run_condition_corrections()`.
+  minimal/maximal calibration, both experimentwise and per-parameter
+  counts), `one_rep_corrections()`, `run_condition_corrections()`.
 - `R/maxT_correction.R` -- `maxT_crit()`: the single-step correction's
   critical value, via direct Monte Carlo simulation from the multivariate-t
   null rather than `mvtnorm::qmvt()`'s numerical integration (impractical
@@ -80,15 +101,16 @@ calibration since fit and reference model coincide).
   plot.
 - `R/plot_corrections_by_scenario_core.R` (+
   `make_corrections_by_scenario_plot.R`, `make_corrections_by_method_plot.R`,
-  `make_corrections_by_N_plot.R`) -- three scenario x correction-method
+  `make_corrections_by_N_plot.R`) -- three scenario x criterion
   comparisons built on one shared summary (`build_corrections_by_scenario_summary()`,
-  which pivots out the `multcomp_k` column), all with-interactions cases
-  only and all showing both the minimal and maximal calibration
-  (linetype/shape): a 1-column x n-row uncorrected panel (colour = N)
-  beside an n-row x 3-column corrected-methods facet_grid (colour = N)
-  combined with `patchwork`; a single facet_grid (rows = scenario, columns
-  = N, colour = criterion); and its transpose (rows = N, columns =
-  criterion, colour = scenario).
+  which pivots out the `multcomp_k` column and derives the per-parameter
+  criterion from `n_sig_raw_*`/`k`), all with-interactions cases only and
+  all showing both the minimal and maximal calibration (linetype/shape): a
+  1-column x n-row uncorrected panel (colour = N) beside an n-row x
+  4-column facet_grid of the other four criteria (colour = N) combined
+  with `patchwork`; a single facet_grid (rows = scenario, columns = N,
+  colour = criterion); and its transpose (rows = N, columns = criterion,
+  colour = scenario).
 - `R/graphics_utils.R` -- `logit_breaks()` and the shared Okabe-Ito
   palette; every plot uses a logit y-scale.
 - `smoke_test.R` -- correctness and timing checks, run standalone.
@@ -100,17 +122,19 @@ calibration since fit and reference model coincide).
 - `fig1_corrections.png` -- uncorrected vs. Dunn-Sidak vs. Holm vs.
   single-step max-\|T\|, unselected model only.
 - `fig1_corrections_by_scenario.png` -- all three scenarios crossed with
-  all four criteria, uncorrected panel + corrected-methods grid combined
-  via `patchwork`, colour = N, linetype/shape = `multcomp_k`,
-  with-interactions cases only.
+  all five criteria (uncorrected, Dunn-Sidak, Holm, single-step max-\|T\|,
+  per-parameter), uncorrected panel + other-criteria grid combined via
+  `patchwork`, colour = N, linetype/shape = `multcomp_k`, with-interactions
+  cases only.
 - `fig1_corrections_by_method.png` -- the same comparison as a single
   facet_grid (rows = scenario, columns = N), colour = criterion,
   linetype/shape = `multcomp_k`, with-interactions cases only.
 - `fig1_corrections_by_N.png` -- rows = N, columns = criterion, colour =
   scenario, linetype/shape = `multcomp_k`, with-interactions cases only.
 - `corrections_results.rds` -- the cached simulation output underlying all
-  of the above; includes both minimal and maximal k-counting for the two
-  selected scenarios (see Simulation design).
+  of the above; includes both minimal and maximal k-counting and both
+  experimentwise and per-parameter counts for the two selected scenarios
+  (see Simulation design).
 
 ## Key findings so far
 

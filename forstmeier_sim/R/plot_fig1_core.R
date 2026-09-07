@@ -42,11 +42,7 @@ make_fig1_plot <- function(results_path, col_unselected, col_selected, png_path)
   ) |>
     dplyr::mutate(
       panel = factor(panel, levels = panel_labels),
-      group = interaction(
-        ifelse(interactions, "With 2-way interactions", "Without interactions"),
-        paste0("N = ", N),
-        sep = ", "
-      )
+      interactions_label = ifelse(interactions, "With 2-way interactions", "Without interactions")
     )
 
   ## theoretical expectation alpha' = 1 - (1-alpha)^k, one line per
@@ -58,13 +54,13 @@ make_fig1_plot <- function(results_path, col_unselected, col_selected, png_path)
 
   theme_set(theme_bw())
 
-  fig <- ggplot(summ, aes(m, prop, colour = group, linetype = factor(N))) +
+  fig <- ggplot(summ, aes(m, prop, colour = interactions_label, linetype = factor(N))) +
     ## ymin = -Inf rather than 0: 0 is not representable on a logit scale
     annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
              fill = "grey80", alpha = 0.5) +
     geom_line(data = grey_lines, aes(x = m, y = alpha_prime, group = interactions),
               inherit.aes = FALSE, colour = "grey50", linewidth = 2, alpha = 0.5) +
-    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = group, group = interaction(group, N)),
+    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = interactions_label, group = interaction(interactions_label, N)),
                 colour = NA, alpha = 0.3, show.legend = FALSE) +
     geom_line() +
     geom_point() +
@@ -72,7 +68,8 @@ make_fig1_plot <- function(results_path, col_unselected, col_selected, png_path)
     scale_colour_manual(values = okabe_ito, name = NULL) +
     scale_fill_manual(values = okabe_ito, guide = "none") +
     scale_linetype_discrete(name = "N") +
-    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
+    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
+                       sec.axis = k_sec_axis()) +
     scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
     ylab("Proportion of models with type I errors") +
     zmargin

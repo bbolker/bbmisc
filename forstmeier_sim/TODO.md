@@ -1,24 +1,26 @@
 # TODO
 
-- [ ] Add a per-parameter error rate metric: E[V]/k per replicate (V = number of
-      the k original predictors that are significant, k = original full-model
-      predictor count), as an additional outcome alongside the existing
-      "any significant in the model" (experimentwise) metric. For the unselected
-      scenario this is trivially ~alpha (each of the k tests is independently
-      exact), but for the selected scenarios it should be inflated above alpha:
-      step()'s AIC-based retention and the final refit's significance check
-      draw on overlapping evidence about the same predictor, so "retained" and
-      "significant" are positively correlated rather than independent. Note
-      this is *not* the same as literal Benjamini-Hochberg-style FDR (V/R,
-      R = number of discoveries) -- since every discovery is false under this
-      simulation's complete null, V/R collapses to 1 whenever R>0, making FDR
-      numerically identical to the existing experimentwise (P(>=1 significant))
-      metric regardless of scenario or correction method. A genuinely different
-      V/R-based FDR would need true non-null effects mixed into the simulation.
-- [ ] Separately, consider adding Benjamini-Hochberg and/or Benjamini-Yekutieli
+- [ ] Consider reporting error rates restricted to just main-effect terms
+      (excluding interactions), separate from the existing all-terms
+      metrics -- e.g. a `n_sig_raw_main_*`-style count over only the m
+      terms whose name has no `:`, alongside the existing count over all k
+      terms. Motivation: now that main effects are tested at the
+      population mean via sum-to-zero contrasts, it's worth checking
+      whether they carry the same selection-bias inflation as interaction
+      terms under `step()`, or a different degree of it (`step()`'s
+      marginality constraint means an interaction's survival depends on
+      its main effects' presence but not vice versa, so the two term types
+      needn't behave symmetrically). Corrected criteria (Dunn-Sidak/Holm/
+      max-|T|) would presumably still calibrate on the full k (the actual
+      multiple-testing exposure) but only check significance among the
+      main-effect subset. The current output only stores the all-terms
+      aggregate (`n_sig_raw_*`, not a per-term breakdown by main-effect vs.
+      interaction), so this would need a `screen_criteria()`/
+      `one_rep_corrections()` schema extension and another full simulation
+      rerun, the same pattern as the n_sig_* addition.
+- [ ] Consider adding Benjamini-Hochberg and/or Benjamini-Yekutieli
       as additional *correction methods* in `screen_criteria()`, parallel to
       Holm/Dunn-Sidak/max-|T| (same "any significant after correction" outcome,
       just a different, weaker guarantee). BY is the closer analogue to Holm
       (valid under arbitrary dependence); BH is the more commonly used default
-      but formally needs independence/PRDS. This is orthogonal to the
-      per-parameter metric above.
+      but formally needs independence/PRDS.

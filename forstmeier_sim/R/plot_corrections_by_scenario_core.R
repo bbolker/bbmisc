@@ -1,13 +1,13 @@
 ## Combines corrections_results.rds's three model-simplification scenarios
-## (unselected, unrestricted step(), interactions-only step()) with its four
-## significance criteria (uncorrected, Dunn-Sidak, Holm, single-step
-## max-|T|) into one figure: a 1-column x n-row uncorrected-only panel next
-## to an n-row x 3-column corrected-methods facet_grid, combined side by
-## side with patchwork. Built as two separate ggplot objects rather than
-## one facet_grid, since the uncorrected panel needs the theoretical
-## alpha' reference curve while the corrected panels need the flat
-## alpha=0.05 line -- mixing those into one facet_grid call would need
-## per-column conditional layers.
+## (unselected, unrestricted step(), interactions-only step()) with its five
+## per-model summary criteria (uncorrected, Dunn-Sidak, Holm, single-step
+## max-|T|, and the uncorrected per-parameter rate) into one figure: a
+## 1-column x n-row uncorrected-only panel next to an n-row x 4-column
+## "other criteria" facet_grid, combined side by side with patchwork. Built
+## as two separate ggplot objects rather than one facet_grid, since the
+## uncorrected panel needs the theoretical alpha' reference curve while the
+## other panels need the flat alpha=0.05 line -- mixing those into one
+## facet_grid call would need per-column conditional layers.
 
 library(ggplot2)
 library(scales)
@@ -25,28 +25,44 @@ criterion_labels <- c(
   raw = "Uncorrected",
   bonf = "Dunn–Šidák",
   holm = "Holm",
-  maxT = "Single-step max|T|"
+  maxT = "Single-step max|T|",
+  perparam = "Per-parameter"
 )
 
 ## Long-format summary: one row per (scenario, criterion, multcomp_k, N, m,
 ## interactions) with the proportion and its Gaussian-approximation 95% CI.
+##
 ## multcomp_k distinguishes which model's k a correction was calibrated
 ## on: "minimal" (the selected model's own surviving term count -- the
 ## naive approach), "maximal" (the pre-selection full model's k -- the
 ## correct approach), or "none" where the distinction doesn't apply (the
-## uncorrected criterion, or the unselected scenario, which has only one
-## calibration since fit and ref coincide). Deliberately not left as NA:
-## interaction(scenario, multcomp_k) -- used for grouping in
+## uncorrected and per-parameter criteria, or the unselected scenario, which
+## has only one calibration since fit and ref coincide). Deliberately not
+## left as NA: interaction(scenario, multcomp_k) -- used for grouping in
 ## make_corrections_by_N_plot() -- returns NA for *every* row when
 ## multcomp_k is NA, regardless of scenario, which collapses all scenarios
 ## into one undifferentiated group and produces stray lines connecting
 ## points across scenarios.
+##
+## The "perparam" criterion is the per-parameter error rate E[V]/k (V = how
+## many of a replicate's original k full-model predictors are significant,
+## uncorrected -- see n_sig_raw_* in simulate_corrections.R), as opposed to
+## the "raw" criterion's experimentwise indicator (is at least one
+## significant). Its per-replicate "sig" value is already a rate in [0, 1]
+## rather than a 0/1 indicator, so grouped mean(sig) still gives E[V]/k, but
+## the shared Gaussian CI below (derived for a mean of 0/1 indicators) is
+## only an approximation to its true sampling variance.
 build_corrections_by_scenario_summary <- function(results_path) {
   readRDS(results_path) |>
+    dplyr::mutate(
+      sig_perparam_unselected      = n_sig_raw_unselected / k,
+      sig_perparam_step            = n_sig_raw_step / k,
+      sig_perparam_step_restricted = n_sig_raw_step_restricted / k
+    ) |>
     tidyr::pivot_longer(
       cols = dplyr::starts_with("sig_"),
       names_to = c("criterion", "scenario", "multcomp_k"),
-      names_pattern = "^sig_(raw|bonf|holm|maxT)_(unselected|step_restricted|step)(?:_(naive|correct))?$",
+      names_pattern = "^sig_(raw|bonf|holm|maxT|perparam)_(unselected|step_restricted|step)(?:_(naive|correct))?$",
       values_to = "sig"
     ) |>
     dplyr::mutate(multcomp_k = dplyr::recode_values(multcomp_k,
@@ -102,15 +118,20 @@ make_corrections_by_scenario_plot <- function(results_path, png_path) {
     facet_grid(rows = vars(scenario), switch = "y") +
     scale_colour_manual(values = okabe_ito, name = "N") +
     scale_fill_manual(values = okabe_ito, guide = "none") +
-    scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), name = "multcomp k") +
-    scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), name = "multcomp k") +
-    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
-    scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
+    ## guide = "none": left_data's multcomp_k is always "none" (the
+    ## uncorrected criterion), so this scale's own legend would just be a
+    ## redundant single-key duplicate of p_right's three-key one once
+    ## combined via guides = "collect" below.
+    scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), guide = "none") +
+    scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), guide = "none") +
+    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
+                       sec.axis = k_sec_axis()) +
+    scale_y_continuous(trans = "logit", breaks = logit_breaks(extend = TRUE)) +
     ylab("Proportion of models with type I errors") +
     zmargin +
     theme(strip.placement = "outside", strip.text.y.left = element_text(angle = 0))
 
-  ## -- right: corrected methods, n rows x 3 columns --
+  ## -- right: other criteria, n rows x 4 columns --
   right_data <- summ |> dplyr::filter(criterion != criterion_labels[["raw"]])
 
   nominal_ref <- right_data |> dplyr::distinct(scenario, criterion)
@@ -124,32 +145,39 @@ make_corrections_by_scenario_plot <- function(results_path, png_path) {
                 colour = NA, alpha = 0.3) +
     geom_line() +
     geom_point() +
-    facet_grid(rows = vars(scenario), cols = vars(criterion)) +
+    facet_grid(rows = vars(scenario), cols = vars(criterion), switch = "y") +
     scale_colour_manual(values = okabe_ito, name = "N") +
     scale_fill_manual(values = okabe_ito, guide = "none") +
     scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), name = "multcomp k") +
     scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), name = "multcomp k") +
-    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
-    scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
+    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
+                       sec.axis = k_sec_axis()) +
+    scale_y_continuous(trans = "logit", breaks = logit_breaks(extend = TRUE)) +
     ylab(NULL) +
     zmargin +
-    theme(strip.text.y = element_blank())
+    ## switch = "y" + strip.placement = "outside" matches p_left's row-strip
+    ## structure (text blanked here, since p_left already labels the rows):
+    ## patchwork's cross-plot alignment inserts a stray gap between the
+    ## bottom axis ticks and the panel border when the two combined plots'
+    ## row-strips are structured asymmetrically (e.g. one switched to the
+    ## outside, the other left at its default side).
+    theme(strip.placement = "outside", strip.text.y.left = element_blank())
 
   fig <- (p_left + p_right) +
-    plot_layout(widths = c(1, 3), guides = "collect") &
+    plot_layout(widths = c(1, 4), guides = "collect") &
     theme(legend.position = "right")
 
   ggsave(png_path, fig, width = 15, height = 3.2 * length(scenario_labels), dpi = 150)
 }
 
-## All four criteria (including uncorrected) as colour, both multcomp_k
-## calibrations as linetype/shape, so a single facet_grid still suffices (no
-## patchwork): rows = scenario (matching the row layout of the other
-## figures), columns = N (with-interactions cases only). Mixing the
-## uncorrected and corrected criteria onto one shared y-scale means the
-## "Selected" rows' corrected lines get visually compressed near 0.05 next
-## to the much larger uncorrected values -- kept simple here rather than
-## reaching for free_y or a secondary axis.
+## All five criteria (including uncorrected and per-parameter) as colour,
+## both multcomp_k calibrations as linetype/shape, so a single facet_grid
+## still suffices (no patchwork): rows = scenario (matching the row layout
+## of the other figures), columns = N (with-interactions cases only).
+## Mixing the uncorrected/per-parameter and corrected criteria onto one
+## shared y-scale means the "Selected" rows' corrected lines get visually
+## compressed near 0.05 next to the much larger uncorrected values -- kept
+## simple here rather than reaching for free_y or a secondary axis.
 make_corrections_by_method_plot <- function(results_path, png_path) {
   summ <- build_corrections_by_scenario_summary(results_path) |>
     dplyr::filter(interactions) |>
@@ -171,8 +199,9 @@ make_corrections_by_method_plot <- function(results_path, png_path) {
     scale_fill_manual(values = okabe_ito, guide = "none") +
     scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), name = "multcomp k") +
     scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), name = "multcomp k") +
-    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
-    scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
+    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
+                       sec.axis = k_sec_axis()) +
+    scale_y_continuous(trans = "logit", breaks = logit_breaks(extend = TRUE)) +
     ylab("Proportion of models with type I errors") +
     zmargin
 
@@ -180,7 +209,8 @@ make_corrections_by_method_plot <- function(results_path, png_path) {
 }
 
 ## Rows = N, columns = criterion (uncorrected first, then the three
-## corrections), colour = model-simplification scenario, linetype/shape =
+## corrections, then per-parameter), colour = model-simplification scenario,
+## linetype/shape =
 ## multcomp_k ("minimal"/"maximal" calibration, or "none" where the
 ## distinction doesn't apply -- uncorrected, or the unselected scenario) --
 ## with-interactions cases only. Unlike the other two plots in this file,
@@ -206,8 +236,9 @@ make_corrections_by_N_plot <- function(results_path, png_path) {
     scale_fill_manual(values = okabe_ito, guide = "none") +
     scale_linetype_manual(values = c(maximal = "solid", minimal = "22", none = "solid"), name = "multcomp k") +
     scale_shape_manual(values = c(maximal = 16, minimal = 17, none = 1), name = "multcomp k") +
-    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
-    scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
+    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
+                       sec.axis = k_sec_axis()) +
+    scale_y_continuous(trans = "logit", breaks = logit_breaks(extend = TRUE)) +
     ylab("Proportion of models with type I errors") +
     zmargin +
     theme(strip.text.y = element_text(angle = 0))

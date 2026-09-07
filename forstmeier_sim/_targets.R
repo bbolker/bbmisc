@@ -20,6 +20,10 @@
 ##   run_corrections_core.R   -- run_corrections_simulation(): the simulate-and-cache logic
 ##   plot_fig1_core.R         -- make_fig1_plot(): parametrized 2-panel a/b reproduction
 ##   plot_corrections_by_scenario_core.R -- patchwork scenario x correction-method figure
+##
+## forstmeier_sig.qmd is a narrative Quarto report discussing and embedding
+## the figures above; it's rendered to forstmeier_sig.html by the pipeline's
+## final target.
 
 library(targets)
 
@@ -120,5 +124,21 @@ list(
     graphics_utils_file                      ## dependency only
     source(make_corrections_by_N_plot_script)
     here::here("forstmeier_sim", "output", "fig1_corrections_by_N.png")
+  }, format = "file"),
+
+  ## -- report: discusses and embeds the figures above --
+
+  tar_target(forstmeier_sig_qmd_file, here::here("forstmeier_sim", "forstmeier_sig.qmd"),
+             format = "file"),
+
+  tar_target(forstmeier_sig_html_file, {
+    forstmeier_sig_qmd_file                ## dependency only
+    fig1_png_file                          ## dependency only
+    fig1_corrections_png_file              ## dependency only
+    fig1_corrections_by_scenario_png_file  ## dependency only
+    fig1_corrections_by_method_png_file    ## dependency only
+    fig1_corrections_by_N_png_file         ## dependency only
+    quarto::quarto_render(input = forstmeier_sig_qmd_file, quiet = TRUE)
+    here::here("forstmeier_sim", "forstmeier_sig.html")
   }, format = "file")
 )
