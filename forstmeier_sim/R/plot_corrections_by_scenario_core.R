@@ -188,7 +188,7 @@ make_corrections_by_N_plot <- function(results_path, png_path) {
     dplyr::filter(interactions) |>
     dplyr::mutate(
       N_label = factor(paste0("N = ", N), levels = paste0("N = ", sort(unique(N)))),
-      multcomp_k = factor(multcomp_k, levels = c("maximal", "minimal", "none"))
+      multcomp_k = factor(multcomp_k, levels = c("minimal", "maximal", "none"))
     )
 
   theme_set(theme_bw())
@@ -203,11 +203,12 @@ make_corrections_by_N_plot <- function(results_path, png_path) {
     scale_colour_manual(values = okabe_ito, name = NULL) +
     scale_fill_manual(values = okabe_ito, guide = "none") +
     scale_linetype_manual(values = c(maximal = "solid", minimal = "22", none = "solid"), name = "multcomp k") +
-    scale_shape_manual(values = c(maximal = 16, minimal = 17, none = 16), name = "multcomp k") +
+    scale_shape_manual(values = c(maximal = 16, minimal = 17, none = 1), name = "multcomp k") +
     scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
     scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
     ylab("Proportion of models with type I errors") +
-    zmargin
+    zmargin +
+    theme(strip.text.y = element_text(angle = 0))
 
   ggsave(png_path, fig, width = 10, height = 8, dpi = 150)
 }
