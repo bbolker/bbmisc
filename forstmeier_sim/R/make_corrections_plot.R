@@ -23,7 +23,8 @@ method_labels <- c(
 
 ## corrections_results.rds screens three model-simplification scenarios;
 ## this plot covers only the unselected (full-model) one, for comparison
-## with Fig. 1a -- see fig1_stepwise_comparison.png for the selected cases.
+## with Fig. 1a -- see fig1_corrections_by_scenario.png for the selected
+## cases.
 summ_raw <- results |>
   group_by(N, m, interactions, k) |>
   summarise(

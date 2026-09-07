@@ -51,18 +51,13 @@ For the two *selected* scenarios, each correction is computed two ways,
 recorded in a `multcomp_k` column: **"minimal"** (calibrated on the
 selected model's own surviving term count -- how a user who isn't
 thinking about the search that produced it would do it) and
-**"maximal"** (calibrated on the pre-selection full model's k, correlation
+**"maximal"** (calibrated on the pre-selection full model's $k$, correlation
 structure and residual df -- what Forstmeier & Schielzeth's Fig. 3b does,
 applying the full model's Bonferroni threshold to the minimal model
 rather than recomputing it from the minimal model's own smaller term
 count). `multcomp_k` is `"none"` where the distinction doesn't apply: the
 uncorrected criterion, and the unselected scenario (which has only one
-calibration since fit and reference model coincide). Deliberately not
-left as `NA`: `interaction(scenario, multcomp_k)` -- used for grouping in
-`fig1_corrections_by_N.png` -- returns `NA` for every row when
-`multcomp_k` is `NA` regardless of `scenario`, which silently collapses
-all scenarios into one group and produces stray lines connecting points
-across scenarios.
+calibration since fit and reference model coincide).
 
 ## Code layout
 
@@ -80,45 +75,39 @@ across scenarios.
   docs for the full derivation and references.
 - `R/run_corrections_core.R`, `R/run_corrections_simulation.R` -- the
   simulate-and-cache driver and its thin wrapper.
-- `R/plot_fig1_core.R` (+ `make_plot.R`, `make_plot_restricted.R`) --
-  2-panel a/b reproduction of the paper's Fig. 1 layout, parametrized by
-  which pair of scenario columns to plot.
-- `R/plot_stepwise_comparison_core.R` (+ `make_stepwise_comparison_plot.R`,
-  `make_stepwise_comparison_plot_by_condition.R`) -- two facet
-  orientations of the uncorrected 3-scenario comparison, built on one
-  shared summary.
+- `R/plot_fig1_core.R` (+ `make_plot.R`) -- 2-panel a/b reproduction of the
+  paper's Fig. 1 layout, parametrized by which pair of scenario columns to
+  plot.
 - `R/plot_corrections_by_scenario_core.R` (+
   `make_corrections_by_scenario_plot.R`, `make_corrections_by_method_plot.R`,
   `make_corrections_by_N_plot.R`) -- three scenario x correction-method
   comparisons built on one shared summary (`build_corrections_by_scenario_summary()`,
-  which pivots out the `multcomp_k` column): a 1-column x n-row uncorrected
-  panel beside an n-row x 3-column corrected-methods facet_grid combined
-  with `patchwork`; a single facet_grid (rows = scenario, columns = N)
-  with criterion as colour/shape; and its transpose (rows = N, columns =
-  criterion, colour = scenario, linetype/shape = `multcomp_k`) -- all
-  with-interactions cases only. The first two default to the "maximal"
-  calibration only (`filter_default_calibration()`); the third shows both.
+  which pivots out the `multcomp_k` column), all with-interactions cases
+  only and all showing both the minimal and maximal calibration
+  (linetype/shape): a 1-column x n-row uncorrected panel (colour = N)
+  beside an n-row x 3-column corrected-methods facet_grid (colour = N)
+  combined with `patchwork`; a single facet_grid (rows = scenario, columns
+  = N, colour = criterion); and its transpose (rows = N, columns =
+  criterion, colour = scenario).
 - `R/graphics_utils.R` -- `logit_breaks()` and the shared Okabe-Ito
   palette; every plot uses a logit y-scale.
 - `smoke_test.R` -- correctness and timing checks, run standalone.
 
 ## Outputs (`output/`)
 
-- `fig1.png` / `fig1_restricted.png` -- the paper's Fig. 1 layout
-  (unselected vs. selected), for the unrestricted and interactions-only
-  `step()` variants respectively.
-- `fig1_stepwise_comparison.png` / `fig1_stepwise_comparison_by_condition.png`
-  -- the three scenarios, uncorrected only, in two facet orientations.
+- `fig1.png` -- the paper's Fig. 1 layout (unselected vs. selected via
+  unrestricted `step()`).
 - `fig1_corrections.png` -- uncorrected vs. Dunn-Sidak vs. Holm vs.
   single-step max-\|T\|, unselected model only.
 - `fig1_corrections_by_scenario.png` -- all three scenarios crossed with
   all four criteria, uncorrected panel + corrected-methods grid combined
-  via `patchwork`.
+  via `patchwork`, colour = N, linetype/shape = `multcomp_k`,
+  with-interactions cases only.
 - `fig1_corrections_by_method.png` -- the same comparison as a single
-  facet_grid (rows = scenario, columns = N), all four criteria as
-  colour/shape, with-interactions cases only.
-- `fig1_corrections_by_N.png` -- rows = N, columns = criterion, colour/shape
-  = scenario, with-interactions cases only.
+  facet_grid (rows = scenario, columns = N), colour = criterion,
+  linetype/shape = `multcomp_k`, with-interactions cases only.
+- `fig1_corrections_by_N.png` -- rows = N, columns = criterion, colour =
+  scenario, linetype/shape = `multcomp_k`, with-interactions cases only.
 - `corrections_results.rds` -- the cached simulation output underlying all
   of the above; includes both minimal and maximal k-counting for the two
   selected scenarios (see Simulation design).
@@ -153,14 +142,15 @@ across scenarios.
    close to nominal throughout.
 
 3. **Restricting `step()` to discard only interactions (never main
-   effects) barely reduces the type I error inflation.** The restricted
-   version is consistently slightly lower than the unrestricted one across
-   every with-interactions condition (e.g. at N=50, k=21: 0.831 vs. 0.844)
-   but the gap is small (~1 percentage point at the most extreme
-   condition) relative to the inflation itself. Most of the "cryptic
-   multiple testing" problem comes from having many interaction terms
-   available to prune in the first place, not from the additional freedom
-   to also drop main effects.
+   effects) barely reduces the type I error inflation.** Across the
+   `selected (all)` vs. `selected (interax only)` scenarios (see
+   `fig1_corrections_by_scenario.png`), the restricted version is consistently slightly lower than the unrestricted
+   one across every with-interactions condition (e.g. at N=50, k=21: 0.831
+   vs. 0.844) but the gap is small (~1 percentage point at the most
+   extreme condition) relative to the inflation itself. Most of the
+   "cryptic multiple testing" problem comes from having many interaction
+   terms available to prune in the first place, not from the additional
+   freedom to also drop main effects.
 
 4. **Calibrating a correction on the selected model's own surviving terms
    ("minimal" k) substantially undercorrects relative to calibrating on

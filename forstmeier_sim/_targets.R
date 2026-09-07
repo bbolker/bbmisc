@@ -19,7 +19,6 @@
 ##   maxT_correction.R        -- single-step max-|T| critical value
 ##   run_corrections_core.R   -- run_corrections_simulation(): the simulate-and-cache logic
 ##   plot_fig1_core.R         -- make_fig1_plot(): parametrized 2-panel a/b reproduction
-##   plot_stepwise_comparison_core.R -- n-row/n-condition scenario comparisons
 ##   plot_corrections_by_scenario_core.R -- patchwork scenario x correction-method figure
 
 library(targets)
@@ -69,18 +68,6 @@ list(
     here::here("forstmeier_sim", "output", "fig1.png")
   }, format = "file"),
 
-  tar_target(make_plot_restricted_script,
-             here::here("forstmeier_sim", "R", "make_plot_restricted.R"),
-             format = "file"),
-
-  tar_target(fig1_restricted_png_file, {
-    corrections_results_file  ## dependency only
-    plot_fig1_core_file         ## dependency only
-    graphics_utils_file          ## dependency only
-    source(make_plot_restricted_script)
-    here::here("forstmeier_sim", "output", "fig1_restricted.png")
-  }, format = "file"),
-
   ## -- multiple-comparisons-correction comparison, unselected model only --
 
   tar_target(make_corrections_plot_script, here::here("forstmeier_sim", "R", "make_corrections_plot.R"),
@@ -91,38 +78,6 @@ list(
     graphics_utils_file        ## dependency only
     source(make_corrections_plot_script)
     here::here("forstmeier_sim", "output", "fig1_corrections.png")
-  }, format = "file"),
-
-  ## -- stepwise-simplification-method comparison (unselected / --
-  ## -- unrestricted step() / interactions-only step()), no    --
-  ## -- multiple-comparisons correction --
-
-  tar_target(plot_stepwise_comparison_core_file,
-             here::here("forstmeier_sim", "R", "plot_stepwise_comparison_core.R"),
-             format = "file"),
-
-  tar_target(make_stepwise_comparison_plot_script,
-             here::here("forstmeier_sim", "R", "make_stepwise_comparison_plot.R"),
-             format = "file"),
-
-  tar_target(fig1_stepwise_comparison_png_file, {
-    corrections_results_file            ## dependency only
-    plot_stepwise_comparison_core_file  ## dependency only
-    graphics_utils_file                  ## dependency only
-    source(make_stepwise_comparison_plot_script)
-    here::here("forstmeier_sim", "output", "fig1_stepwise_comparison.png")
-  }, format = "file"),
-
-  tar_target(make_stepwise_comparison_plot_by_condition_script,
-             here::here("forstmeier_sim", "R", "make_stepwise_comparison_plot_by_condition.R"),
-             format = "file"),
-
-  tar_target(fig1_stepwise_comparison_by_condition_png_file, {
-    corrections_results_file            ## dependency only
-    plot_stepwise_comparison_core_file  ## dependency only
-    graphics_utils_file                  ## dependency only
-    source(make_stepwise_comparison_plot_by_condition_script)
-    here::here("forstmeier_sim", "output", "fig1_stepwise_comparison_by_condition.png")
   }, format = "file"),
 
   ## -- scenario x correction-method comparison, combined via patchwork --

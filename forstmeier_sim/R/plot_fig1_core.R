@@ -1,13 +1,14 @@
 ## Shared plotting logic for the Fig. 1 reproduction (uncorrected vs.
-## step()-simplified type I error rate). Reused by make_plot.R (unrestricted
-## step()) and make_plot_restricted.R (interactions-only-removal step()).
-## Reads the "raw" (uncorrected) columns out of corrections_results.rds --
+## step()-simplified type I error rate), used by make_plot.R. Reads the
+## "raw" (uncorrected) columns out of corrections_results.rds --
 ## col_unselected/col_selected name which pair of scenario columns to plot.
 
 library(ggplot2)
 library(scales)
 
 source(here::here("forstmeier_sim", "R", "graphics_utils.R"))
+
+zmargin <- theme(panel.spacing = grid::unit(0, "pt"))
 
 make_fig1_plot <- function(results_path, col_unselected, col_selected, png_path) {
   results <- readRDS(results_path)
@@ -73,7 +74,8 @@ make_fig1_plot <- function(results_path, col_unselected, col_selected, png_path)
     scale_linetype_discrete(name = "N") +
     scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
     scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
-    ylab("Proportion of models with type I errors")
+    ylab("Proportion of models with type I errors") +
+    zmargin
 
   ggsave(png_path, fig, width = 10, height = 5, dpi = 150)
 }

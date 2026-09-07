@@ -67,46 +67,43 @@ build_corrections_by_scenario_summary <- function(results_path) {
     )
 }
 
-## Filters a summary to one row per (scenario, criterion, N, m,
-## interactions): the uncorrected/unselected rows (multcomp_k = "none")
-## unchanged, plus the "maximal" (correct) calibration for the two
-## selected scenarios' corrections -- dropping "minimal" (naive) here so
-## each panel still shows a single line per group. See TODO.md for a
-## dedicated naive-vs-correct comparison plot.
-filter_default_calibration <- function(summ) {
-  summ |> dplyr::filter(multcomp_k %in% c("none", "maximal"))
-}
-
 ## Zero spacing between facet panels (project graphics preference), used
 ## throughout this file since none of these plots have tick labels at risk
 ## of overlapping between adjacent panels.
 zmargin <- theme(panel.spacing = grid::unit(0, "pt"))
 
+## Colour = N, linetype/shape = multcomp_k -- with-interactions cases only.
+## Unlike make_corrections_by_method_plot(), this keeps both the minimal and
+## maximal calibrations (distinguished by linetype/shape) rather than
+## defaulting to "maximal" via filter_default_calibration().
 make_corrections_by_scenario_plot <- function(results_path, png_path) {
-  summ <- build_corrections_by_scenario_summary(results_path) |> filter_default_calibration()
+  summ <- build_corrections_by_scenario_summary(results_path) |>
+    dplyr::filter(interactions) |>
+    dplyr::mutate(multcomp_k = factor(multcomp_k, levels = c("minimal", "maximal", "none")))
   theme_set(theme_bw())
 
   ## -- left: uncorrected only, 1 column x n rows --
   left_data <- summ |> dplyr::filter(criterion == criterion_labels[["raw"]])
 
   grey_lines <- left_data |>
-    dplyr::distinct(scenario, m, interactions, k) |>
+    dplyr::distinct(scenario, m, k) |>
     dplyr::mutate(alpha_prime = 1 - (1 - 0.05)^k)
 
-  p_left <- ggplot(left_data, aes(m, prop, colour = group, linetype = factor(N))) +
+  p_left <- ggplot(left_data, aes(m, prop, colour = factor(N), linetype = multcomp_k, shape = multcomp_k)) +
     ## ymin = -Inf rather than 0: 0 is not representable on a logit scale
     annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
              fill = "grey80", alpha = 0.5) +
-    geom_line(data = grey_lines, aes(x = m, y = alpha_prime, group = interactions),
-              inherit.aes = FALSE, colour = "grey50", linewidth = 2, alpha = 0.5) +
-    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = group, group = interaction(group, N)),
+    geom_line(data = grey_lines, aes(x = m, y = alpha_prime), inherit.aes = FALSE,
+              colour = "grey50", linewidth = 2, alpha = 0.5) +
+    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = factor(N), group = N),
                 colour = NA, alpha = 0.3) +
     geom_line() +
     geom_point() +
     facet_grid(rows = vars(scenario), switch = "y") +
-    scale_colour_manual(values = okabe_ito, name = NULL) +
+    scale_colour_manual(values = okabe_ito, name = "N") +
     scale_fill_manual(values = okabe_ito, guide = "none") +
-    scale_linetype_discrete(name = "N") +
+    scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), name = "multcomp k") +
+    scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), name = "multcomp k") +
     scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
     scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
     ylab("Proportion of models with type I errors") +
@@ -118,19 +115,20 @@ make_corrections_by_scenario_plot <- function(results_path, png_path) {
 
   nominal_ref <- right_data |> dplyr::distinct(scenario, criterion)
 
-  p_right <- ggplot(right_data, aes(m, prop, colour = group, linetype = factor(N))) +
+  p_right <- ggplot(right_data, aes(m, prop, colour = factor(N), linetype = multcomp_k, shape = multcomp_k)) +
     annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
              fill = "grey80", alpha = 0.5) +
     geom_hline(data = nominal_ref, aes(yintercept = 0.05), inherit.aes = FALSE,
                colour = "grey40", linetype = "dashed", linewidth = 1) +
-    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = group, group = interaction(group, N)),
+    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = factor(N), group = interaction(N, multcomp_k)),
                 colour = NA, alpha = 0.3) +
     geom_line() +
     geom_point() +
     facet_grid(rows = vars(scenario), cols = vars(criterion)) +
-    scale_colour_manual(values = okabe_ito, name = NULL) +
+    scale_colour_manual(values = okabe_ito, name = "N") +
     scale_fill_manual(values = okabe_ito, guide = "none") +
-    scale_linetype_discrete(name = "N") +
+    scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), name = "multcomp k") +
+    scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), name = "multcomp k") +
     scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
     scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
     ylab(NULL) +
@@ -144,31 +142,35 @@ make_corrections_by_scenario_plot <- function(results_path, png_path) {
   ggsave(png_path, fig, width = 15, height = 3.2 * length(scenario_labels), dpi = 150)
 }
 
-## All four criteria (including uncorrected) as colour/shape, so a single
-## facet_grid still suffices (no patchwork): rows = scenario (matching the
-## row layout of the other figures), columns = N (with-interactions cases
-## only). Mixing the uncorrected and corrected criteria onto one shared
-## y-scale means the "Selected" rows' corrected lines get visually
-## compressed near 0.05 next to the much larger uncorrected values -- kept
-## simple here rather than reaching for free_y or a secondary axis.
+## All four criteria (including uncorrected) as colour, both multcomp_k
+## calibrations as linetype/shape, so a single facet_grid still suffices (no
+## patchwork): rows = scenario (matching the row layout of the other
+## figures), columns = N (with-interactions cases only). Mixing the
+## uncorrected and corrected criteria onto one shared y-scale means the
+## "Selected" rows' corrected lines get visually compressed near 0.05 next
+## to the much larger uncorrected values -- kept simple here rather than
+## reaching for free_y or a secondary axis.
 make_corrections_by_method_plot <- function(results_path, png_path) {
   summ <- build_corrections_by_scenario_summary(results_path) |>
-    filter_default_calibration() |>
     dplyr::filter(interactions) |>
-    dplyr::mutate(N_label = factor(paste0("N = ", N), levels = paste0("N = ", sort(unique(N)))))
+    dplyr::mutate(
+      N_label = factor(paste0("N = ", N), levels = paste0("N = ", sort(unique(N)))),
+      multcomp_k = factor(multcomp_k, levels = c("minimal", "maximal", "none"))
+    )
 
   theme_set(theme_bw())
 
-  fig <- ggplot(summ, aes(m, prop, colour = criterion, shape = criterion)) +
+  fig <- ggplot(summ, aes(m, prop, colour = criterion, linetype = multcomp_k, shape = multcomp_k)) +
     geom_hline(yintercept = 0.05, colour = "grey40", linetype = "dashed", linewidth = 1) +
-    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = criterion, group = criterion),
+    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = criterion, group = interaction(criterion, multcomp_k)),
                 colour = NA, alpha = 0.3) +
     geom_line() +
     geom_point() +
     facet_grid(rows = vars(scenario), cols = vars(N_label)) +
     scale_colour_manual(values = okabe_ito, name = NULL) +
     scale_fill_manual(values = okabe_ito, guide = "none") +
-    scale_shape_discrete(name = NULL) +
+    scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), name = "multcomp k") +
+    scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), name = "multcomp k") +
     scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6) +
     scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
     ylab("Proportion of models with type I errors") +

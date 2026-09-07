@@ -1,13 +1,5 @@
 # TODO
 
-- [ ] Consider adding the minimal/maximal `multcomp_k` distinction (linetype +
-      shape, as in `fig1_corrections_by_N.png`) to `fig1_corrections_by_scenario.png`
-      and `fig1_corrections_by_method.png` too, rather than defaulting to
-      "maximal" only via `filter_default_calibration()`.
-- [ ] Consider whether `fig1_stepwise_comparison*.png` and
-      `fig1_corrections_by_scenario.png` should be merged/rationalized now that
-      they overlap substantially (both compare scenarios; the corrections-by-
-      scenario figure is close to a superset).
 - [ ] Add a per-parameter error rate metric: E[V]/k per replicate (V = number of
       the k original predictors that are significant, k = original full-model
       predictor count), as an additional outcome alongside the existing
