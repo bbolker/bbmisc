@@ -24,3 +24,4 @@
       just a different, weaker guarantee). BY is the closer analogue to Holm
       (valid under arbitrary dependence); BH is the more commonly used default
       but formally needs independence/PRDS.
+- [ ] cosmetics: github link/icon? play with scales (do we need logit?)
