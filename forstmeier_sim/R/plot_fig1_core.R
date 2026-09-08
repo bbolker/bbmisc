@@ -68,10 +68,9 @@ make_fig1_plot <- function(results_path, col_unselected, col_selected, png_path)
     scale_colour_manual(values = okabe_ito, name = NULL) +
     scale_fill_manual(values = okabe_ito, guide = "none") +
     scale_linetype_discrete(name = "N") +
-    scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
-                       sec.axis = k_sec_axis()) +
-    scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
-    ylab("Proportion of models with type I errors") +
+    m_k_scale_x() +
+    scale_y_logit(c(summ$ci_lo, summ$ci_hi, grey_lines$alpha_prime)) +
+    ylab("Proportion with type I errors") +
     zmargin
 
   ggsave(png_path, fig, width = 10, height = 5, dpi = 150)

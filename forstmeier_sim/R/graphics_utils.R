@@ -1,12 +1,13 @@
 
-## extend = TRUE brackets the data range with one candidate break just
-## below lo and just above hi (when available), rather than only ever
-## showing breaks strictly inside [lo, hi]. Without it, a data range whose
-## endpoint falls between two candidates (e.g. 0.02, between the 0.01 and
-## 0.05 candidates) shows no break near that endpoint at all, leaving a
-## visible gap between the nearest labelled gridline and the actual edge
-## of the (expanded) panel.
-logit_breaks <- function(n = 6, extend = FALSE) {
+## extend = TRUE (the default) brackets the data range with one candidate
+## break just below lo and just above hi (when available), rather than
+## only ever showing breaks strictly inside [lo, hi]. Without it, a data
+## range whose endpoint falls between two candidates (e.g. 0.02, between
+## the 0.01 and 0.05 candidates) shows no break near that endpoint at all,
+## leaving a visible gap between the nearest labelled gridline and the
+## actual edge of the (expanded) panel. Pass extend = FALSE to restore the
+## strictly-inside-range behaviour.
+logit_breaks <- function(n = 6, extend = TRUE) {
   function(x) {
     rng <- range(x[is.finite(x) & x > 0 & x < 1])
     lo <- rng[1]; hi <- rng[2]
@@ -18,8 +19,17 @@ logit_breaks <- function(n = 6, extend = FALSE) {
     full  <- sort(unique(c(lower, 1 - lower)))
     keep <- full[full >= lo & full <= hi]
     if (extend) {
-      below <- full[full < lo]
-      above <- full[full > hi]
+      ## Denser 1-9 x 10^-k grid, used only to find the closest bracketing
+      ## candidate just outside [lo, hi]. The sparser decades/halves grid
+      ## used for in-range breaks can leave a big gap between candidates
+      ## (e.g. nothing between 0.1 and 0.5) that the panel's default
+      ## expansion isn't wide enough to actually reach, silently clipping
+      ## the bracket break rather than showing it.
+      dense <- sort(unique(as.vector(outer(1:9, 10^-k))))
+      dense <- dense[dense <= 0.5]
+      dense <- sort(unique(c(dense, 1 - dense)))
+      below <- dense[dense < lo]
+      above <- dense[dense > hi]
       if (length(below) > 0) keep <- c(max(below), keep)
       if (length(above) > 0) keep <- c(keep, min(above))
     }
@@ -34,6 +44,23 @@ logit_breaks <- function(n = 6, extend = FALSE) {
     }
     keep
   }
+}
+
+## A logit-scaled y scale for the range of `values` (e.g. a data frame's
+## ci_lo/ci_hi columns, or just its proportion column), with breaks from
+## logit_breaks() and -- critically -- the scale's own `limits` explicitly
+## widened to include them. Just passing `breaks = logit_breaks()` to
+## scale_y_continuous() is not enough for extend = TRUE's bracket
+## candidates to actually render: ggplot2 censors any break lying outside
+## a continuous scale's data-derived limits to NA regardless of what the
+## breaks function returns, no matter how much panel expansion padding
+## surrounds it. Computing the breaks eagerly here, from the actual data,
+## lets the limits be widened to match before the scale is even built.
+scale_y_logit <- function(values, n = 6, extend = TRUE, ...) {
+  rng <- range(values[is.finite(values) & values > 0 & values < 1])
+  brks <- logit_breaks(n = n, extend = extend)(rng)
+  ggplot2::scale_y_continuous(trans = "logit", breaks = brks,
+                               limits = range(c(rng, brks)), ...)
 }
 
 ## Okabe-Ito palette, excluding black and yellow
@@ -70,18 +97,18 @@ scale_y_log10_shifted <- function(offset = 1, n = 10, ...) {
     ...)
 }
 
-## Secondary top x-axis showing the number of model parameters
-## k = m + choose(m, 2) at each number-of-predictors (m) tick, as in
-## Forstmeier & Schielzeth's Fig. 1 -- exact for models that include all
-## two-way interactions; for main-effects-only models k = m trivially.
-## Specific to forstmeier_sim, not part of the shared plague_virulence
-## original this file was copied from.
-k_sec_axis <- function(breaks = 1:6) {
-  ggplot2::sec_axis(
-    transform = ~ .,
-    name = "Number of predictors (with interactions)",
+## Primary x-axis folding the number of model parameters k = m + choose(m, 2)
+## into each number-of-predictors (m) tick label as "m\n(k)", rather than a
+## secondary axis on top (an earlier design, since replaced everywhere) --
+## exact for models that include all two-way interactions; for
+## main-effects-only models k = m trivially. Specific to forstmeier_sim,
+## not part of the shared plague_virulence original this file was copied
+## from.
+m_k_scale_x <- function(breaks = 1:6) {
+  ggplot2::scale_x_continuous(
+    name = "Number of explanatory (predictor) variables",
     breaks = breaks,
-    labels = function(m) m + choose(m, 2)
+    labels = sprintf("%d\n(%d)", breaks, choose(breaks, 2) + breaks)
   )
 }
 

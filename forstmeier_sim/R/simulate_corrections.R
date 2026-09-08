@@ -9,33 +9,66 @@
 ## Bonferroni, which instead scales alpha down to alpha/k).
 sidak_alpha <- function(alpha, k) 1 - (1 - alpha)^(1 / k)
 
-## Screens `fit`'s terms under all four significance criteria, calibrated
-## against `ref` -- the pre-selection full model whose k, correlation
-## structure, and residual df define the actual multiple-testing exposure.
-## This matters whenever `fit` is itself the result of a selection process
-## performed on `ref` (the "selected" scenarios): correcting only for the
-## terms that happened to survive selection would ignore the search that
-## produced them. Forstmeier & Schielzeth's Fig. 3b makes the same choice,
-## applying the full model's Bonferroni threshold to the minimal model
-## rather than recomputing it from the minimal model's own term count. When
-## `fit` and `ref` are the same object (the "unselected" scenario), this
-## reduces to the ordinary single-model correction.
-## Returns both the experimentwise indicator (sig_*: is at least one of
-## fit's terms significant) and the raw count (n_sig_*: how many of fit's
-## terms are significant) for each criterion. A per-parameter error rate
-## divides n_sig_* by the *original* full-model k (the `k` column already
-## in the condition grid), not by fit's own -- possibly reduced -- term
-## count.
-screen_criteria <- function(fit, ref = fit, alpha = 0.05, maxT_nsim = 5000) {
-  tt <- broom::tidy(fit)
-  tt <- tt[tt$term != "(Intercept)", , drop = FALSE]
+## TRUE for a main-effect term (no ":" in its name), FALSE for an
+## interaction term.
+is_main_effect_term <- function(term) !grepl(":", term, fixed = TRUE)
 
-  ref_tt <- broom::tidy(ref)
-  k_ref <- sum(ref_tt$term != "(Intercept)")
+## Tidies `fit`, drops the intercept row, and optionally further restricts
+## to the terms `term_subset` selects (a predicate on term names, e.g.
+## is_main_effect_term) -- shared by compute_calibration(), screen_criteria()
+## and screen_raw().
+tidy_fit <- function(fit, term_subset = NULL) {
+  tt <- broom::tidy(fit) |> subset(term != "(Intercept)")
+  if (!is.null(term_subset)) tt <- tt[term_subset(tt$term), , drop = FALSE]
+  tt
+}
 
-  V_ref <- stats::vcov(ref)[-1, -1, drop = FALSE]
+## Computes the multiple-testing exposure (k, and the single-step max-|T|
+## critical value) implied by `ref` -- the pre-selection full model whose
+## k, correlation structure, and residual df define the actual exposure,
+## regardless of which/how many of its terms are later asked about. This
+## matters whenever the model being screened is itself the result of a
+## selection process performed on `ref` (the "selected" scenarios):
+## correcting only for the terms that happened to survive selection would
+## ignore the search that produced them. Forstmeier & Schielzeth's Fig. 3b
+## makes the same choice, applying the full model's Bonferroni threshold to
+## the minimal model rather than recomputing it from the minimal model's
+## own term count.
+##
+## `ref_subset`, if given, restricts k/the correlation matrix to just the
+## subset of ref's own terms it selects (e.g. is_main_effect_term) -- used
+## for the "naive" main-effects-only calibration, where a user who only
+## cares about main effects would count only those as their exposure.
+## Leaving it NULL (the default) uses ref's full term set, as for the
+## ordinary and "correct"/maximal calibrations.
+compute_calibration <- function(ref, ref_subset = NULL, alpha = 0.05, maxT_nsim = 5000) {
+  ref_terms <- tidy_fit(ref, ref_subset)$term
+  k_ref <- length(ref_terms)
+
+  V_ref <- stats::vcov(ref)[ref_terms, ref_terms, drop = FALSE]
   R_ref <- stats::cov2cor(V_ref)
   crit_maxT <- maxT_crit(R_ref, df = ref$df.residual, nsim = maxT_nsim, level = 1 - alpha)
+
+  list(k_ref = k_ref, crit_maxT = crit_maxT)
+}
+
+## Screens `fit`'s terms (optionally restricted to the subset `test_subset`
+## selects, e.g. is_main_effect_term) under all four significance criteria,
+## using a `calibration` (see compute_calibration()) computed separately --
+## letting the same calibration be reused across multiple test_subsets
+## (e.g. all terms and main-effects-only both calibrated on the full
+## pre-selection model) without recomputing its expensive max-|T| Monte
+## Carlo critical value each time.
+##
+## Returns both the experimentwise indicator (sig_*: is at least one of
+## fit's screened terms significant) and the raw count (n_sig_*: how many
+## are). A per-parameter error rate divides n_sig_* by the relevant
+## original full-model term count (`k`, or `m` for the main-effects-only
+## variants) rather than by fit's own -- possibly reduced -- term count.
+screen_criteria <- function(fit, calibration, alpha = 0.05, test_subset = NULL) {
+  tt <- tidy_fit(fit, test_subset)
+  k_ref <- calibration$k_ref
+  crit_maxT <- calibration$crit_maxT
 
   sig_by_term <- tibble::tibble(
     raw  = tt$p.value < alpha,
@@ -54,6 +87,16 @@ screen_criteria <- function(fit, ref = fit, alpha = 0.05, maxT_nsim = 5000) {
       list(sig = ~ any(.x, na.rm = TRUE), n_sig = ~ sum(.x, na.rm = TRUE)),
       .names = "{.fn}_{.col}"
     ))
+}
+
+## Screens fit's terms (optionally restricted by `subset`) under the
+## uncorrected criterion only -- no calibration object needed, since raw
+## p-values don't depend on k. Used for the lightweight main-effects-only
+## and cross-check metrics, which don't need max-|T|'s Monte Carlo cost.
+screen_raw <- function(fit, alpha = 0.05, subset = NULL) {
+  tt <- tidy_fit(fit, subset)
+  sig <- tt$p.value < alpha
+  tibble::tibble(sig_raw = any(sig, na.rm = TRUE), n_sig_raw = sum(sig, na.rm = TRUE))
 }
 
 ## Metrics unaffected by k_ref (raw p-values aren't corrected), so naive and
@@ -84,7 +127,29 @@ selected_scenario_block <- function(nm, naive, correct) {
 ## are computed two ways: "naive" (calibrated on the selected model's own
 ## surviving term count -- what a user who doesn't think about the search
 ## that produced it would do) and "correct" (calibrated on the full
-## pre-selection model, as in Forstmeier & Schielzeth's Fig. 3b).
+## pre-selection model, as in Forstmeier & Schielzeth's Fig. 3b). The full
+## pre-selection model's calibration (calib_full) is computed once and
+## reused for "unselected" and every scenario's "correct" -- these would
+## otherwise each independently re-estimate the identical max-|T| critical
+## value via its own noisy 5000-draw Monte Carlo call.
+##
+## When `interactions` is TRUE, also tracks the same breakdown restricted
+## to just the m main-effect terms (excluding interactions), suffixed
+## "_main_<scenario>". Both calibrations change accordingly: "correct_main"
+## uses calib_full_main -- fit_full's own calibration, but with k = m and
+## the correlation matrix restricted to just its main-effect sub-block,
+## since the main-effects-only metrics were never intended to also test
+## the interaction terms, so m (not m + choose(m,2)) is the actual
+## multiple-testing exposure being corrected for. "naive_main" gets its
+## own calibration too, from the selected model's own *surviving* main
+## effects -- always m for step_restricted (main effects are never
+## dropped), potentially fewer for step. The unselected scenario
+## additionally gets an uncorrected-only cross-check: an independently
+## fit main-effects-only model (no interaction terms at all), for
+## comparing against the main-effect subset of the full interactive
+## model's own screening -- these needn't agree replicate-by-replicate
+## (the random factor assignment isn't exactly orthogonal in any single
+## finite draw) but should match in aggregate over many replicates.
 ##
 ## At low N relative to k (e.g. N=30-50 with interactions), the
 ## unorthogonalized random design occasionally produces a near-singular
@@ -100,7 +165,7 @@ one_rep_corrections <- function(N, m, interactions, alpha = 0.05, maxT_nsim = 50
   ## which is also worker-process-local for the same reason -- see
   ## ~/.claude/r-parallelization.md). Sum-to-zero contrasts make each
   ## main-effect test, in the presence of interactions, a test of the
-  ## effect at the population mean of the other factors rather than at an
+  ## effect at the population mean of the other factors rather than an
   ## arbitrary reference level.
   options(contrasts = c("contr.sum", "contr.poly"))
   for (attempt in seq_len(max_tries)) {
@@ -112,14 +177,46 @@ one_rep_corrections <- function(N, m, interactions, alpha = 0.05, maxT_nsim = 50
       ## step()'s own frame, which can't see a `dat` local to this function.
       fit_full <- do.call("lm", list(formula = build_formula(m, interactions), data = dat))
 
-      out <- screen_criteria(fit_full, alpha = alpha, maxT_nsim = maxT_nsim)
+      calib_full <- compute_calibration(fit_full, alpha = alpha, maxT_nsim = maxT_nsim)
+      out <- screen_criteria(fit_full, calib_full, alpha = alpha)
       names(out) <- paste0(names(out), "_unselected")
+
+      if (interactions) {
+        ## Calibrated on fit_full restricted to just its m main-effect
+        ## terms -- k = m, not m + choose(m,2) -- since the main-effects-only
+        ## metrics were never intended to also test the interaction terms;
+        ## the correlation structure and residual df still come from
+        ## fit_full itself (same fit, just querying a subset of its
+        ## coefficients), unlike calib_full's own unrestricted k.
+        calib_full_main <- compute_calibration(fit_full, ref_subset = is_main_effect_term,
+                                                alpha = alpha, maxT_nsim = maxT_nsim)
+
+        main_unselected <- screen_raw(fit_full, alpha = alpha, subset = is_main_effect_term)
+        names(main_unselected) <- paste0(names(main_unselected), "_main_unselected")
+
+        fit_mainonly <- do.call("lm", list(formula = build_formula(m, FALSE), data = dat))
+        crosscheck <- screen_raw(fit_mainonly, alpha = alpha)
+        names(crosscheck) <- paste0(names(crosscheck), "_mainonly_crosscheck")
+
+        out <- dplyr::bind_cols(out, main_unselected, crosscheck)
+      }
 
       for (nm in names(simplify_fns)) {
         fit_i <- simplify_fns[[nm]](fit_full, m, interactions)
-        naive   <- screen_criteria(fit_i, alpha = alpha, maxT_nsim = maxT_nsim)
-        correct <- screen_criteria(fit_i, ref = fit_full, alpha = alpha, maxT_nsim = maxT_nsim)
+        calib_naive <- compute_calibration(fit_i, alpha = alpha, maxT_nsim = maxT_nsim)
+        naive   <- screen_criteria(fit_i, calib_naive, alpha = alpha)
+        correct <- screen_criteria(fit_i, calib_full, alpha = alpha)
         out <- dplyr::bind_cols(out, selected_scenario_block(nm, naive, correct))
+
+        if (interactions) {
+          calib_naive_main <- compute_calibration(fit_i, ref_subset = is_main_effect_term,
+                                                   alpha = alpha, maxT_nsim = maxT_nsim)
+          naive_main   <- screen_criteria(fit_i, calib_naive_main, alpha = alpha,
+                                           test_subset = is_main_effect_term)
+          correct_main <- screen_criteria(fit_i, calib_full_main, alpha = alpha,
+                                           test_subset = is_main_effect_term)
+          out <- dplyr::bind_cols(out, selected_scenario_block(paste0("main_", nm), naive_main, correct_main))
+        }
       }
       out
     }, error = function(e) NULL)

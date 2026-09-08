@@ -11,7 +11,9 @@ The simulation generates null data (response independent of all
 predictors), fits linear models with 1-6 two-level factors (and,
 optionally, all their two-way interactions), and asks how often at least
 one predictor comes out "significant" (p < 0.05) by chance alone -- for
-three model-simplification scenarios and four significance criteria.
+three model-simplification scenarios, several significance criteria, and
+(for the with-interactions conditions) both all predictors and main
+effects only.
 
 ## Pipeline
 
@@ -80,15 +82,49 @@ significance check draw on overlapping evidence about the same predictor,
 so "retained" and "significant" are positively correlated rather than
 independent.
 
+For the with-interactions conditions, `one_rep_corrections()` additionally
+tracks the same breakdown restricted to just the m main-effect terms
+(`is_main_effect_term()`; columns suffixed `_main_<scenario>`):
+
+- **Unselected**: raw/uncorrected only (`sig_raw_main_unselected`), plus a
+  cross-check (`sig_raw_mainonly_crosscheck`) against an independently fit
+  main-effects-only model (no interaction terms at all) on the same data
+  -- these needn't agree replicate-by-replicate (the random factor
+  assignment isn't exactly orthogonal in any single finite draw) but
+  should match in aggregate over many replicates. In practice the
+  cross-check comes out systematically *higher* than the full model's
+  own main-effect subset, growing with m (0.195 vs. 0.239 at N=30, m=6):
+  the full interactive model burns residual df estimating the (truly
+  null) interaction coefficients too, so its residual variance estimate
+  is noisier and its critical value larger, making its main-effect tests
+  more conservative than a leaner model's would be.
+- **Selected (both scenarios)**: the full criteria x calibration cross.
+  "Correct"/maximal calibration (`compute_calibration(fit_full, ref_subset
+  = is_main_effect_term)`) uses k = m rather than k = m + choose(m,2),
+  since these metrics were never intended to also test the interaction
+  terms; "naive"/minimal calibration uses the count of the *selected*
+  model's own surviving main effects (always m for the interactions-only
+  restriction, since main effects are never dropped there; potentially
+  fewer for unrestricted `step()`).
+
 ## Code layout
 
 - `R/simulate_fig1.R` -- data generation (`make_predictors`,
   `build_formula`), the sample-size grid (`sim_N_values`), and the two
   `step()`-based simplification strategies (`step_default()`,
   `step_interactions_only()`).
-- `R/simulate_corrections.R` -- `screen_criteria()` (the four criteria,
-  minimal/maximal calibration, both experimentwise and per-parameter
-  counts), `one_rep_corrections()`, `run_condition_corrections()`.
+- `R/simulate_corrections.R` -- `is_main_effect_term()`, `tidy_fit()`
+  (shared tidy-and-filter helper), `compute_calibration()` (k, correlation
+  matrix, and max-\|T\| critical value for a given reference model and
+  optional term subset) and `screen_criteria()` (applies a calibration to
+  a fit's terms, optionally restricted to a subset, under all four
+  criteria) as separate steps -- letting the same calibration be reused
+  across multiple term subsets without recomputing its Monte Carlo
+  critical value redundantly. `screen_raw()` is a lightweight
+  uncorrected-only variant (no calibration object needed). `one_rep_corrections()`
+  ties these together per replicate (see its doc comment for exactly which
+  calibration each scenario/subset combination uses); `run_condition_corrections()`
+  runs replicates in parallel.
 - `R/maxT_correction.R` -- `maxT_crit()`: the single-step correction's
   critical value, via direct Monte Carlo simulation from the multivariate-t
   null rather than `mvtnorm::qmvt()`'s numerical integration (impractical
@@ -99,21 +135,44 @@ independent.
 - `R/plot_fig1_core.R` (+ `make_plot.R`) -- 2-panel a/b reproduction of the
   paper's Fig. 1 layout, parametrized by which pair of scenario columns to
   plot.
-- `R/plot_corrections_by_scenario_core.R` (+
-  `make_corrections_by_scenario_plot.R`, `make_corrections_by_method_plot.R`,
-  `make_corrections_by_N_plot.R`) -- three scenario x criterion
-  comparisons built on one shared summary (`build_corrections_by_scenario_summary()`,
-  which pivots out the `multcomp_k` column and derives the per-parameter
-  criterion from `n_sig_raw_*`/`k`), all with-interactions cases only and
-  all showing both the minimal and maximal calibration (linetype/shape): a
-  1-column x n-row uncorrected panel (colour = N) beside an n-row x
-  4-column facet_grid of the other four criteria (colour = N) combined
-  with `patchwork`; a single facet_grid (rows = scenario, columns = N,
-  colour = criterion); and its transpose (rows = N, columns = criterion,
-  colour = scenario).
-- `R/graphics_utils.R` -- `logit_breaks()` and the shared Okabe-Ito
-  palette; every plot uses a logit y-scale.
+- `R/plot_corrections_by_scenario_core.R` -- `build_corrections_summary()`
+  (the shared long-format summary builder, parametrized by which family of
+  `sig_*` columns to pivot and what the derived per-parameter rate divides
+  by) with two thin wrappers, `build_corrections_by_scenario_summary()`
+  (all-effects, denominator k) and `build_main_effects_summary()`
+  (main-effects-only, denominator m); `build_other_criteria_plot()` (the
+  shared "rows = scenario, columns = criterion" facet_grid); and five plot
+  functions built on these:
+  - `make_corrections_by_scenario_plot.R` -- all three scenarios x all
+    five criteria, uncorrected panel + other-criteria grid combined via
+    `patchwork`, colour = N, linetype/shape = `multcomp_k`.
+  - `make_corrections_by_method_plot.R` -- the same comparison as a single
+    facet_grid (rows = scenario, columns = N), colour = criterion.
+  - `make_corrections_by_N_plot.R` -- rows = N, columns = criterion,
+    colour = scenario.
+  - `make_corrections_by_scenario_minimal_plot.R` /
+    `make_corrections_by_scenario_minimal_mainonly_plot.R` -- just
+    single-step max-\|T\| and per-parameter (no patchwork needed), for the
+    all-effects and main-effects-only metrics respectively, sharing a
+    `make_minimal_scenario_plot()` body.
+
+  All with-interactions cases only, all showing both the minimal and
+  maximal calibration.
+- `R/graphics_utils.R` -- `logit_breaks()` (breaks for a logit-scaled axis;
+  `extend = TRUE` by default brackets the data range with the nearest
+  candidate break outside it) and `scale_y_logit()` (builds the actual
+  scale, computing breaks eagerly from the plotted data and widening the
+  scale's own `limits` to match -- necessary since ggplot2 censors any
+  break outside a scale's data-derived limits regardless of what the
+  breaks function returns); `m_k_scale_x()` (the shared x-axis, labelling
+  each tick "m\n(k)"); the shared Okabe-Ito palette. Every plot uses a
+  logit y-scale via `scale_y_logit()`, except `make_corrections_plot.R`'s
+  `facet_wrap(scales = "free_y")` plot, which still uses the plain
+  `logit_breaks()` function directly (each panel needs its own
+  independent range, incompatible with a single shared `limits=`).
 - `smoke_test.R` -- correctness and timing checks, run standalone.
+- `forstmeier_sig.qmd` -- a narrative Quarto report discussing and
+  embedding the figures above, rendered to `forstmeier_sig.html`.
 
 ## Outputs (`output/`)
 
@@ -129,12 +188,20 @@ independent.
 - `fig1_corrections_by_method.png` -- the same comparison as a single
   facet_grid (rows = scenario, columns = N), colour = criterion,
   linetype/shape = `multcomp_k`, with-interactions cases only.
+- `fig1_corrections_by_scenario_minimal.png` /
+  `fig1_corrections_by_scenario_minimal_mainonly.png` -- just single-step
+  max-\|T\| and per-parameter, no patchwork, for the all-effects and
+  main-effects-only metrics respectively; the latter's "Unselected" row
+  has no max-\|T\| line (that combination was never computed -- see
+  Simulation design).
 - `fig1_corrections_by_N.png` -- rows = N, columns = criterion, colour =
   scenario, linetype/shape = `multcomp_k`, with-interactions cases only.
 - `corrections_results.rds` -- the cached simulation output underlying all
-  of the above; includes both minimal and maximal k-counting and both
-  experimentwise and per-parameter counts for the two selected scenarios
-  (see Simulation design).
+  of the above; includes both minimal and maximal k-counting, both
+  experimentwise and per-parameter counts, and (for the with-interactions
+  conditions) the main-effects-only breakdown and cross-check (see
+  Simulation design).
+- `forstmeier_sig.html` -- rendered from `forstmeier_sig.qmd`.
 
 ## Key findings so far
 
@@ -153,7 +220,8 @@ independent.
    -- makes "any significant" less likely than independence predicts, more
    so at low N). This conservatism mostly doesn't carry through to the
    Dunn-Sidak-corrected version: at k=21, N=50's empirical family-wise
-   error rate is ~0.0496 -- indistinguishable from nominal 0.05. The
+   error rate is ~0.042 -- close to nominal 0.05, unlike the raw test's
+   more pronounced dip. The
    degree of conservatism from correlated tests is threshold-dependent: a
    synthetic check isolating the shared-denominator effect alone gives a
    ~10% conservative bias at the raw alpha=0.05 threshold but only ~6% at
@@ -189,3 +257,22 @@ independent.
    k, matching the paper's own finding that P-value adjustment on the
    minimal model doesn't fully solve the problem when the initial full
    model was badly over-fit.
+
+5. **Restricting attention to just main effects doesn't rescue the
+   correction.** Naively, calibrating "correctly" for main effects alone
+   (k = m, the actual number of tests intended -- see
+   `fig1_corrections_by_scenario_minimal_mainonly.png`) might be expected
+   to land close to nominal, since m is so much smaller than k. It
+   doesn't: at N=30, m=6 (selected-all scenario), main-effects-only
+   single-step max-\|T\| is *higher* under "correct" (m-based) calibration
+   than under "naive" (surviving-main-effects-based) calibration -- 0.41
+   vs. 0.35 -- and both remain far above nominal, and even above the
+   corresponding **all**-effects "correct" (k=21-based) rate of 0.32.
+   `step()`'s search still explored the full k = m + choose(m,2)
+   candidates even though only m of them are now being asked about, so
+   calibrating for an exposure of m alone under-corrects for the search
+   that actually happened; the per-parameter (uncorrected) rate, in
+   contrast, comes out essentially the same whether measured over all
+   effects or main effects only, since it isn't trying to correct for
+   anything -- `step()`'s selection bias hits both term types at
+   essentially the same per-test rate.

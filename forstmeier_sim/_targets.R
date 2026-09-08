@@ -102,6 +102,30 @@ list(
     here::here("forstmeier_sim", "output", "fig1_corrections_by_scenario.png")
   }, format = "file"),
 
+  tar_target(make_corrections_by_scenario_minimal_plot_script,
+             here::here("forstmeier_sim", "R", "make_corrections_by_scenario_minimal_plot.R"),
+             format = "file"),
+
+  tar_target(fig1_corrections_by_scenario_minimal_png_file, {
+    corrections_results_file                ## dependency only
+    plot_corrections_by_scenario_core_file  ## dependency only
+    graphics_utils_file                      ## dependency only
+    source(make_corrections_by_scenario_minimal_plot_script)
+    here::here("forstmeier_sim", "output", "fig1_corrections_by_scenario_minimal.png")
+  }, format = "file"),
+
+  tar_target(make_corrections_by_scenario_minimal_mainonly_plot_script,
+             here::here("forstmeier_sim", "R", "make_corrections_by_scenario_minimal_mainonly_plot.R"),
+             format = "file"),
+
+  tar_target(fig1_corrections_by_scenario_minimal_mainonly_png_file, {
+    corrections_results_file                ## dependency only
+    plot_corrections_by_scenario_core_file  ## dependency only
+    graphics_utils_file                      ## dependency only
+    source(make_corrections_by_scenario_minimal_mainonly_plot_script)
+    here::here("forstmeier_sim", "output", "fig1_corrections_by_scenario_minimal_mainonly.png")
+  }, format = "file"),
+
   tar_target(make_corrections_by_method_plot_script,
              here::here("forstmeier_sim", "R", "make_corrections_by_method_plot.R"),
              format = "file"),

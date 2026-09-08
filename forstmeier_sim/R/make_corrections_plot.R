@@ -90,10 +90,9 @@ fig1_corrections <- ggplot(summ, aes(m, prop, colour = interactions_label, linet
   scale_colour_manual(values = okabe_ito, name = NULL) +
   scale_fill_manual(values = okabe_ito, guide = "none") +
   scale_linetype_discrete(name = "N") +
-  scale_x_continuous(name = "Number of explanatory variables", breaks = 1:6,
-                     sec.axis = k_sec_axis()) +
+  m_k_scale_x() +
   scale_y_continuous(trans = "logit", breaks = logit_breaks()) +
-  ylab("Proportion of models with type I errors")
+  ylab("Proportion with type I errors")
 
 ggsave(here::here("forstmeier_sim", "output", "fig1_corrections.png"), fig1_corrections,
        width = 10, height = 8, dpi = 150)
