@@ -8,7 +8,7 @@ format:
     embed-resources: true
 ---
 
-These are some notes about my thoughts on *large language models* (such as Gemini, ChatGPT, Microsoft Copilot, Claude, etc.). They are intended as a jumping-off point for class discussion.
+Some thoughts on *large language models* (Gemini, ChatGPT, Microsoft Copilot, Claude, etc.). They are intended as a jumping-off point for class discussion.
 
 They're focused on use in undergraduate coursework, and are opinionated.
 
@@ -76,6 +76,12 @@ Some fun references:
 knitr::include_graphics("pix/llm_pic.png", dpi = 100)
 ```
 
-[Google forms link](https://forms.gle/YpstDPU7dZRmwxrh7)
+## survey (2026 ISCI math version)
+
+```{r qrcode, out.width = "90%"}
+#| echo: false
+library("qrcode")
+plot(qr_code("https://docs.google.com/forms/d/e/1FAIpQLSc_QNgESEpQu-3yBVsARJUEWOOb6LVuZs5tdyd_iWTHdRXM1Q/viewform?usp=dialog"))
+```
 
 ## References
