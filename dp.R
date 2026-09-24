@@ -70,10 +70,16 @@ alpha_vec <- 10^seq(-2, 1, length.out = 101)
 mode_vec <- sapply(alpha_vec, dirprocmode, n = 200)
 mean_vec <- sapply(alpha_vec, dirprocmean, n = 200)
 
+pdf("dp.pdf")
 par(las=1, bty = "l")
-matplot(alpha_vec, cbind(mode_vec, mean_vec), lty = 1,
-        log = "xy", type = "l",
-        ylab = "mode and mean",
-        xlab = expression(alpha))
-## should plot the mode with a step function ...
+plot(alpha_vec, mode_vec, type = "s", log = "xy",
+     xlab = expression(alpha),
+     ylab = "mode and mean",
+     main = "Mean and mode of Dirichlet process for n=200")
+## grid()
+lines(alpha_vec, mean_vec, col = 2)
+text(0.2, 5, "mean", col = 2)
+text(1, 2, "mode")
+dev.off()
+
 
