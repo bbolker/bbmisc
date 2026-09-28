@@ -1,0 +1,509 @@
+---
+title: "Wald vs likelihood ratio tests: examples"
+author: "Ben Bolker"
+date: today
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+knitr:
+  opts_chunk:
+    cache.comments: false    
+bibliography: wald_lrt_examples.bib
+nocite: |
+  @hauckWaldTestApplied1977, @vaethUseWaldTest1985,
+  @fearsReminderFallibilityWald1996, @pawitanReminderFallibilityWald2000,
+  @yeeHauckDonnerEffect2022, @agrestiCategoricalDataAnalysis2013,
+  @abanInferencesPowerAnalysis2009
+---
+
+Exploring (with Claude ...) the properties of Wald p-values (via `car::Anova()`) and likelihood ratio tests [LRT] (via `drop1()`): in particular, type-I error/coverage.
+
+**tl;dr** there is surprisingly (to me) little difference in type-I error between Wald and LRT for sensible cases, although presumably we could find some if we tried hard enough. Coverage[^coverage] of confidence intervals for non-null cases shows bigger (but still surprisingly small) differences. The report explores that case for logistic regression, but the results are complicated. Logistic regression estimates are biased for small $n$; this
+effect fights with the conservatism of Wald CIs due to Hauck-Donner effects [@hauckWaldTestApplied1977]. In the logistic case we also explore variant estimators that shrink the estimates toward zero (Firth/Jeffreys prior, $t$ prior), which mitigate upward small-sample bias of the MLE when the effects are moderate but lead to downward bias (by overcorrecting) when the effects are large ...
+
+Even so, the advantages of the LRT/profile confidence intervals have more to do with power and interval shape than with type-I error/coverage. Over a sensible range of effect sizes for the binomial (say $0 \le \beta < 4$), with baseline probability $p_0 = 0.2$ and $n = 50$ or 100 per group, both methods get two-tailed coverage within about 0.02 of nominal, partly because some directional biases cancel out for the Wald CIs. (The patterns of one-sided coverage are more interesting/complicated.) With $n = 20$ per group, Wald is conservative, while the unpenalized LRT is anticonservative for $\beta$ up to about 4.5--5 (worst around $\beta = 3.5$, where the coverage drops to about 0.90) and conservative beyond that.
+
+[^coverage]: the non-null analogue of type-I error, i.e. when the confidence interval includes fewer or more cases than the $100 (1-\alpha) \%$ it's supposed to
+
+```{r setup}
+#| message: false
+library(glmmTMB)
+library(car)
+library(tidyverse)
+library(futurize)
+library(patchwork)
+
+## avoid overcommitting threads
+library(RhpcBLASctl)
+blas_set_num_threads(1)
+omp_set_num_threads(1)
+
+## adjust this to something that makes sense on your machine
+plan(multicore, workers = min(28, parallel::detectCores() - 1))
+
+theme_set(theme_bw())
+zmargin <- theme(panel.spacing = grid::unit(0, "pt"))
+## Okabe-Ito minus black and yellow
+oi_cols <- c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7")
+scale_colour_discrete <- function(...) scale_colour_manual(..., values = oi_cols)
+```
+
+## Negative binomial GLMM: type I error under the null
+
+Original example from Christoph Scherber: compare `drop1()`
+(likelihood ratio test) and `car::Anova()` (Wald test) for the
+species effect in a zero-inflated negative binomial GLMM.
+
+```{r nb-example}
+m2 <- glmmTMB(count ~ spp + mined + (1|site),
+   zi=~spp + mined,
+   family=nbinom2, data=Salamanders)
+drop1(m2,test="Chisq")
+Anova(m2)
+```
+
+```{r nb-funs}
+## extract drop1 (LRT) and Anova (Wald) p-values
+get_p_values <- function(model, w = 1) {
+  d <- drop1(model, test="Chisq")
+  p_drop <- d[["Pr(>Chi)"]][[w+1]]
+  a <- Anova(model)
+  p_anova <- a[["Pr(>Chisq)"]][[w]]
+  tibble(p_drop, p_anova)
+}
+
+## simplified null-hypothesis simulation (no zi);
+## species effect (fixed effects parameters 2-7) is set to zero
+simfun <- function(n = nrow(Salamanders)) {
+    dd <- transform(Salamanders,
+            count = simulate_new(~ spp + mined + (1|site),
+            newdata = Salamanders,
+            newparams = list(beta = c(-0.5, rep(0,6), 1.4),
+            betadisp = 0.5,
+            theta = -1),
+            family = nbinom2)[[1]])
+    ## randomly subsample (sorting isn't strictly necessary)
+    dd <- dd[sort(sample(nrow(Salamanders), size = n)), ]
+    return(dd)
+}
+
+fitfun <- function(data = simfun()) {
+  model <- glmmTMB(count ~ spp + mined + (1|site),
+                   family=nbinom2, data=data)
+  return(model)
+}
+
+sumfun <- function(model = fitfun()) {
+  get_p_values(model)
+}
+
+full_sim <- function(n = nrow(Salamanders), nsim = 1000, seed = 101) {
+  set.seed(seed)
+  tt <- system.time(
+    res <- replicate(nsim, sumfun(fitfun(simfun(n = n))), simplify = FALSE) |>
+      futurize() |>
+      bind_rows()
+  )
+  attr(res, "time") <- tt
+  res
+}
+
+rpt_time <- function(x) { attr(x, "time")[["elapsed"]] |> round() }
+```
+
+Type I error for the full data set (n = `r nrow(Salamanders)`) and for
+random subsamples of size 100:
+
+```{r nb-sims-full}
+#| cache: true
+res <- full_sim()
+```
+
+```{r nb-sims-small, warning = FALSE}
+#| cache: true
+res_small <- full_sim(n = 100)
+```
+
+A few fits to the subsampled data have non-positive-definite Hessians,
+giving NA p-values; these are dropped (`n_na` counts them).
+
+```{r nb-results}
+nb_sum <- function(r) {
+  c(colMeans(r < 0.05, na.rm = TRUE), n_na = sum(!complete.cases(r)))
+}
+bind_rows(full = nb_sum(res),
+          n100 = nb_sum(res_small),
+          .id = "sample")
+```
+(The simulations take `r rpt_time(res)` and
+`r rpt_time(res_small)` seconds, respectively, on 28 cores on my machine)
+
+There is very little difference between the tests in this case, and at
+n = 100 both are somewhat anticonservative. The Wald and LRT are
+asymptotically equivalent under the null, so a null location effect
+with a reasonable sample size/signal-to-noise ratio
+is a friendly case for the Wald test; both
+tests have slightly inflated type-I errors in the small sample case.
+
+The bigger differences are in coverage and power for non-null cases.
+
+## Binomial example
+
+Two-group logistic regression (baseline probability 0.2, 20, 50 or 100
+per group); the log-odds ratio [($\beta$)]{style="white-space: nowrap;"} ranges from 0 (null) to large
+values, where the second group's probability approaches 1 and the
+log-likelihood becomes strongly asymmetric (Hauck-Donner territory).
+With a sparser baseline (e.g. 0.05) the LRT itself becomes
+anticonservative under the null, muddying the comparison.
+
+With $n$ observations per group there are only $(n+1)^2$ possible
+outcomes $(y_0, y_1)$ (441, 2601 and 10201 for n = 20, 50 and 100), so we can compute the Wald and profile CIs for
+every outcome once and then get the exact coverage for any true
+$\beta$ by weighting each outcome by its binomial probability. This
+removes the Monte Carlo error and allows a fine grid of $\beta$ values.
+
+The two-group model is saturated, so the MLE, Wald SE and maximum
+log-likelihood have closed forms; the profile likelihood only needs a
+one-dimensional optimization over the intercept. Under separation
+(any group with 0 or $n$ successes) the Wald CI is taken as
+$(-\infty, \infty)$, the limit of the huge-SE intervals that
+`glmmTMB` returns.
+
+We also compute profile CIs from penalized likelihoods. Firth
+regression maximizes the likelihood penalized by the Jeffreys prior
+$|I(\theta)|^{1/2}$; here $|I| \propto p_0 q_0 p_1 q_1$, so the
+Jeffreys prior factorizes into independent priors on the two group
+logits $\eta_j$, each $\propto \sqrt{p_j q_j} = 1/(2 \cosh(\eta_j/2))$ (a
+Beta(1/2, 1/2) prior on $p_j$, equivalent to adding 1/2 success and 1/2
+failure to each group; on the logit scale this is a hyperbolic secant
+distribution). `glmmTMB` doesn't offer this prior, but a $t$ prior
+matched to its variance [($\pi^2$)]{style="white-space: nowrap;"} and kurtosis (7 df, scale
+[$\pi \sqrt{5/7} \approx 2.66$)]{style="white-space: nowrap;"} is very close: the MAP estimate of a
+single group's logit is within 0.05 (n = 20), 0.06 (n = 50) or 0.1 (n = 100) of Firth's
+for every possible outcome. In `glmmTMB` the prior has to go on the
+group logits, i.e.
+`glmmTMB(y ~ 0 + g, family = binomial, priors = data.frame(prior = "t(0, 2.66, 7)", class = "fixef"))`;
+independent priors on the intercept and log-odds ratio in the
+`y ~ g` parameterization don't have the same structure.
+
+For each penalty we compute both a profile CI and a penalized Wald CI
+(MAP estimate $\pm 1.96$ SE, with the SE from the curvature of the
+penalized log-likelihood). With the Firth penalty the information for
+group $j$ is $(n+1)\tilde p_j \tilde q_j$, where
+$\tilde p_j = (y_j + 1/2)/(n+1)$, so the penalized Wald CI is the
+classic Haldane-Anscombe interval that adds 1/2 to every cell of the
+$2 \times 2$ table.
+
+```{r binom-labels}
+## label facets by group size, with horizontal row strips
+n_labeller <- labeller(n = \(x) paste0("n = ", x, "\nper group"))
+hstrip <- theme(strip.text.y = element_text(angle = 0))
+```
+
+```{r binom-exact-funs}
+#| cache: true
+## log priors on each group's logit: Jeffreys (Firth) and its
+## glmmTMB-compatible t approximation
+lp_firth <- function(eta) -log(cosh(eta/2))
+t_scale <- round(pi * sqrt(5/7), 2)
+lp_t <- function(eta) dt(eta/t_scale, df = 7, log = TRUE) - log(t_scale)
+lp_none <- function(eta) 0
+
+## penalized log-likelihood for two groups (y0, y1 successes out of n)
+## given the baseline log-odds alpha, log-odds ratio psi and log prior lp
+ll_2g <- function(alpha, psi, y0, y1, n, lp = lp_none) {
+  dbinom(y0, n, plogis(alpha), log = TRUE) + lp(alpha) +
+    dbinom(y1, n, plogis(alpha + psi), log = TRUE) + lp(alpha + psi)
+}
+
+## (penalized) maximum for a single group's logit; the model is saturated,
+## so the overall maximum is the sum of the per-group maxima
+gmax_2g <- function(y, n, lp = lp_none, alpha_max = 30) {
+  optimize(\(eta) dbinom(y, n, plogis(eta), log = TRUE) + lp(eta),
+           c(-alpha_max, alpha_max), maximum = TRUE)
+}
+
+## penalized Wald CI: MAP estimate +/- z * SE from the penalized
+## information, n p q - lp''(eta) for each group (lp'' by finite differences)
+pen_wald_ci_2g <- function(y0, y1, n, lp, h = 1e-4) {
+  info <- function(m) {
+    eta <- m$maximum
+    lp2 <- (lp(eta + h) - 2 * lp(eta) + lp(eta - h)) / h^2
+    n * plogis(eta) * plogis(-eta) - lp2
+  }
+  m0 <- gmax_2g(y0, n, lp)
+  m1 <- gmax_2g(y1, n, lp)
+  se <- sqrt(1/info(m0) + 1/info(m1))
+  (m1$maximum - m0$maximum) + c(-1, 1) * qnorm(0.975) * se
+}
+
+## (penalized) profile CI for one outcome; the limits are searched for
+## over [-bmax, bmax], as in the simulations
+prof_ci_2g <- function(y0, y1, n, lp = lp_none, bmax = 20, alpha_max = 30) {
+  crit <- qchisq(0.95, 1)
+  m0 <- gmax_2g(y0, n, lp, alpha_max)
+  m1 <- gmax_2g(y1, n, lp, alpha_max)
+  ll_max <- m0$objective + m1$objective
+  prof_dev <- function(psi) {
+    ll <- optimize(ll_2g, c(-alpha_max, alpha_max), psi = psi,
+                   y0 = y0, y1 = y1, n = n, lp = lp, maximum = TRUE)$objective
+    2 * (ll_max - ll) - crit
+  }
+  ## without a prior the estimate is infinite under separation: start the
+  ## search just inside the boundary on the side the data point to
+  ctr <- pmin(pmax(m1$maximum - m0$maximum, -0.99 * bmax), 0.99 * bmax)
+  ## no sign change between the estimate and the limit means the
+  ## profile interval is unbounded on that side
+  root <- function(lim) {
+    if (prof_dev(lim) < 0) return(sign(lim) * Inf)
+    uniroot(prof_dev, sort(c(ctr, lim)))$root
+  }
+  c(root(-bmax), root(bmax))
+}
+
+## unpenalized and penalized estimates, Wald and profile CIs for one outcome
+ci_2g <- function(y0, y1, n = 50) {
+  sep <- y0 %in% c(0, n) || y1 %in% c(0, n)
+  ## infinite under separation (NaN if both groups are all 0s or all 1s)
+  est <- qlogis(y1/n) - qlogis(y0/n)
+  pen_est <- function(lp) gmax_2g(y1, n, lp)$maximum - gmax_2g(y0, n, lp)$maximum
+  se <- sqrt(1/y0 + 1/(n - y0) + 1/y1 + 1/(n - y1))
+  wald <- if (sep) c(-Inf, Inf) else est + c(-1, 1) * qnorm(0.975) * se
+  cis <- rbind(wald,
+               prof_ci_2g(y0, y1, n),
+               pen_wald_ci_2g(y0, y1, n, lp = lp_firth),
+               prof_ci_2g(y0, y1, n, lp = lp_firth),
+               pen_wald_ci_2g(y0, y1, n, lp = lp_t),
+               prof_ci_2g(y0, y1, n, lp = lp_t))
+  # tibble::tibble() used explicitly to avoid 'future' warnings
+  tibble::tibble(y0, y1,
+                 type = rep(c("Wald", "profile"), 3),
+                 penalty = rep(c("none", "Firth", "t prior"), each = 2),
+                 est = rep(c(est, pen_est(lp_firth), pen_est(lp_t)), each = 2),
+                 lwr = cis[, 1],
+                 upr = cis[, 2])
+}
+
+## exact one-sided coverage at true log-odds ratio beta
+exact_cov <- function(beta, cis, n = 50, p0 = 0.2) {
+  cis |>
+    mutate(w = dbinom(y0, n, p0) * dbinom(y1, n, plogis(qlogis(p0) + beta))) |>
+    group_by(type, penalty) |>
+    summarise(lower = sum(w * (lwr <= beta)),
+              upper = sum(w * (upr >= beta)),
+              .groups = "drop") |>
+    mutate(beta = beta)
+}
+
+## estimates and CIs for all possible outcomes with group size n
+exact_cis_n <- function(n) {
+  expand_grid(y0 = 0:n, y1 = 0:n, n = n) |>
+    pmap(ci_2g) |>
+    futurize() |>
+    bind_rows() |>
+    mutate(n = n)
+}
+
+## exact coverage over a grid of true log-odds ratios (cis for one n)
+exact_cov_n <- function(cis, betavec = seq(0, 6, by = 0.02)) {
+  n <- cis$n[[1]]
+  map_dfr(betavec, exact_cov, cis = cis, n = n) |>
+    mutate(n = n)
+}
+
+## weighted median (Inf allowed; NaN, which has negligible probability
+## here, is dropped)
+wmedian <- function(x, w) {
+  ok <- !is.na(x)
+  x <- x[ok]
+  w <- w[ok]
+  o <- order(x)
+  x[o][which(cumsum(w[o]) >= sum(w)/2)[1]]
+}
+
+## exact medians of the estimates and CI limits at true log-odds ratio beta
+exact_medians <- function(beta, cis, p0 = 0.2) {
+  cis |>
+    mutate(w = dbinom(y0, n, p0) * dbinom(y1, n, plogis(qlogis(p0) + beta))) |>
+    group_by(n, type, penalty) |>
+    summarise(across(c(est, lwr, upr), \(x) wmedian(x, w)),
+              .groups = "drop") |>
+    mutate(beta = beta)
+}
+```
+
+```{r binom-exact}
+#| cache: true
+#| dependson: binom-exact-funs
+cis_2g <- map(c(20, 50, 100), exact_cis_n)
+cov_2g <- map_dfr(cis_2g, exact_cov_n)
+cis_2g <- bind_rows(cis_2g)
+```
+
+### Confidence intervals
+
+The unpenalized estimates are biased upwards: the median MLE lies
+slightly above the true value at every $\beta$, and it is infinite
+whenever complete separation has probability above 1/2: at
+$\beta = 5$ and 6 for n = 20 (probabilities 0.59 and 0.82) and at
+$\beta = 6$ for n = 50 (0.61). The penalized (Firth and $t$ prior)
+estimates are nearly identical to each other; they are close to the
+true value for moderate $\beta$ but fall below it for large $\beta$,
+where the penalty overcorrects. The intervals widen rapidly as $\beta$
+increases, mostly upwards; where the median MLE is infinite, the median
+unpenalized profile interval is unbounded above and the median
+unpenalized Wald interval is $(-\infty, \infty)$. Within each penalty
+the profile interval is asymmetric, extending further above the
+estimate than below, while the Wald interval is symmetric, so the Wald
+interval sits lower; in particular its upper limit is lower. All of
+these patterns are stronger, and appear at smaller $\beta$, for smaller
+n.
+
+Median estimates and CI limits (over the exact sampling distribution)
+for large true log-odds ratios; the black segments mark the true
+values. Median limits of $\pm \infty$ are drawn as arrows running off
+the edge of the panel, and median estimates of $+\infty$ (unpenalized:
+$\beta = 5$ and 6 for n = 20, $\beta = 6$ for n = 50) aren't shown.
+
+```{r binom-exact-medians}
+#| fig-width: 9
+#| out-width: 1036px
+#| fig-column: page
+med_2g <- map_dfr(3:6, exact_medians, cis = cis_2g)
+## a single grouping factor fixes the dodge order (penalty, then CI type)
+meth_levs <- c(outer(c("profile", "Wald"), c("none", "Firth", "t prior"),
+                     \(t, p) paste(p, t)))
+dodge_w <- 0.8
+med_2g <- med_2g |>
+  mutate(penalty = factor(penalty, levels = c("none", "Firth", "t prior")),
+         type = factor(type, levels = c("profile", "Wald"), labels = c("LRT", "Wald")),
+         method = factor(paste(penalty, if_else(type == "LRT", "profile", "Wald")),
+                         levels = meth_levs),
+         ## x positions matching position_dodge(dodge_w), for the arrows
+         xd = beta + (as.integer(method) - (length(meth_levs) + 1)/2) *
+           dodge_w / length(meth_levs))
+ylims <- range(unlist(select(med_2g, est, lwr, upr)) |> keep(is.finite)) +
+  c(-0.5, 0.5)
+## infinite limits are clipped to the panel edge and get arrowheads;
+## infinite estimates are dropped
+med_inf <- bind_rows(
+  filter(med_2g, upr == Inf) |> mutate(y = ylims[2] - 0.3, yend = ylims[2]),
+  filter(med_2g, lwr == -Inf) |> mutate(y = ylims[1] + 0.3, yend = ylims[1])
+)
+med_fin <- med_2g |>
+  mutate(lwr = pmax(lwr, ylims[1]), upr = pmin(upr, ylims[2]),
+         est = if_else(is.finite(est), est, NA_real_))
+## geom_linerange() + geom_point() rather than geom_pointrange(), which
+## would drop the whole interval when the estimate is missing; every
+## layer keeps all six methods at each beta so the dodging lines up
+ggplot(med_fin, aes(beta, est, colour = penalty, shape = type, group = method)) +
+  geom_segment(data = distinct(med_2g, n, beta),
+               aes(x = beta - 0.45, xend = beta + 0.45, y = beta, yend = beta),
+               inherit.aes = FALSE, colour = "black") +
+  geom_linerange(aes(ymin = lwr, ymax = upr),
+                 position = position_dodge(width = dodge_w)) +
+  geom_point(position = position_dodge(width = dodge_w), size = 2, na.rm = TRUE) +
+  geom_segment(data = med_inf, aes(x = xd, xend = xd, y = y, yend = yend),
+               arrow = arrow(length = grid::unit(4, "pt")), show.legend = FALSE) +
+  scale_shape_manual(values = c(LRT = 16, Wald = 17), name = NULL) +
+  facet_wrap(~ n, labeller = n_labeller) + zmargin +
+  coord_cartesian(ylim = ylims, expand = FALSE) +
+  labs(x = "true log-odds ratio",
+       y = "log-odds ratio (median estimate and CI limits)")
+```
+
+### Coverage
+
+One-sided coverage by tail: a well-calibrated 95% CI should have its
+lower limit below (and its upper limit above) the true value
+$\approx 97.5\%$ of the time. As a reference for how large a deviation
+from 0.975 is noticeable, the gray band is the 95% (Gaussian) binomial
+confidence interval around 0.975 for a simulation study with 2000
+replicates.
+Colours show the penalty (none, Firth/Jeffreys, or its $t$
+approximation); solid lines are profile CIs and dashed lines are Wald
+CIs. Comparing colours within a line type shows the effect of removing
+the small-sample bias; comparing line types within a colour shows the
+effect of the CI shape. The one-sided coverage axis is on a logit
+scale, with values above 0.995 drawn at 0.995. The right-hand panels
+show the two-sided coverage (the sum of the one-sided coverages minus
+1), with the corresponding reference band around 0.95.
+
+```{r binom-exact-plot}
+#| fig-width: 10
+#| fig-height: 7
+#| out-width: 1151px
+#| fig-column: page
+tail_labs <- c(lower = "lower limit below true value",
+               upper = "upper limit above true value")
+nsim_ref <- 2000
+cov_band <- 0.975 + c(-1, 1) * qnorm(0.975) * sqrt(0.975 * 0.025 / nsim_ref)
+pen_levs <- c("none", "Firth", "t prior")
+cov_2g_long <- cov_2g |>
+  pivot_longer(c(lower, upper), names_to = "tail", values_to = "coverage") |>
+  mutate(tail = factor(tail_labs[tail], levels = tail_labs),
+         penalty = factor(penalty, levels = pen_levs),
+         type = factor(type, levels = c("profile", "Wald")),
+         ## coverage reaches 1 (to rounding), which would stretch or break a
+         ## logit axis, so values above 0.995 are drawn at 0.995
+         coverage = pmin(coverage, 0.995))
+## direct labels (by penalty) in the n = 50 lower-tail panel
+pen_labs <- tibble(penalty = factor(pen_levs, levels = pen_levs),
+                   label = c("unpenalized", "Firth", "t prior"),
+                   beta = c(3, 1, 1), coverage = c(0.935, 0.992, 0.987),
+                   n = 50, tail = factor(tail_labs[["lower"]], levels = tail_labs))
+p_tails <- ggplot(cov_2g_long, aes(beta, coverage, colour = penalty)) +
+  annotate("rect", xmin = -Inf, xmax = Inf,
+           ymin = cov_band[1], ymax = cov_band[2],
+           fill = "gray", alpha = 0.4) +
+  geom_hline(yintercept = 0.975, colour = "gray40") +
+  geom_line(aes(linetype = type)) +
+  geom_text(data = pen_labs, aes(label = label)) +
+  scale_y_continuous(transform = "logit", limits = c(NA, 0.995),
+                     breaks = c(0.92, 0.95, 0.975, 0.99, 0.995)) +
+  scale_linetype_manual(values = c(Wald = "dashed", profile = "solid"),
+                        breaks = c("Wald", "profile"),
+                        labels = c("Wald", "LRT"), name = NULL) +
+  facet_grid(n ~ tail, labeller = n_labeller) + zmargin + hstrip +
+  guides(colour = "none") +
+  ## inset linetype legend in the lower left corner of the top left panel
+  ## (inside positions are relative to the whole panel area; the rows of
+  ## panels have equal heights and no spacing)
+  theme(legend.position = "inside",
+        legend.position.inside = c(0.005, 1 - 1/n_distinct(cov_2g$n) + 0.005),
+        legend.justification = c(0, 0),
+        legend.background = element_rect(fill = "white", colour = NA)) +
+  labs(x = "true log-odds ratio", y = "one-sided coverage (logit scale)")
+
+## two-sided coverage: missing below and missing above are disjoint events
+cov_band2 <- 0.95 + c(-1, 1) * qnorm(0.975) * sqrt(0.95 * 0.05 / nsim_ref)
+cov_2g_two <- cov_2g |>
+  mutate(coverage = lower + upper - 1,
+         ## single-level column factor, for a top strip matching p_tails
+         tail = "true value within limits",
+         penalty = factor(penalty, levels = pen_levs),
+         type = factor(type, levels = c("profile", "Wald")))
+p_two <- ggplot(cov_2g_two, aes(beta, coverage, colour = penalty)) +
+  annotate("rect", xmin = -Inf, xmax = Inf,
+           ymin = cov_band2[1], ymax = cov_band2[2],
+           fill = "gray", alpha = 0.4) +
+  geom_hline(yintercept = 0.95, colour = "gray40") +
+  geom_line(aes(linetype = type)) +
+  scale_linetype_manual(values = c(Wald = "dashed", profile = "solid")) +
+  ## breaks kept away from the panel edges, so labels of adjacent rows
+  ## don't collide
+  scale_y_continuous(breaks = seq(0.88, 0.98, by = 0.02)) +
+  facet_grid(n ~ tail) + zmargin +
+  ## row strips would repeat those of the one-sided plot
+  theme(strip.text.y = element_blank(), strip.background.y = element_blank(),
+        legend.position = "none") +
+  labs(x = "true log-odds ratio", y = "two-sided coverage (linear scale)")
+
+p_tails + p_two + plot_layout(widths = c(2, 1))
+```
+
+## References
+
+::: {#refs}
+:::
