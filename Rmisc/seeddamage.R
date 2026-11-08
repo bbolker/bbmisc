@@ -53,7 +53,7 @@ set.seed(42)
 mod1 <- glmmTMB(cbind(seeds_beetle_damaged, seeds_total-seeds_beetle_damaged) ~
                     plant_trait_a*plant_trait_b + (1|planting_block),
                 family=binomial, data=seeddamage)
-summary(beetle)
+summary(mod1)
 
 r <- simulateResiduals(mod2)
 plot(r)
@@ -63,11 +63,23 @@ plot(simulateResiduals(mod2))
 
 with(seeddamage, table(plant_trait_a, planting_block))
 with(seeddamage, table(plant_trait_b, planting_block))
-with(seeddamage, table(plant_trait_b, plant_trait_b, planting_block))
+with(seeddamage, table(plant_trait_a, plant_trait_b, planting_block))
 with(seeddamage, table(plant_trait_a, plant_trait_b))
 
-mod3 <- update(mod2, . ~
-                         plant_trait_a*plant_trait_b + rr(1+plant_trait_a+plant_trait_b|planting_block, 2))
+modrr1 <- update(mod2, . ~
+                         plant_trait_a*plant_trait_b + rr(1+plant_trait_a*plant_trait_b|planting_block, 1))
 
-summary(mod2)
-summary(mod3)
+modrr2 <- update(mod2, . ~
+                         plant_trait_a*plant_trait_b + rr(1+plant_trait_a*plant_trait_b|planting_block, d=2))
+
+modrr3 <- update(mod2, . ~
+                         plant_trait_a*plant_trait_b + rr(1+plant_trait_a*plant_trait_b|planting_block, 3))
+
+
+modfull <- update(mod2, . ~
+                         plant_trait_a*plant_trait_b + (1+plant_trait_a*plant_trait_b|planting_block))
+
+bbmle::AICctab(mod2, modrr1, modrr2, modrr3)
+
+summary(mod4)
+
