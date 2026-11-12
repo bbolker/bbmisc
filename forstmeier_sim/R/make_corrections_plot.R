@@ -89,9 +89,6 @@ summ_sig <- with_ci(summ, "sig")
 
 experimentwise_plot <- function(data) {
   corrections_plot(data) +
-    ## ymin = -Inf rather than 0: 0 is not representable on a logit scale
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
-             fill = "grey80", alpha = 0.5) +
     geom_hline(yintercept = 0.05, colour = "grey40", linetype = "dashed", linewidth = 1) +
     facet_wrap(~method) +
     ## limits fitted to the CI range, with breaks finer than logit_breaks()'s

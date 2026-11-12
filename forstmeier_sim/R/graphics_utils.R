@@ -97,18 +97,29 @@ scale_y_log10_shifted <- function(offset = 1, n = 10, ...) {
     ...)
 }
 
-## Primary x-axis folding the number of model parameters k = m + choose(m, 2)
-## into each number-of-predictors (m) tick label as "m\n(k)", rather than a
-## secondary axis on top (an earlier design, since replaced everywhere) --
-## exact for models that include all two-way interactions; for
-## main-effects-only models k = m trivially. Specific to forstmeier_sim,
-## not part of the shared plague_virulence original this file was copied
-## from.
-m_k_scale_x <- function(breaks = 1:6) {
+## Tick labels for the number of covariates m, with the number of tested
+## coefficients k = m + choose(m, 2) for all-two-way-interaction models
+## below in parentheses. The first tick spells out the notation
+## ("m=1\n(k=1)"); the rest are "m\n(k)". For main-effects-only models
+## k = m, which is why the axis title qualifies the bracketed number.
+m_k_labels <- function(breaks) {
+  k <- choose(breaks, 2) + breaks
+  labs <- sprintf("%d\n(%d)", breaks, k)
+  labs[1] <- sprintf("m=%d\n(k=%d)", breaks[1], k[1])
+  labs
+}
+
+## x-axis scale for m with k folded into the tick labels (see m_k_labels()).
+## Specific to forstmeier_sim, not part of the shared plague_virulence
+## original this file was copied from. The extra x padding keeps the wide
+## first/last tick labels of adjacent facets from running together when
+## panel spacing is zero.
+m_k_scale_x <- function(breaks = 1:6, expand_add = 0.4) {
   ggplot2::scale_x_continuous(
-    name = "Number of explanatory (predictor) variables",
+    name = "Number of covariates\n(# coefficients for interaction models)",
     breaks = breaks,
-    labels = sprintf("%d\n(%d)", breaks, choose(breaks, 2) + breaks)
+    expand = ggplot2::expansion(add = expand_add),
+    labels = m_k_labels(breaks)
   )
 }
 

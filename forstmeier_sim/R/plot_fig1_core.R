@@ -55,9 +55,6 @@ make_fig1_plot <- function(results_path, col_unselected, col_selected, png_path)
   theme_set(theme_bw())
 
   fig <- ggplot(summ, aes(m, prop, colour = interactions_label, linetype = factor(N))) +
-    ## ymin = -Inf rather than 0: 0 is not representable on a logit scale
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
-             fill = "grey80", alpha = 0.5) +
     geom_line(data = grey_lines, aes(x = m, y = alpha_prime, group = interactions),
               inherit.aes = FALSE, colour = "grey50", linewidth = 2, alpha = 0.5) +
     geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = interactions_label, group = interaction(interactions_label, N)),

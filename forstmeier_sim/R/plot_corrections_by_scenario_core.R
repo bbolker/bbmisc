@@ -135,8 +135,6 @@ zmargin <- theme(panel.spacing = grid::unit(0, "pt"))
 ## shown since there's no left-hand panel, criteria = maxT/perparam only).
 build_other_criteria_plot <- function(data, show_row_strip, ylab_text) {
   fig <- ggplot(data, aes(m, prop, colour = factor(N), linetype = multcomp_k, shape = multcomp_k)) +
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
-             fill = "grey80", alpha = 0.5) +
     ## No `data =`: yintercept is a fixed parameter rather than an
     ## aesthetic mapping, so geom_hline() draws in every panel the facet
     ## grid renders regardless of that panel's own (possibly empty) data --
@@ -192,9 +190,6 @@ make_corrections_by_scenario_plot <- function(results_path, png_path) {
     dplyr::mutate(alpha_prime = 1 - (1 - 0.05)^k)
 
   p_left <- ggplot(left_data, aes(m, prop, colour = factor(N), linetype = multcomp_k, shape = multcomp_k)) +
-    ## ymin = -Inf rather than 0: 0 is not representable on a logit scale
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0.05,
-             fill = "grey80", alpha = 0.5) +
     geom_line(data = grey_lines, aes(x = m, y = alpha_prime), inherit.aes = FALSE,
               colour = "grey50", linewidth = 2, alpha = 0.5) +
     geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = factor(N), group = N),
