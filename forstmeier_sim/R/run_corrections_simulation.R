@@ -7,6 +7,9 @@
 ## records it as up to date -- the equivalent of `touch`, for code changes
 ## known not to affect the results. Use with care: it is exactly how stale
 ## results can survive real changes to the simulation.
+##
+## The environment variable FORSTMEIER_WORKERS, if set, overrides the
+## default worker count (still capped at one less than the core count).
 
 library(here)
 library(furrr)
@@ -28,5 +31,12 @@ if (nzchar(Sys.getenv("FORSTMEIER_TOUCH_SIM"))) {
   if (!file.exists(results_path)) stop("FORSTMEIER_TOUCH_SIM is set but ", results_path, " doesn't exist")
   message("FORSTMEIER_TOUCH_SIM set: keeping existing ", basename(results_path), " without rerunning")
 } else {
-  run_corrections_simulation(results_path)
+  env_workers <- Sys.getenv("FORSTMEIER_WORKERS")
+  if (nzchar(env_workers)) {
+    n_workers <- min(as.integer(env_workers),
+                     max(1, parallel::detectCores() - 1, na.rm = TRUE))
+    run_corrections_simulation(results_path, n_workers = n_workers)
+  } else {
+    run_corrections_simulation(results_path)
+  }
 }

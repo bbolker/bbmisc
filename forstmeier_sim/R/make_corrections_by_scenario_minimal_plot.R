@@ -12,5 +12,6 @@ source(here::here("forstmeier_sim", "R", "plot_corrections_by_scenario_core.R"))
 
 make_corrections_by_scenario_minimal_plot(
   here::here("forstmeier_sim", "output", "corrections_results.rds"),
-  here::here("forstmeier_sim", "output", "fig1_corrections_by_scenario_minimal.png")
+  here::here("forstmeier_sim", "output", "fig1_corrections_by_scenario_minimal.png"),
+  flip = TRUE
 )

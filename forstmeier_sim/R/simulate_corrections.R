@@ -93,8 +93,8 @@ screen_criteria <- function(fit, calibration, alpha = 0.05, test_subset = NULL) 
 
 ## Screens fit's terms (optionally restricted by `subset`) under the
 ## uncorrected criterion only -- no calibration object needed, since raw
-## p-values don't depend on k. Used for the lightweight main-effects-only
-## and cross-check metrics, which don't need max-|T|'s Monte Carlo cost.
+## p-values don't depend on k. Used for the main-effects-only cross-check
+## model, which doesn't need max-|T|'s Monte Carlo cost.
 screen_raw <- function(fit, alpha = 0.05, subset = NULL) {
   tt <- tidy_fit(fit, subset)
   sig <- tt$p.value < alpha
@@ -143,7 +143,8 @@ selected_scenario_block <- function(nm, naive, correct) {
 ## the correlation matrix restricted to just its main-effect sub-block,
 ## since the main-effects-only metrics were never intended to also test
 ## the interaction terms, so m (not m + choose(m,2)) is the actual
-## multiple-testing exposure being corrected for. "naive_main" gets its
+## multiple-testing exposure being corrected for; the unselected scenario's
+## main-effect metrics use calib_full_main as well. "naive_main" gets its
 ## own calibration too, from the selected model's own *surviving* main
 ## effects -- always m for step_restricted (main effects are never
 ## dropped), potentially fewer for step. The unselected scenario
@@ -194,7 +195,8 @@ one_rep_corrections <- function(N, m, interactions, alpha = 0.05, maxT_nsim = 50
         calib_full_main <- compute_calibration(fit_full, ref_subset = is_main_effect_term,
                                                 alpha = alpha, maxT_nsim = maxT_nsim)
 
-        main_unselected <- screen_raw(fit_full, alpha = alpha, subset = is_main_effect_term)
+        main_unselected <- screen_criteria(fit_full, calib_full_main, alpha = alpha,
+                                           test_subset = is_main_effect_term)
         names(main_unselected) <- paste0(names(main_unselected), "_main_unselected")
 
         fit_mainonly <- do.call("lm", list(formula = build_formula(m, FALSE), data = dat))
