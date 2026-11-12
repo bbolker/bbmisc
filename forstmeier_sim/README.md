@@ -26,9 +26,13 @@ targets::tar_make(script = here::here("forstmeier_sim", "_targets.R"),
 ```
 
 from anywhere in the repo. `output/corrections_results.rds` is the single
-simulation output every figure reads from; it's cached and skipped on
-rerun if it already exists -- delete it to force a genuine recompute
-after changing the simulation code.
+simulation output every figure reads from. `targets` reruns the
+simulation (about 26 minutes with 24 workers) whenever any of the
+simulation code files changes, and otherwise reuses the saved results.
+Per-condition progress goes to `output/corrections_progress.csv`, and each
+run's total time to `output/corrections_run_log.csv`. After a code change
+known not to affect the results (e.g. comments), `make touch-sim` marks the
+existing results as up to date without rerunning.
 
 Single-threaded BLAS/OpenMP is enforced inside parallel workers
 (`RhpcBLASctl`) to avoid oversubscribing cores.
@@ -236,10 +240,12 @@ tracks the same breakdown restricted to just the m main-effect terms
 3. **Restricting `step()` to discard only interactions (never main
    effects) barely reduces the type I error inflation.** Across the
    `selected (all)` vs. `selected (interax only)` scenarios (see
-   `fig1_corrections_by_scenario.png`), the restricted version is consistently slightly lower than the unrestricted
-   one across every with-interactions condition (e.g. at N=50, k=21: 0.831
-   vs. 0.844) but the gap is small (~1 percentage point at the most
-   extreme condition) relative to the inflation itself. Most of the
+   `fig1_corrections_by_scenario.png`), the restricted version is slightly
+   lower than the unrestricted one in essentially every with-interactions
+   condition (identical for m=1, where there are no interactions to drop).
+   The gap is small relative to the inflation itself: at most about 3
+   percentage points (N=30, k=10: 0.49 vs. 0.52), and 2 points at N=50,
+   k=21 (0.83 vs. 0.85). Most of the
    "cryptic multiple testing" problem comes from having many interaction
    terms available to prune in the first place, not from the additional
    freedom to also drop main effects.
@@ -258,21 +264,18 @@ tracks the same breakdown restricted to just the m main-effect terms
    minimal model doesn't fully solve the problem when the initial full
    model was badly over-fit.
 
-5. **Restricting attention to just main effects doesn't rescue the
-   correction.** Naively, calibrating "correctly" for main effects alone
-   (k = m, the actual number of tests intended -- see
-   `fig1_corrections_by_scenario_minimal_mainonly.png`) might be expected
-   to land close to nominal, since m is so much smaller than k. It
-   doesn't: at N=30, m=6 (selected-all scenario), main-effects-only
-   single-step max-\|T\| is *higher* under "correct" (m-based) calibration
-   than under "naive" (surviving-main-effects-based) calibration -- 0.41
-   vs. 0.35 -- and both remain far above nominal, and even above the
-   corresponding **all**-effects "correct" (k=21-based) rate of 0.32.
-   `step()`'s search still explored the full k = m + choose(m,2)
-   candidates even though only m of them are now being asked about, so
-   calibrating for an exposure of m alone under-corrects for the search
-   that actually happened; the per-parameter (uncorrected) rate, in
-   contrast, comes out essentially the same whether measured over all
-   effects or main effects only, since it isn't trying to correct for
-   anything -- `step()`'s selection bias hits both term types at
-   essentially the same per-test rate.
+5. **Testing only main effects helps, but doesn't fix the problem at low
+   N relative to k.** Calibrating "correctly" for main effects alone uses
+   k = m, the number of tests actually intended (see
+   `fig1_corrections_by_scenario_minimal_mainonly.png`). After
+   unrestricted `step()`, main-effects-only single-step max-\|T\| is
+   always at or below its "naive" (surviving-main-effects) calibration,
+   and both are lower than the all-effects rates: at N=50, m=6, 0.14
+   (correct) and 0.18 (naive) vs. 0.18 and 0.32 for all effects. At
+   N=200 the correct main-effects rate is close to nominal (0.06), but at
+   N=30 it is still 0.26, well above nominal. Under interactions-only
+   selection the naive and correct k are both m, so the two calibrations
+   give nearly the same rates. The per-parameter (uncorrected) rate comes
+   out essentially the same over all effects or main effects only:
+   `step()`'s selection bias hits both term types at about the same
+   per-test rate.

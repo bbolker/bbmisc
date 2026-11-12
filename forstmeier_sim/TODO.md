@@ -1,11 +1,6 @@
 # TODO
 
-- [ ] Rerun the main simulation (delete `output/corrections_results.rds`,
-      then `make`). `screen_criteria()` now computes true Bonferroni
-      (`sig_bonferroni_*`), but the current `.rds` predates that. Its
-      Dunn-Sidak columns were renamed in place from `sig_bonf_*` to
-      `sig_dunnsidak_*` without rerunning. The seeds are unchanged, so the
-      existing columns should reproduce exactly. After the rerun:
+- [ ] Follow-ups now that the full simulation includes Bonferroni:
     - drop `output/bonferroni_unselected.rds`, `R/run_bonferroni_unselected.R`,
       its targets and the fallback in `R/make_corrections_plot.R`
     - decide whether to add `bonferroni` to the criteria (regex and

@@ -1,6 +1,12 @@
 ## Runs the multiple-comparisons-correction simulation grid and writes
 ## output/corrections_results.rds. See run_corrections_core.R for the
-## shared simulate-and-cache logic.
+## shared simulation logic.
+##
+## With the environment variable FORSTMEIER_TOUCH_SIM set (`make
+## touch-sim`), keeps the existing results file instead, so that targets
+## records it as up to date -- the equivalent of `touch`, for code changes
+## known not to affect the results. Use with care: it is exactly how stale
+## results can survive real changes to the simulation.
 
 library(here)
 library(furrr)
@@ -16,6 +22,11 @@ source(here::here("forstmeier_sim", "R", "maxT_correction.R"))
 source(here::here("forstmeier_sim", "R", "simulate_corrections.R"))
 source(here::here("forstmeier_sim", "R", "run_corrections_core.R"))
 
-run_corrections_simulation(
-  here::here("forstmeier_sim", "output", "corrections_results.rds")
-)
+results_path <- here::here("forstmeier_sim", "output", "corrections_results.rds")
+
+if (nzchar(Sys.getenv("FORSTMEIER_TOUCH_SIM"))) {
+  if (!file.exists(results_path)) stop("FORSTMEIER_TOUCH_SIM is set but ", results_path, " doesn't exist")
+  message("FORSTMEIER_TOUCH_SIM set: keeping existing ", basename(results_path), " without rerunning")
+} else {
+  run_corrections_simulation(results_path)
+}

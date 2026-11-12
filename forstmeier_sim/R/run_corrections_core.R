@@ -13,15 +13,15 @@
 ## results. Progress is written to corrections_progress.csv (also next to
 ## results_path, overwritten at the start of each run): one line per
 ## condition as it finishes, with its elapsed time.
+##
+## Always recomputes and overwrites results_path. The targets pipeline
+## decides when a rerun is needed (whenever any of the simulation code
+## files changes); skipping here when the file already exists would let
+## stale results survive code changes.
 
 ## at most 24 workers, leaving at least one core free (detectCores() can return NA)
 run_corrections_simulation <- function(results_path, nrep = 5000,
                                        n_workers = min(24, max(1, parallel::detectCores() - 1, na.rm = TRUE))) {
-  if (file.exists(results_path)) {
-    message(basename(results_path), " already exists -- skipping simulation rerun.")
-    return(invisible(NULL))
-  }
-
   start_time <- Sys.time()
   set.seed(20260906)
 
