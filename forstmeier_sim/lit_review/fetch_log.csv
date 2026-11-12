@@ -1,0 +1,47 @@
+time,doi,source,status,detail
+2026-11-12T11:25:49,10.1002/ecy.70531,proxy,ok,https://esajournals-onlinelibrary-wiley-com.libaccess.lib.mcmaster.ca/doi/pdfdirect/10.1002/ecy.70531?download=true
+2026-11-12T11:26:02,10.1098/rspb.2026.1414,europepmc,ok,126033 bytes
+2026-11-12T11:26:15,10.1086/741527,openalex,ok,1142961 bytes
+2026-11-12T11:27:37,10.1086/741447,proxy,ok,https://www-journals-uchicago-edu.libaccess.lib.mcmaster.ca/doi/pdf/10.1086/741447
+2026-11-12T11:29:15,10.1086/741600,proxy,ok,https://www-journals-uchicago-edu.libaccess.lib.mcmaster.ca/doi/pdf/10.1086/741600
+2026-11-12T11:30:41,10.1086/741682,proxy,ok,https://www-journals-uchicago-edu.libaccess.lib.mcmaster.ca/doi/pdf/10.1086/741682
+2026-11-12T11:32:05,10.1086/741526,proxy,ok,https://www-journals-uchicago-edu.libaccess.lib.mcmaster.ca/doi/pdf/10.1086/741526
+2026-11-12T11:32:10,10.1016/j.anbehav.2026.123661,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:10,10.1016/j.anbehav.2026.123681,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:10,10.1016/j.anbehav.2026.123667,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:14,10.1016/j.anbehav.2026.123683,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:14,10.1016/j.anbehav.2026.123637,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:15,10.1016/j.anbehav.2026.123669,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:15,10.1016/j.anbehav.2026.123675,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:19,10.1016/j.anbehav.2026.123676,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:20,10.1016/j.anbehav.2026.123674,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:20,10.1016/j.anbehav.2026.123695,proxy,skipped,Elsevier: download manually
+2026-11-12T11:32:21,10.1002/ecy.70478,europepmc,ok,160232 bytes
+2026-11-12T11:33:29,10.1002/ecy.70474,proxy,ok,https://esajournals-onlinelibrary-wiley-com.libaccess.lib.mcmaster.ca/doi/pdfdirect/10.1002/ecy.70474?download=true
+2026-11-12T11:33:31,10.1002/ecy.70477,europepmc,ok,126872 bytes
+2026-11-12T11:34:52,10.1002/ecy.70497,proxy,ok,https://esajournals-onlinelibrary-wiley-com.libaccess.lib.mcmaster.ca/doi/pdfdirect/10.1002/ecy.70497?download=true
+2026-11-12T11:36:15,10.1002/ecy.70458,proxy,ok,https://esajournals-onlinelibrary-wiley-com.libaccess.lib.mcmaster.ca/doi/pdfdirect/10.1002/ecy.70458?download=true
+2026-11-12T11:36:25,10.1002/ecy.70523,europepmc,ok,107144 bytes
+2026-11-12T11:36:34,10.1002/ecy.70498,europepmc,ok,162992 bytes
+2026-11-12T11:37:52,10.1002/ecy.70469,proxy,ok,https://esajournals-onlinelibrary-wiley-com.libaccess.lib.mcmaster.ca/doi/pdfdirect/10.1002/ecy.70469?download=true
+2026-11-12T11:38:12,10.1002/ecy.70473,openalex,ok,1049929 bytes
+2026-11-12T11:39:03,10.1093/evolut/qpag123,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/2030/68707993/qpag123.pdf
+2026-11-12T11:40:06,10.1093/evolut/qpag124,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/2046/68726809/qpag124.pdf
+2026-11-12T11:41:09,10.1093/evolut/qpag119,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/1983/68576262/qpag119.pdf
+2026-11-12T11:42:13,10.1093/evolut/qpag127,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/2082/68756900/qpag127.pdf
+2026-11-12T11:43:17,10.1093/evolut/qpag121,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/1997/68708044/qpag121.pdf
+2026-11-12T11:44:20,10.1093/evolut/qpag120,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/1895/68685276/qpag120.pdf
+2026-11-12T11:45:23,10.1093/evolut/qpag129,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/2099/68771199/qpag129.pdf
+2026-11-12T11:46:26,10.1093/evolut/qpag113,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/1928/68643744/qpag113.pdf
+2026-11-12T11:47:29,10.1093/evolut/qpag110,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/1917/68590122/qpag110.pdf
+2026-11-12T11:48:33,10.1093/evolut/qpag114,proxy,ok,https://academic-oup-com.libaccess.lib.mcmaster.ca/evolut/article-pdf/80/9/1941/68717833/qpag114.pdf
+2026-11-12T11:49:42,10.1098/rspb.2026.1709,proxy,ok,https://royalsocietypublishing-org.libaccess.lib.mcmaster.ca/rspb/article-pdf/doi/10.1098/rspb.2026.1709/6168145/rspb.2026.1709.pdf
+2026-11-12T11:49:52,10.1098/rspb.2025.2877,europepmc,ok,156862 bytes
+2026-11-12T11:50:47,10.1098/rspb.2026.0555,proxy,ok,https://royalsocietypublishing-org.libaccess.lib.mcmaster.ca/rspb/article-pdf/doi/10.1098/rspb.2026.0555/6163822/rspb.2026.0555.pdf
+2026-11-12T11:51:51,10.1098/rspb.2026.0668,proxy,ok,https://royalsocietypublishing-org.libaccess.lib.mcmaster.ca/rspb/article-pdf/doi/10.1098/rspb.2026.0668/6167239/rspb.2026.0668.pdf
+2026-11-12T11:52:55,10.1098/rspb.2026.0731,proxy,ok,https://royalsocietypublishing-org.libaccess.lib.mcmaster.ca/rspb/article-pdf/doi/10.1098/rspb.2026.0731/6163862/rspb.2026.0731.pdf
+2026-11-12T11:53:59,10.1098/rspb.2026.0321,proxy,ok,https://royalsocietypublishing-org.libaccess.lib.mcmaster.ca/rspb/article-pdf/doi/10.1098/rspb.2026.0321/6166834/rspb.2026.0321.pdf
+2026-11-12T11:55:02,10.1098/rspb.2026.1110,proxy,ok,https://royalsocietypublishing-org.libaccess.lib.mcmaster.ca/rspb/article-pdf/doi/10.1098/rspb.2026.1110/6163768/rspb.2026.1110.pdf
+2026-11-12T11:56:07,10.1098/rspb.2026.1077,proxy,ok,https://royalsocietypublishing-org.libaccess.lib.mcmaster.ca/rspb/article-pdf/doi/10.1098/rspb.2026.1077/6167309/rspb.2026.1077.pdf
+2026-11-12T11:56:25,10.1098/rspb.2026.1825,europepmc,ok,149848 bytes
+2026-11-12T11:57:52,10.1086/741527,proxy,ok,https://www-journals-uchicago-edu.libaccess.lib.mcmaster.ca/doi/pdf/10.1086/741527

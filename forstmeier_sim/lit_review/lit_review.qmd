@@ -1,0 +1,122 @@
+---
+title: "GLM practice in ecology and evolution: September 2007 vs. September 2026"
+format:
+  html:
+    embed-resources: true
+bibliography: ../forstmeier.bib
+execute:
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r setup}
+library(dplyr)
+library(tidyr)
+library(knitr)
+coding <- read.csv("coding.csv")
+sample_info <- read.csv("sample.csv")
+screen <- read.csv("screen.csv")
+glm <- filter(coding, uses_glm_2plus == "y")
+n_emp <- nrow(coding)
+n_glm <- nrow(glm)
+pct <- function(x, n) sprintf("%d/%d (%.0f%%)", x, n, 100 * x / n)
+```
+
+## Background
+
+@forstmeierCryptic2011 surveyed the September 2007 issues of
+*The American Naturalist*, *Animal Behaviour*, *Ecology*, *Evolution* and
+*Proceedings of the Royal Society B*:
+
+> 28 out of 50 empirical studies (56%) use GLMs with two or more explanatory
+> variables. Of these, six studies fitted between 6 and 17 predictors, three
+> of them with N/k < 3. Interactions were considered in 80% of the studies,
+> and six of 11 experimental studies included treatment-by-covariate
+> interactions. All 16 models with more than five predictors (including
+> interactions) were simplified (15 by backward elimination, one by forward
+> selection), and only 2 of 28 studies presented the full model.
+
+## Methods
+
+- **Sampling frame:** all research articles in the September 2026 print
+  issues (Am Nat 208(3), Anim Behav, Ecology 107(9), Evolution 80(9)) and the
+  September 2026 issues of Proc B (293(2078–2079)); `r nrow(screen)` articles.
+- **Screening:** titles and abstracts were used to classify each article as
+  empirical or not (reviews, theory/simulation, methods, comments);
+  `r sum(screen$empirical == "y")` were empirical.
+- **Sample:** 10 empirical papers per journal were drawn at random (seed
+  20261112), or all of them when a journal had fewer than 10 (Am Nat: 5).
+- **Coding:** each paper's methods and results were coded for the fields in
+  F&S's paragraph. The coding rules are in `coding_rules.md`. The main
+  differences from a literal reading of "GLM" are:
+  - mixed models count;
+  - GAMs and Bayesian regressions do not count;
+  - genomics analyses (e.g. per-gene differential expression) do not count.
+
+**Status:** `r n_emp` of `r sum(sample_info$sampled == "y")` sampled papers
+coded so far.
+
+## Results
+
+```{r by-journal}
+coding |>
+  count(journal, uses_glm_2plus) |>
+  pivot_wider(names_from = uses_glm_2plus, values_from = n, values_fill = 0) |>
+  mutate(total = y + n, `% GLM >= 2` = round(100 * y / total)) |>
+  rename(`GLM >= 2 predictors` = y, other = n) |>
+  kable()
+```
+
+```{r summary}
+n_bayes <- sum(coding$uses_glm_2plus == "n" & grepl("^Bayesian", coding$model_class))
+n_genom <- sum(grepl("^genomics", coding$model_class))
+n_explan <- suppressWarnings(as.numeric(sub("^(\\d+).*", "\\1", glm$n_explanatory)))
+n_terms <- suppressWarnings(as.numeric(sub("^~?(\\d+).*", "\\1", glm$n_terms_incl_interactions)))
+n_over_k <- suppressWarnings(as.numeric(sub("^[~<]?(\\d+).*", "\\1", glm$N_over_k)))
+big <- !is.na(n_terms) & n_terms > 5
+selected <- !grepl("^none", glm$model_selection) & glm$model_selection != ""
+
+comparison <- tribble(
+  ~quantity, ~`2007 (F&S)`, ~`2026`,
+  "Empirical studies using GLMs with >= 2 predictors", "28/50 (56%)", pct(n_glm, n_emp),
+  "... counting Bayesian regressions too", "", pct(n_glm + n_bayes, n_emp),
+  "Studies with 6 or more predictors", "6/28", pct(sum(n_explan >= 6, na.rm = TRUE), n_glm),
+  "... of which N/k < 3", "3/6", sprintf("%d (N/k known for %d)", sum(n_over_k < 3, na.rm = TRUE), sum(!is.na(n_over_k))),
+  "Interactions considered", "80%", pct(sum(glm$interactions == "y"), n_glm),
+  "Models with > 5 terms that were simplified", "16/16", pct(sum(big & selected), sum(big)),
+  "Any model selection or simplification", "", pct(sum(selected), n_glm),
+  "Full model presented", "2/28", pct(sum(grepl("^y", glm$full_model_presented)), n_glm),
+  "Multiple-comparison correction used", "not reported", pct(sum(!grepl("^none", glm$mcc) & glm$mcc != ""), n_glm)
+)
+kable(comparison)
+```
+
+`r n_genom` empirical papers contained only genomics analyses and are coded
+as not using a GLM with two or more predictors.
+
+### Model selection methods (2026)
+
+```{r selection}
+glm |>
+  mutate(method = case_when(
+    grepl("^none", model_selection) | model_selection == "" ~ "none",
+    grepl("backward|p-value|LRT", model_selection, ignore.case = TRUE) ~ "p-value/LRT based",
+    grepl("AIC|IC-based|dredge", model_selection) ~ "information criterion",
+    TRUE ~ "other")) |>
+  count(method) |>
+  kable()
+```
+
+## Caveats
+
+- F&S do not say how their 50 studies were chosen.
+- For several papers the candidate models are only in the supplement; these
+  are flagged `confidence = low/medium` in `coding.csv`.
+- With 10 papers per journal, the per-journal percentages are rough
+  (a 95% binomial CI for 5/10 is about 19–81%).
+
+## References
+
+::: {#refs}
+:::

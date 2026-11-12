@@ -1,0 +1,133 @@
+row,journal,doi,title,category,empirical,reason,abstract_source
+0,AmNat,10.1086/741683,"Spark, Scaffold, Substrate: The Multiple Hidden Roles of Natural History in Ecology and Evolutionary Biology",review/perspective,n,essay on role of natural history,openalex
+1,AmNat,10.1086/743605,Front and Back Matter,front matter/editorial,n,,title only
+2,AmNat,10.1086/741601,When Correcting for Regression to the Mean Is Worse Than No Correction at All,methods,n,statistical methods (RTM correction),openalex
+3,AmNat,10.1086/741600,Impacts of Harvest Removal on Mesocarnivore Territorial Dynamics Captured by Mechanistic Home Range Analysis,empirical,y,"harvest effects on territories, field data",openalex
+4,AmNat,10.1086/741526,"Abundance and Functional Roles, Not Richness, Govern Wood-Fall Degenerative Ecosystem Function in the Deep Sea",empirical,y,experimental wood falls,openalex
+5,AmNat,10.1086/741527,"Heterogeneous Predation, Community Asynchrony, and Metacommunity Stability in Cyanobacterial Mats",empirical,y,field obs + experiments,openalex
+6,AmNat,10.1086/741447,Emergent Periodical Cicada Nymphs Use Skototaxis to Navigate to Trees,empirical,y,observations + experiments,openalex
+7,AmNat,10.1086/741798,2026 American Society of Naturalists Awards,front matter/editorial,n,society awards,openalex
+8,AmNat,10.1086/741682,Eco-Evolutionary Dynamics of Infection and Immunity in Experimentally Founded Lake Populations of Threespine Stickleback,empirical,y,experimental lake populations,openalex
+9,AmNat,10.1086/741536,Cooperation Maximizes Biodiversity,theory/simulation,n,structural stability theory,openalex
+10,AnimBehav,10.1016/j.anbehav.2026.123663,Improving methods for identifying pair bonds in animal social networks,empirical,y,methods developed on field RFID data; borderline methods paper,openalex
+11,AnimBehav,10.1016/j.anbehav.2026.123637,Sex-specific carryover effects of long-distance migration strategies in a sub-Arctic nesting shorebird,empirical,y,title: field study,title only
+12,AnimBehav,10.1016/j.anbehav.2026.123661,"Social bonds between nonkin are common, but less stable, in a mixed-related society",empirical,y,field social data,openalex
+13,AnimBehav,10.1016/j.anbehav.2026.123667,Sniffing out risk: effects of domestic dog scent on grey fox behaviour at the wildland–urban interface,empirical,y,title: field experiment,title only
+14,AnimBehav,10.1016/j.anbehav.2026.123668,Light and noise at night reduce sleep and alter vocal output in common mynas,empirical,y,experiment,openalex
+15,AnimBehav,10.1016/s0003-3472(26)00243-5,Association Page,front matter/editorial,n,,title only
+16,AnimBehav,10.1016/j.anbehav.2026.123683,Signal transmission and function in the complex displays of Puerto Rican Anolis lizards,empirical,y,comparative analysis of display data,openalex
+17,AnimBehav,10.1016/j.anbehav.2026.123677,Social selection redefined: distinguishing features of social selection and the potential for runaway social evolution,review/perspective,n,review,openalex
+18,AnimBehav,10.1016/j.anbehav.2026.123676,Substance over style: calf characteristics drive maternal care in Indo-Pacific bottlenose dolphins,empirical,y,title: field study,title only
+19,AnimBehav,10.1016/j.anbehav.2026.123681,Sex-based differences in social trade-offs in a wild bird society,empirical,y,field data,openalex
+20,AnimBehav,10.1016/j.anbehav.2026.123679,"Too warm to play: temperature selectively constrains social behaviour in the Alpine marmot, Marmota marmota",empirical,y,field observations,openalex
+21,AnimBehav,10.1016/j.anbehav.2026.123666,Pigs rely on spatial rather than numerical cues in an ordinal foraging task,empirical,y,experiment,openalex
+22,AnimBehav,10.1016/j.anbehav.2026.123680,Testing mechanisms underlying vocal overlap during vocal exchange of signature whistles in common bottlenose dolphins,empirical,y,field/captive recordings,openalex
+23,AnimBehav,10.1016/j.anbehav.2026.123671,Beyond bias: building a more inclusive and rigorous research culture in animal behaviour,review/perspective,n,title: essay on research culture,title only
+24,AnimBehav,10.1016/j.anbehav.2026.123674,Body size and reproductive senescence shape mating patterns in common toads,empirical,y,field data,openalex
+25,AnimBehav,10.1016/j.anbehav.2026.123670,"Birds on fire: severe disturbance by fireworks in wintering gulls, waterbirds and passerines",empirical,y,field observations,openalex
+26,AnimBehav,10.1016/j.anbehav.2026.123692,Ethologically informed enrichment improves behavioural and physiological indicators of welfare in a captive lizard,empirical,y,experiment,openalex
+27,AnimBehav,10.1016/j.anbehav.2026.123638,Scientific publishing and diversity in science: geographical bias of articles published in Animal Behaviour,meta-analysis/systematic review,n,bibliometric analysis of the journal,title only
+28,AnimBehav,10.1016/j.anbehav.2026.123695,Isochronous rhythms signal male–male competition in an Asian langur,empirical,y,title: field study,title only
+29,AnimBehav,10.1016/j.anbehav.2026.123678,Functional multiple intelligences: the diversity and adaptive value of social insect cognition,review/perspective,n,title: review,title only
+30,AnimBehav,10.1016/s0003-3472(26)00242-3,Editors Page,front matter/editorial,n,,title only
+31,AnimBehav,10.1016/j.anbehav.2026.123675,Evolutionary history and seasonal dynamics shape interspecific interactions between two sympatric desert fox species,empirical,y,title: field study,title only
+32,AnimBehav,10.1016/j.anbehav.2026.123669,Head–beam coordination in FM and CF-FM bats reveals distinct echolocation strategies during obstacle avoidance flight,empirical,y,experiment,openalex
+33,AnimBehav,10.1016/j.anbehav.2026.123673,Development and social dynamics of stone tool use in wild white-faced capuchin monkeys,empirical,y,field observations,openalex
+34,Ecology,10.1002/ecy.70471,North American crayfish: A quest for the biggest catch,natural history note,n,Scientific Naturalist (title),title only
+35,Ecology,10.1002/ecy.70480,A non‐Euclidean movement model to quantify landscape connectivity with open spatial capture–recapture models,methods,n,new OPSCR movement model,crossref
+36,Ecology,10.1002/ecy.70524,Parental competition history shapes offspring responses to thermal stress across generations,empirical,y,experiment,crossref
+37,Ecology,10.1002/ecy.70489,Extreme drought impacts drove local extinction in a social rodent,empirical,y,CMR field data,crossref
+38,Ecology,10.1002/ecy.70478,Drought conditions reorder plant communities through expansion of spatially sparse and temporally intermittent species,empirical,y,field data,crossref
+39,Ecology,10.1002/ecy.70531,Maternal plant exposure to fire enhances offspring germination,empirical,y,field/germination data,crossref
+40,Ecology,10.1002/ecy.70428,Issue Information,front matter/editorial,n,,title only
+41,Ecology,10.1002/ecy.70472,Against the grain: Discovery of wood‐nesting reveals hidden substrate flexibility in a major bee lineage,natural history note,n,Scientific Naturalist (title),title only
+42,Ecology,10.1002/ecy.70523,Regional variation in within‐ and transgenerational responses to an invasive predator,empirical,y,experiment,crossref
+43,Ecology,10.1002/ecy.70507,Reducing consumer pressure increases community dissimilarity leading to coral‐ or algal‐dominance on a coral reef,empirical,y,field experiment,crossref
+44,Ecology,10.1002/ecy.70514,A DNA sequence variation dataset across the understudied Andean poison frog genus Andinobates,data paper,n,data paper,crossref
+45,Ecology,10.1002/ecy.70504,Extraordinary movements connecting distant ecosystems by African wild dogs ( L ycaon pictus ),natural history note,n,Scientific Naturalist,openalex
+46,Ecology,10.1002/ecy.70493,Knowledge gaps and areas for synthesis in experimental studies of context‐dependent predation risk,meta-analysis/systematic review,n,systematic review,crossref
+47,Ecology,10.1002/ecy.70423,Cover Image,front matter/editorial,n,cover image,crossref
+48,Ecology,10.1002/ecy.70513,Plant–herbivore–parasitoid food webs across an edge gradient from natural southern beech to plantation pine forests,empirical,y,field data,crossref
+49,Ecology,10.1002/ecy.70486,Synthesis of scale‐dependent plant biodiversity change in climate warming experiments,meta-analysis/systematic review,n,synthesis of warming experiments,crossref
+50,Ecology,10.1002/ecy.70479,Second‐order elasticities for ecology and evolution: Unraveling nonlinear fitness responses to perturbations,methods,n,demographic methods,crossref
+51,Ecology,10.1002/ecy.70484,"Dispersal kernels regulate environmental, biotic, and stochastic effects on the maintenance of metacommunity diversity",theory/simulation,n,simulations,crossref
+52,Ecology,10.1002/ecy.70476,Modularity limits the spatial propagation of disturbance in experimental seagrass networks,empirical,y,field experiment,crossref
+53,Ecology,10.1002/ecy.70474,Decoding microbial metabolic complementarity from individual traits to community structuring,empirical,y,lab assays + modelling,crossref
+54,Ecology,10.1002/ecy.70387,"DRIFteRS : A dataset of drift invertebrate densities in streams and rivers across western North America, 1997–2024",data paper,n,data paper,crossref
+55,Ecology,10.1002/ecy.70492,"Invasive Flora Repository: Traits, environmental tolerances, and invasion history of invasive plant species in the United States",data paper,n,data paper,crossref
+56,Ecology,10.1002/ecy.70470,Climate and landscape context drive the functional composition of young tropical forests,empirical,y,field data,crossref
+57,Ecology,10.1002/ecy.70483,Plant biomass and macro‐ and micronutrients jointly drive top‐heavy arthropod trophic pyramids in grassland monocultures,empirical,y,field data,crossref
+58,Ecology,10.1002/ecy.70477,Soil microbial effects on tree seedling performance during forest secondary succession,empirical,y,shade-house experiment,crossref
+59,Ecology,10.1002/ecy.70512,EverWatch airborne bird imagery dataset for detection and classification of Everglades wading birds,data paper,n,data paper,crossref
+60,Ecology,10.1002/ecy.70491,Accounting for variable detection functions in temporal abundance modeling via transfer learning,methods,n,abundance modelling method,crossref
+61,Ecology,10.1002/ecy.70536,Pelagic sea cucumbers in the Galapagos: Midwater grazers that short‐circuit deep‐sea carbon flux,natural history note,n,Scientific Naturalist,openalex
+62,Ecology,10.1002/ecy.70498,From environmental heterogeneity to stability: Beta‐diversity stabilizes biomass across space,empirical,y,simulations + field experiment,crossref
+63,Ecology,10.1002/ecy.70515,Information on forest plant communities of Central Canada collected during 1956–1995,data paper,n,data paper,crossref
+64,Ecology,10.1002/ecy.70495,Tiny but mighty: Insects can drive carrion decomposition in the absence of facultative vertebrate scavengers,empirical,y,field experiment,crossref
+65,Ecology,10.1002/ecy.70502,Causes of interspecific variation in avian migration distance,empirical,y,comparative analysis,crossref
+66,Ecology,10.1002/ecy.70488,Diversity–productivity relationships in ericaceous plants are influenced by interactions with ericoid mycorrhizal fungi,empirical,y,experiment,crossref
+67,Ecology,10.1002/ecy.70485,Heads on the surface: Peek performance of spy‐hop behavior in Chilean dolphins,natural history note,n,Scientific Naturalist,openalex
+68,Ecology,10.1002/ecy.70508,Revealing undocumented cleaning behavior in the vulnerable pink whipray in southern Mozambique,natural history note,n,Scientific Naturalist,openalex
+69,Ecology,10.1002/ecy.70482,The influence of predator lethality on prey behavior and growth,empirical,y,experiment,crossref
+70,Ecology,10.1002/ecy.70469,Insect defoliators trading spaces in a hemiboreal forest: Implications for diversity–stability and ecosystem resilience,empirical,y,field/time-series data,crossref
+71,Ecology,10.1002/ecy.70525,Imperfect detection biases occupancy estimates in plants: A review and case study,review/perspective,n,review + case study,crossref
+72,Ecology,10.1002/ecy.70490,Colombian Caribbean mammals: A dataset of the wild mammal assemblage in the Colombian Caribbean region,data paper,n,data paper,crossref
+73,Ecology,10.1002/ecy.70519,Distinct root‐associated fungal communities may account for the persistence of Podocarpus conifers in tropical forest,empirical,y,field data,crossref
+74,Ecology,10.1002/ecy.70487,Periodical cicadas suffer legacy effects of century‐old forest removal,empirical,y,field data,crossref
+75,Ecology,10.1002/ecy.70494,Historical distribution maps of vascular plants in Northern Europe,data paper,n,data paper,crossref
+76,Ecology,10.1002/ecy.70500,Ecological stability of zooplankton communities in changing arctic lakes over three decades,empirical,y,long-term field data,crossref
+77,Ecology,10.1002/ecy.70505,Effects of biotic homogenization on community assembly and biomass production in an α × β‐diversity grassland experiment,empirical,y,field experiment,crossref
+78,Ecology,10.1002/ecy.70534,Glowing cradles: Hatching larvae of the longhorn beetle S chwarzerium quadricolle remain in fluorescent eggshells,natural history note,n,Scientific Naturalist (short observational note),openalex
+79,Ecology,10.1002/ecy.70458,Artificial light at night and an invasive snail synergistically enhance the invasion of a nonnative macrophyte,empirical,y,experiments,crossref
+80,Ecology,10.1002/ecy.70528,Social learning in predators: Indirect effects let novel prey exclude familiar prey,theory/simulation,n,predator-prey models,crossref
+81,Ecology,10.1002/ecy.70497,Phenotypic plasticity of ‘off‐host’ parasite stages in response to heatwaves in the Daphnia ‐ Pasteuria system,empirical,y,experiment,crossref
+82,Ecology,10.1002/ecy.70510,Historical occurrences of lynx ( Lynx spp.) in Iberia,data paper,n,data paper,crossref
+83,Ecology,10.1002/ecy.70446,Growing‐ and nongrowing‐season warming affect invasive plant growth via soil legacy effects,empirical,y,field experiment,crossref
+84,Ecology,10.1002/ecy.70506,Urban gardens foster year‐round activity of bumble bee queens,natural history note,n,Scientific Naturalist,openalex
+85,Ecology,10.1002/ecy.70475,Nocturnal host manipulation by nematomorphs is not synchronized with the lunar cycle,natural history note,n,Scientific Naturalist,openalex
+86,Ecology,10.1002/ecy.70518,Defense–competition trade‐offs shape prey eco‐evolutionary dynamics across environmental gradients,theory/simulation,n,mathematical model,crossref
+87,Ecology,10.1002/ecy.70520,"Native earthworms and roe deer in temperate forests: Friends in the sun, foes in the shade",empirical,y,field data,crossref
+88,Ecology,10.1002/ecy.70530,Nitrogen inputs and mowing do not alter N:P stoichiometry in grassland insect herbivores,empirical,y,field experiment,crossref
+89,Ecology,10.1002/ecy.70443,Hitch‐hiking in the deep sea: Amphipods embrace sea spiders in the Southeast Pacific Ocean,natural history note,n,Scientific Naturalist (title),title only
+90,Ecology,10.1002/ecy.70473,When giant amphibians rule the river: Community trophic structure of Japanese giant salamander ecosystems,empirical,y,field data,crossref
+91,Evolution,10.1093/evolut/qpag126,Genomic contingence beneath ecological convergence: the tempo and mode of gene loss in parasitic bilaterians,empirical,y,comparative genomics,crossref
+92,Evolution,10.1093/evolut/qpag122,Mutation rate variation as the neutral byproduct of developmental and life-history diversification,theory/simulation,n,"models + simulations, some comparative analysis; borderline",crossref
+93,Evolution,10.1093/evolut/qpag116,The phylogenetic signal of extinction through the rise and fall of early vertebrates: field of bullets or clustered strike?,empirical,y,fossil data analysis,crossref
+94,Evolution,10.1093/evolut/qpag121,Accounting for recombination rate variation improves inference of barrier loci and reveals the role of both natural and sexual selection in an incipient bird radiation,empirical,y,genomic data,crossref
+95,Evolution,10.1093/evolut/qpag129,Sperm length and seminal receptacle length do not evolve in populations of Drosophila melanogaster adapted to larval crowding,empirical,y,experimental evolution,crossref
+96,Evolution,10.1093/evolut/qpag115,Reproductive value and primary sex ratios under facultative asexual reproduction by both sexes in age-structured populations,theory/simulation,n,theory,crossref
+97,Evolution,10.1093/evolut/qpag132,Digest: Speciation involves both barriers and bridges in the tropical Andes,commentary/digest,n,digest,crossref
+98,Evolution,10.1093/evolut/qpag130,Sexual dimorphism of weapon allometry in the European earwig,empirical,y,experiment,crossref
+99,Evolution,10.1093/evolut/qpag127,Modeling within-lineage evolution as a consequence of changes in the adaptive landscape across short and long timescales,empirical,y,model fitting to three time-series datasets; borderline methods,crossref
+100,Evolution,10.1093/evolut/qpag114,Quantitative genetics of lifetime growth curves in a lizard,empirical,y,field + mesocosm data,crossref
+101,Evolution,10.1093/evolut/qpag113,The role of microbial resource mutualists in plant adaptation to abiotic environments,empirical,y,transplant experiment,crossref
+102,Evolution,10.1093/evolut/qpag123,Linking fluvial barriers and habitat specialization in the evolution of microendemism in riverine fishes,empirical,y,phylogeography,crossref
+103,Evolution,10.1093/evolut/qpag110,Museum genomics links MC1R alleles to adaptive winter coat color polymorphism in the long-tailed weasel,empirical,y,museum genomics,crossref
+104,Evolution,10.1093/evolut/qpag119,Repeated evolution of iridescence and hindwing tails is associated with morphometric flight proxies in skipper butterflies,empirical,y,comparative analysis,crossref
+105,Evolution,10.1093/evolut/qpag133,Digest: Chromosomal architecture of behavioral isolation in marine isopods,commentary/digest,n,digest,crossref
+106,Evolution,10.1093/evolut/qpag124,Diversity and disparity are decoupled in the most ecomorphologically diverse rodent radiation,empirical,y,comparative analysis,crossref
+107,Evolution,10.1093/evolut/qpag118,Temperature-dependent competition predicts contrasting outcomes of adjacent secondary contact zones in darters (Percidae: Etheostoma ),empirical,y,field/experimental,crossref
+108,Evolution,10.1093/evolut/qpag084,Parasitic infection and resource acquisition shape senescence through oxidative stress and energy depletion,theory/simulation,n,multiscale model,crossref
+109,Evolution,10.1093/evolut/qpag120,Superorganismal anisogamy: a comparative test of an extended theory,empirical,y,theory + comparative data on 732 species,crossref
+110,Evolution,10.1093/evolut/qpag131,Non-migratory lineages experience higher diversification rates: global evidence from salmonid fishes,empirical,y,comparative analysis,crossref
+111,ProcB,10.1098/rspb.2025.2877,Pervasive sublethal impacts of heat exposure revealed by telomere dynamics,empirical,y,field data,openalex
+112,ProcB,10.1098/rspb.2026.1638,Cognitive abilities show distinct developmental trajectories in wild meerkats,empirical,y,field cognitive tests,openalex
+113,ProcB,10.1098/rspb.2026.0403,Extinction debt and colonization credit in conservation science,meta-analysis/systematic review,n,systematic review,openalex
+114,ProcB,10.1098/rspb.2026.1709,Complex reproduction reflects life-history trade-offs in early Cambrian multicellular algae,empirical,y,fossil description,openalex
+115,ProcB,10.1098/rspb.2026.0380,Do conservation priorities predict changes in zoo species holdings? A 30-year global analysis,empirical,y,database analysis,openalex
+116,ProcB,10.1098/rspb.2026.0731,Plasticity in collective behaviour helps fish shoals mitigate limited visual information from water turbidity,empirical,y,experiment,openalex
+117,ProcB,10.1098/rspb.2026.0602,Firelight and the origins of spoken language,review/perspective,n,theory/essay,openalex
+118,ProcB,10.1098/rspb.2026.1328,From fascination to fear and disgust: cross-cultural assessment of emotional and aesthetic responses to snake imagery,empirical,y,survey experiment,openalex
+119,ProcB,10.1098/rspb.2026.1110,"Females of a socially polyandrous, sex-role reversed shorebird visit multiple breeding sites within a single season",empirical,y,tracking data,openalex
+120,ProcB,10.1098/rspb.2026.0555,A price to pay: long-term selection for divergent basal metabolic rate affects reproductive success in mice,empirical,y,selection experiment,openalex
+121,ProcB,10.1098/rspb.2026.1157,The sound of action: a new look at the paradox of sensory attenuation and enhancement,review/perspective,n,title: perspective,title only
+122,ProcB,10.1098/rspb.2026.1574,"Chimpanzees attribute agency to virtual animals, but not to self-propelled shapes",empirical,y,experiment,openalex
+123,ProcB,10.1098/rspb.2026.1825,Native and non-native ambrosia beetles compete for deadwood resources,empirical,y,field experiment,openalex
+124,ProcB,10.1098/rspb.2026.1414,Revealing the genetic mechanisms underpinning the parasite-induced water-seeking behaviour of insects through RNA-seq,empirical,y,RNA-seq experiment,openalex
+125,ProcB,10.1098/rspb.2026.0285,Wildlife health in the One Health era: lessons from a 200-year institutional case study,review/perspective,n,perspective/historical,openalex
+126,ProcB,10.1098/rspb.2026.0668,Past rapid spread of introduced livestock coincided with vegetation clearance on Madagascar,empirical,y,isotope data,openalex
+127,ProcB,10.1098/rspb.2026.0321,Controlling Varroa destructor infestations in managed honeybee colonies limits virus spillover into wild pollinator communities,empirical,y,field data,openalex
+128,ProcB,10.1098/rspb.2026.1297,The evolutionary neurobiology of age-related division of labour: brain architecture and precocial behaviour in the ancestral ant Stigmatomma pallipes,empirical,y,neuroanatomy + behaviour,openalex
+129,ProcB,10.1098/rspb.2025.3219,Consistent drivers of coastal biodiversity across the tree of life,empirical,y,eDNA survey,openalex
+130,ProcB,10.1098/rspb.2026.1077,Mini-breaths and vocal-fry-like laryngeal register alleviate respiratory constraints on tokay ( Gekko gecko ) mating vocalizations,empirical,y,experiment,openalex
+131,ProcB,10.1098/rspb.2025.3224,Physiological synchrony predicts reduced reciprocity only in face-to-face interactions,empirical,y,experiment,openalex
