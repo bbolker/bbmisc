@@ -11,10 +11,8 @@
 ## every figure reads from: it screens all three model-simplification
 ## scenarios (unselected, unrestricted step(), interactions-only step())
 ## under all five significance criteria (uncorrected, Bonferroni,
-## Dunn-Sidak, Holm, single-step max-|T|). output/bonferroni_unselected.rds
-## is a cheap stand-alone unselected-model Bonferroni run, used by
-## fig1_corrections.png until corrections_results.rds is regenerated. Shared logic lives in a handful of "core" files
-## sourced by multiple thin wrapper scripts:
+## Dunn-Sidak, Holm, single-step max-|T|). Shared logic lives in a handful
+## of "core" files sourced by multiple thin wrapper scripts:
 ##   simulate_fig1.R          -- data generation, the two swappable
 ##                               step()-simplification strategies
 ##   simulate_corrections.R   -- one_rep_corrections()/run_condition_corrections()
@@ -76,23 +74,11 @@ list(
 
   ## -- multiple-comparisons-correction comparison, unselected model only --
 
-  tar_target(run_bonferroni_unselected_script,
-             here::here("forstmeier_sim", "R", "run_bonferroni_unselected.R"),
-             format = "file"),
-
-  tar_target(bonferroni_unselected_file, {
-    sim_functions_file          ## dependency only
-    corrections_functions_file  ## dependency only
-    source(run_bonferroni_unselected_script)
-    here::here("forstmeier_sim", "output", "bonferroni_unselected.rds")
-  }, format = "file"),
-
   tar_target(make_corrections_plot_script, here::here("forstmeier_sim", "R", "make_corrections_plot.R"),
              format = "file"),
 
   tar_target(fig1_corrections_png_file, {
     corrections_results_file  ## dependency only
-    bonferroni_unselected_file  ## dependency only
     graphics_utils_file        ## dependency only
     source(make_corrections_plot_script)
     here::here("forstmeier_sim", "output",

@@ -238,26 +238,3 @@ run_condition_corrections <- function(N, m, interactions, nrep, simplify_fns = l
     .options = furrr::furrr_options(seed = TRUE)
   )
 }
-
-## Unselected full model only, true Bonferroni criterion only (p < alpha/k):
-## lm() fits with no step() or max-|T| Monte Carlo, so much cheaper than
-## one_rep_corrections(). Independent draws from the main simulation, so
-## agreement with it is only in aggregate.
-one_rep_bonferroni_unselected <- function(N, m, interactions, alpha = 0.05) {
-  options(contrasts = c("contr.sum", "contr.poly"))
-  dat <- data.frame(y = rnorm(N), make_predictors(N, m))
-  fit <- stats::lm(build_formula(m, interactions), data = dat)
-  p <- stats::coef(summary(fit))[-1, "Pr(>|t|)"]
-  k <- n_predictors(m, interactions)
-  sig <- p < alpha / k
-  tibble::tibble(sig_bonferroni_unselected = any(sig, na.rm = TRUE),
-                 n_sig_bonferroni_unselected = sum(sig, na.rm = TRUE))
-}
-
-run_condition_bonferroni_unselected <- function(N, m, interactions, nrep, alpha = 0.05) {
-  furrr::future_map_dfr(
-    seq_len(nrep),
-    function(i) one_rep_bonferroni_unselected(N, m, interactions, alpha),
-    .options = furrr::furrr_options(seed = TRUE)
-  )
-}

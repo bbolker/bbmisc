@@ -29,15 +29,7 @@ method_labels <- c(
 
 ## corrections_results.rds screens three model-simplification scenarios;
 ## these plots cover only the unselected (full-model) one -- see
-## fig1_corrections_by_scenario.png for the selected cases. Older versions
-## of corrections_results.rds lack the true-Bonferroni columns; they then
-## come from the separate bonferroni_unselected.rds simulation (independent
-## draws, same grid and nrep).
-bonferroni_source <- if ("sig_bonferroni_unselected" %in% names(results)) {
-  results
-} else {
-  readRDS(here::here("forstmeier_sim", "output", "bonferroni_unselected.rds"))
-}
+## fig1_corrections_by_scenario.png for the selected cases.
 
 ## One row per replicate and method: the experimentwise indicator (sig) and
 ## the per-parameter rate (perparam = number significant / k).
@@ -51,10 +43,7 @@ long_method <- function(data, method) {
 ## Gaussian-approximation 95% CIs: p +/- 1.96*se. For the per-parameter
 ## rate (a mean of per-replicate rates in [0, 1], not of 0/1 indicators)
 ## the se is computed from the replicate values' own sd.
-summ <- bind_rows(
-  long_method(bonferroni_source, "bonferroni"),
-  lapply(c("dunnsidak", "holm", "maxT"), long_method, data = results)
-) |>
+summ <- bind_rows(lapply(names(method_labels), long_method, data = results)) |>
   group_by(N, m, interactions, k, method) |>
   summarise(
     n = n(),

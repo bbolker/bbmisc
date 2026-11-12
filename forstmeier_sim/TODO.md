@@ -1,9 +1,6 @@
 # TODO
 
-- [ ] Follow-ups now that the full simulation includes Bonferroni:
-    - drop `output/bonferroni_unselected.rds`, `R/run_bonferroni_unselected.R`,
-      its targets and the fallback in `R/make_corrections_plot.R`
-    - decide whether to add `bonferroni` to the criteria (regex and
+- [ ] Decide whether to add `bonferroni` to the criteria (regex and
       `criterion_labels`) in `R/plot_corrections_by_scenario_core.R`
 
 - [ ] Sort out Figure 2 (`output/fig1_corrections.png`). For the
