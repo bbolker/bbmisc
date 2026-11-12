@@ -23,7 +23,7 @@ scenario_labels <- c(
 
 criterion_labels <- c(
   raw = "Uncorrected",
-  bonf = "Dunn–Šidák",
+  dunnsidak = "Dunn–Šidák",
   holm = "Holm",
   maxT = "Single-step max|T|",
   perparam = "Per-parameter"
@@ -70,7 +70,7 @@ criterion_labels <- c(
 ## approximation to its true sampling variance.
 build_corrections_summary <- function(results_path, variant = "", denom_col = "k") {
   col_pattern <- paste0(
-    "^sig_(raw|bonf|holm|maxT|perparam)_", variant,
+    "^sig_(raw|dunnsidak|holm|maxT|perparam)_", variant,
     "(unselected|step_restricted|step)(?:_(naive|correct))?$"
   )
   scenario_names <- names(scenario_labels)
@@ -115,7 +115,7 @@ build_corrections_by_scenario_summary <- function(results_path) {
 ## Main-effects-only metrics, with-interactions rows only (see
 ## simulate_corrections.R) -- see build_corrections_summary(). The
 ## "Unselected" scenario only has a raw/per-parameter main-effects metric
-## computed (no bonf/holm/maxT variant), so criterion panels other than
+## computed (no dunnsidak/holm/maxT variant), so criterion panels other than
 ## "Uncorrected"/"Per-parameter" simply have no "Unselected" line/row.
 build_main_effects_summary <- function(results_path) {
   build_corrections_summary(results_path, variant = "main_", denom_col = "m")
@@ -130,7 +130,7 @@ zmargin <- theme(panel.spacing = grid::unit(0, "pt"))
 ## multcomp_k -- the "everything but uncorrected" facet_grid shared by
 ## make_corrections_by_scenario_plot() (as its patchwork right-hand panel,
 ## row-strip text hidden since its left-hand panel already labels rows,
-## criteria = bonf/holm/maxT/perparam) and
+## criteria = dunnsidak/holm/maxT/perparam) and
 ## make_corrections_by_scenario_minimal_plot() (standalone, row-strip text
 ## shown since there's no left-hand panel, criteria = maxT/perparam only).
 build_other_criteria_plot <- function(data, show_row_strip, ylab_text) {

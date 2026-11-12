@@ -1,12 +1,13 @@
 ## Simulation functions for comparing multiple-comparisons corrections
-## (uncorrected, Bonferroni-type/Sidak, Holm, single-step max-|T|) across
+## (uncorrected, Bonferroni, Dunn-Sidak, Holm, single-step max-|T|) across
 ## model-simplification scenarios (no selection, unrestricted step(),
 ## interactions-only step()). Reuses step_default()/step_interactions_only()
 ## from simulate_fig1.R, and maxT_crit() from maxT_correction.R.
 
 ## Per-test threshold solving alpha' = 1 - (1-alpha_per_test)^k, the exact
 ## family-wise rate under independence (the Sidak correction; not literal
-## Bonferroni, which instead scales alpha down to alpha/k).
+## Bonferroni, which instead scales alpha down to alpha/k). Used by the
+## "dunnsidak" criterion below.
 sidak_alpha <- function(alpha, k) 1 - (1 - alpha)^(1 / k)
 
 ## TRUE for a main-effect term (no ":" in its name), FALSE for an
@@ -72,7 +73,8 @@ screen_criteria <- function(fit, calibration, alpha = 0.05, test_subset = NULL) 
 
   sig_by_term <- tibble::tibble(
     raw  = tt$p.value < alpha,
-    bonf = tt$p.value < sidak_alpha(alpha, k_ref),
+    bonferroni = tt$p.value < alpha / k_ref,
+    dunnsidak = tt$p.value < sidak_alpha(alpha, k_ref),
     holm = stats::p.adjust(tt$p.value, method = "holm", n = k_ref) < alpha,
     maxT = abs(tt$statistic) > crit_maxT
   )
@@ -103,7 +105,8 @@ screen_raw <- function(fit, alpha = 0.05, subset = NULL) {
 ## correct calibration give identical values -- kept unsuffixed. The rest
 ## depend on k_ref and get both a "_naive" and a "_correct" column.
 unsuffixed_metrics <- c("sig_raw", "n_sig_raw")
-calibrated_metrics <- c("sig_bonf", "sig_holm", "sig_maxT", "n_sig_bonf", "n_sig_holm", "n_sig_maxT")
+calibrated_metrics <- c("sig_bonferroni", "sig_dunnsidak", "sig_holm", "sig_maxT",
+                        "n_sig_bonferroni", "n_sig_dunnsidak", "n_sig_holm", "n_sig_maxT")
 
 ## Renames and combines one selected scenario's naive/correct screen_criteria()
 ## outputs into the suffixed column block one_rep_corrections() appends for
@@ -232,6 +235,29 @@ run_condition_corrections <- function(N, m, interactions, nrep, simplify_fns = l
   furrr::future_map_dfr(
     seq_len(nrep),
     function(i) one_rep_corrections(N, m, interactions, alpha, maxT_nsim, simplify_fns),
+    .options = furrr::furrr_options(seed = TRUE)
+  )
+}
+
+## Unselected full model only, true Bonferroni criterion only (p < alpha/k):
+## lm() fits with no step() or max-|T| Monte Carlo, so much cheaper than
+## one_rep_corrections(). Independent draws from the main simulation, so
+## agreement with it is only in aggregate.
+one_rep_bonferroni_unselected <- function(N, m, interactions, alpha = 0.05) {
+  options(contrasts = c("contr.sum", "contr.poly"))
+  dat <- data.frame(y = rnorm(N), make_predictors(N, m))
+  fit <- stats::lm(build_formula(m, interactions), data = dat)
+  p <- stats::coef(summary(fit))[-1, "Pr(>|t|)"]
+  k <- n_predictors(m, interactions)
+  sig <- p < alpha / k
+  tibble::tibble(sig_bonferroni_unselected = any(sig, na.rm = TRUE),
+                 n_sig_bonferroni_unselected = sum(sig, na.rm = TRUE))
+}
+
+run_condition_bonferroni_unselected <- function(N, m, interactions, nrep, alpha = 0.05) {
+  furrr::future_map_dfr(
+    seq_len(nrep),
+    function(i) one_rep_bonferroni_unselected(N, m, interactions, alpha),
     .options = furrr::furrr_options(seed = TRUE)
   )
 }

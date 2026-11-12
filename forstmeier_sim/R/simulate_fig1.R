@@ -21,15 +21,17 @@ make_predictors <- function(N, m) {
   as.data.frame(X)
 }
 
-## RHS-only predictor spec, shared by build_formula() (two-sided) and the
-## scope formulas used by step_interactions_only() (one-sided).
+## Term labels for reformulate(), shared by build_formula() (two-sided) and
+## the scope formulas used by step_interactions_only() (one-sided). The
+## interaction case is a single "(X1 + ... + Xm)^2" label, which expands to
+## all main effects and two-way interactions (and to just X1 when m = 1).
 predictor_terms <- function(m, interactions) {
   preds <- paste0("X", seq_len(m))
-  if (interactions) sprintf("(%s)^2", paste(preds, collapse = " + ")) else paste(preds, collapse = " + ")
+  if (interactions) sprintf("(%s)^2", paste(preds, collapse = " + ")) else preds
 }
 
 build_formula <- function(m, interactions) {
-  stats::as.formula(paste("y ~", predictor_terms(m, interactions)))
+  stats::reformulate(predictor_terms(m, interactions), response = "y")
 }
 
 ## number of predictors (including two-way interactions) for m factors
@@ -65,7 +67,7 @@ step_default <- function(fit_full, m, interactions) {
 ## terms. With no interactions in the model to begin with, this is a no-op.
 step_interactions_only <- function(fit_full, m, interactions) {
   if (!interactions) return(fit_full)
-  lower <- stats::as.formula(paste("~", predictor_terms(m, FALSE)))
-  upper <- stats::as.formula(paste("~", predictor_terms(m, TRUE)))
+  lower <- stats::reformulate(predictor_terms(m, FALSE))
+  upper <- stats::reformulate(predictor_terms(m, TRUE))
   step(fit_full, scope = list(lower = lower, upper = upper), direction = "backward", trace = 0)
 }

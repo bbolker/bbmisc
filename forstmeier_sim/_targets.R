@@ -10,8 +10,10 @@
 ## output/corrections_results.rds is the single simulation output that
 ## every figure reads from: it screens all three model-simplification
 ## scenarios (unselected, unrestricted step(), interactions-only step())
-## under all four significance criteria (uncorrected, Dunn-Sidak, Holm,
-## single-step max-|T|). Shared logic lives in a handful of "core" files
+## under all five significance criteria (uncorrected, Bonferroni,
+## Dunn-Sidak, Holm, single-step max-|T|). output/bonferroni_unselected.rds
+## is a cheap stand-alone unselected-model Bonferroni run, used by
+## fig1_corrections.png until corrections_results.rds is regenerated. Shared logic lives in a handful of "core" files
 ## sourced by multiple thin wrapper scripts:
 ##   simulate_fig1.R          -- data generation, the two swappable
 ##                               step()-simplification strategies
@@ -74,14 +76,28 @@ list(
 
   ## -- multiple-comparisons-correction comparison, unselected model only --
 
+  tar_target(run_bonferroni_unselected_script,
+             here::here("forstmeier_sim", "R", "run_bonferroni_unselected.R"),
+             format = "file"),
+
+  tar_target(bonferroni_unselected_file, {
+    sim_functions_file          ## dependency only
+    corrections_functions_file  ## dependency only
+    source(run_bonferroni_unselected_script)
+    here::here("forstmeier_sim", "output", "bonferroni_unselected.rds")
+  }, format = "file"),
+
   tar_target(make_corrections_plot_script, here::here("forstmeier_sim", "R", "make_corrections_plot.R"),
              format = "file"),
 
   tar_target(fig1_corrections_png_file, {
     corrections_results_file  ## dependency only
+    bonferroni_unselected_file  ## dependency only
     graphics_utils_file        ## dependency only
     source(make_corrections_plot_script)
-    here::here("forstmeier_sim", "output", "fig1_corrections.png")
+    here::here("forstmeier_sim", "output",
+               c("fig1_corrections.png", "fig1_corrections_perparam.png",
+                 "fig1_corrections_2panel.png"))
   }, format = "file"),
 
   ## -- scenario x correction-method comparison, combined via patchwork --
@@ -160,6 +176,8 @@ list(
     fig1_png_file                          ## dependency only
     fig1_corrections_png_file              ## dependency only
     fig1_corrections_by_scenario_png_file  ## dependency only
+    fig1_corrections_by_scenario_minimal_png_file           ## dependency only
+    fig1_corrections_by_scenario_minimal_mainonly_png_file  ## dependency only
     fig1_corrections_by_method_png_file    ## dependency only
     fig1_corrections_by_N_png_file         ## dependency only
     quarto::quarto_render(input = forstmeier_sig_qmd_file, quiet = TRUE)
