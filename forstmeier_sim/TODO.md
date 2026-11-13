@@ -9,4 +9,6 @@
       just a different, weaker guarantee). BY is the closer analogue to Holm
       (valid under arbitrary dependence); BH is the more commonly used default
       but formally needs independence/PRDS.
+- [ ] Consider switching Holm for Bonferroni in Figure 2 (J. Dushoff's
+      suggestion)
 

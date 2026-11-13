@@ -379,3 +379,57 @@ make_corrections_by_N_plot <- function(results_path, png_path) {
 
   ggsave(png_path, fig, width = 10, height = 8, dpi = 150)
 }
+
+## Paired differences between the two selection scenarios, "Selected
+## (all)" minus "Selected (interax only)", for the main-effects-only metrics
+## of make_corrections_by_scenario_minimal_mainonly_plot() (max-|T| with
+## minimal/maximal k, and the per-parameter rate); with-interactions rows
+## only. Both scenarios are fitted to the same simulated data set in each
+## replicate (row), so the difference is computed per replicate and its CI
+## uses the SD of the paired differences, which is much narrower than the
+## CI of a difference of two independent proportions would be.
+build_main_effects_scenario_diff <- function(results_path) {
+  raw <- readRDS(results_path) |> dplyr::filter(interactions)
+  diffs <- tibble::tibble(
+    N = raw$N, m = raw$m,
+    maxT_minimal = raw$sig_maxT_main_step_naive - raw$sig_maxT_main_step_restricted_naive,
+    maxT_maximal = raw$sig_maxT_main_step_correct - raw$sig_maxT_main_step_restricted_correct,
+    perparam_none = (raw$n_sig_raw_main_step - raw$n_sig_raw_main_step_restricted) / raw$m
+  )
+  diffs |>
+    tidyr::pivot_longer(-c(N, m), names_to = c("criterion", "multcomp_k"),
+                        names_sep = "_", values_to = "diff") |>
+    dplyr::group_by(criterion, multcomp_k, N, m) |>
+    dplyr::summarise(n = dplyr::n(), est = mean(diff), se = sd(diff) / sqrt(n),
+                     .groups = "drop") |>
+    dplyr::mutate(
+      criterion = factor(criterion_labels[criterion], levels = criterion_labels[c("maxT", "perparam")]),
+      multcomp_k = factor(multcomp_k, levels = c("minimal", "maximal", "none")),
+      ci_lo = est - 1.96 * se,
+      ci_hi = est + 1.96 * se
+    )
+}
+
+## Facets = criterion (shared y scale), colour = N, linetype/shape =
+## multcomp_k, with a reference line at zero difference.
+make_main_effects_scenario_diff_plot <- function(results_path, png_path) {
+  dd <- build_main_effects_scenario_diff(results_path)
+  theme_set(theme_bw())
+
+  fig <- ggplot(dd, aes(m, est, colour = factor(N), linetype = multcomp_k, shape = multcomp_k)) +
+    geom_hline(yintercept = 0, colour = "grey40", linetype = "dashed", linewidth = 1) +
+    geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi, fill = factor(N), group = interaction(N, multcomp_k)),
+                colour = NA, alpha = 0.3) +
+    geom_line() +
+    geom_point() +
+    facet_wrap(~criterion, nrow = 1) +
+    scale_colour_manual(values = okabe_ito, name = "N") +
+    scale_fill_manual(values = okabe_ito, guide = "none") +
+    scale_linetype_manual(values = c(minimal = "22", maximal = "solid", none = "solid"), name = "multcomp k") +
+    scale_shape_manual(values = c(minimal = 17, maximal = 16, none = 1), name = "multcomp k") +
+    m_k_scale_x() +
+    ylab("Difference in type I error rate (main effects only)\nselected (all) − selected (interax only)") +
+    zmargin
+
+  ggsave(png_path, fig, width = 10, height = 4.5, dpi = 150)
+}

@@ -128,6 +128,18 @@ list(
     here::here("forstmeier_sim", "output", "fig1_corrections_by_scenario_minimal_mainonly.png")
   }, format = "file"),
 
+  tar_target(make_main_effects_scenario_diff_plot_script,
+             here::here("forstmeier_sim", "R", "make_main_effects_scenario_diff_plot.R"),
+             format = "file"),
+
+  tar_target(fig1_mainonly_scenario_diff_png_file, {
+    corrections_results_file                ## dependency only
+    plot_corrections_by_scenario_core_file  ## dependency only
+    graphics_utils_file                      ## dependency only
+    source(make_main_effects_scenario_diff_plot_script)
+    here::here("forstmeier_sim", "output", "fig1_mainonly_scenario_diff.png")
+  }, format = "file"),
+
   tar_target(make_corrections_by_method_plot_script,
              here::here("forstmeier_sim", "R", "make_corrections_by_method_plot.R"),
              format = "file"),
@@ -164,7 +176,8 @@ list(
     fig1_corrections_by_scenario_png_file  ## dependency only
     fig1_corrections_by_scenario_minimal_png_file           ## dependency only
     fig1_corrections_by_scenario_minimal_mainonly_png_file  ## dependency only
-    fig1_corrections_by_method_png_file    ## dependency only
+    fig1_mainonly_scenario_diff_png_file   ## dependency only
+    fig1_corrections_by_method_png_file   ## dependency only
     fig1_corrections_by_N_png_file         ## dependency only
     quarto::quarto_render(input = forstmeier_sig_qmd_file, quiet = TRUE)
     here::here("forstmeier_sim", "forstmeier_sig.html")
