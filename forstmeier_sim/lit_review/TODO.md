@@ -2,12 +2,10 @@
 
 ## 2026 survey (all 45 sampled papers coded; supplements fetched where needed)
 
-- [ ] Spot-check `coding.csv` against the papers and settle definitions:
-  - "full model presented": do ANOVA tables of all terms count? (currently yes;
-    a dAICc table of candidates does not)
-  - "model selection": does choosing random effects by AIC count?
-  - "mcc": do Tukey/emmeans post hoc adjustments count?
-  Then recode consistently.
+- [ ] Spot-check the remaining medium-confidence codings in `coding.csv`
+  against the papers, applying the definitions in `coding_rules.md`.
+- [ ] Mention random-effects selection in the main discussion
+  (`forstmeier_sig.qmd`), citing Matuschek et al. 2017.
 - [ ] Summary table in `lit_review.qmd`:
   - parse range-valued counts (e.g. "~5-12") in n_explanatory / n_terms
   - add F&S's "6 of 11 experimental studies with treatment x covariate

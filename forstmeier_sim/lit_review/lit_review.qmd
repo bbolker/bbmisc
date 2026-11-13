@@ -87,7 +87,8 @@ comparison <- tribble(
   "Models with > 5 terms that were simplified", "16/16", pct(sum(big & selected), sum(big)),
   "Any model selection or simplification", "", pct(sum(selected), n_glm),
   "Full model presented", "2/28", pct(sum(grepl("^y", glm$full_model_presented)), n_glm),
-  "Multiple-comparison correction used", "not reported", pct(sum(!grepl("^none", glm$mcc) & glm$mcc != ""), n_glm)
+  "Multiple-comparison correction used", "not reported", pct(sum(!grepl("^none", glm$mcc) & glm$mcc != ""), n_glm),
+  "... applied only after selection (minimal k)", "", pct(sum(grepl("minimal k", glm$mcc)), n_glm)
 )
 kable(comparison)
 ```
@@ -115,6 +116,11 @@ glm |>
   are flagged `confidence = low/medium` in `coding.csv`.
 - With 10 papers per journal, the per-journal percentages are rough
   (a 95% binomial CI for 5/10 is about 19–81%).
+- Choosing the random-effects structure (by AIC or otherwise) is not counted
+  as model selection. Whether it should be is an open question:
+  @matuschekBalancingTypeError2017 recommend backward selection of random
+  effects with a relaxed p-value criterion, and their simulations show
+  little type I error inflation from doing so.
 
 ## References
 
