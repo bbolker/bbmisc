@@ -2,17 +2,17 @@
 
 ## 2026 survey (all 45 sampled papers coded; supplements fetched where needed)
 
+- [x] Settle definitions of full model / model selection / MCC (now in
+  `coding_rules.md`) and recode.
 - [ ] Spot-check the remaining medium-confidence codings in `coding.csv`
   against the papers, applying the definitions in `coding_rules.md`.
 - [ ] Mention random-effects selection in the main discussion
   (`forstmeier_sig.qmd`), citing Matuschek et al. 2017.
-- [ ] Summary table in `lit_review.qmd`:
-  - parse range-valued counts (e.g. "~5-12") in n_explanatory / n_terms
-  - add F&S's "6 of 11 experimental studies with treatment x covariate
-    interactions"
-  - add binomial CIs for the 2026 proportions
-- [ ] Decide whether genomics-only papers stay in the denominator (currently
-  yes) or are replaced by the next paper in `sample.csv` rank order.
+- [x] Summary table: numeric `*_max`/`*_min` columns, treatment x covariate
+  row, exact binomial CIs.
+- [x] Genomics-only papers dropped from the denominator (not replaced).
+- [ ] Check the two borderline `trt_x_covariate = y?` codes (ecy.70478,
+  rspb.2026.0555).
 
 ## 2007 calibration (after 2026 is done)
 

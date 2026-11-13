@@ -14,13 +14,20 @@ execute:
 library(dplyr)
 library(tidyr)
 library(knitr)
-coding <- read.csv("coding.csv")
+coding_all <- read.csv("coding.csv")
 sample_info <- read.csv("sample.csv")
 screen <- read.csv("screen.csv")
+## genomics-only papers are excluded from the denominator (coding_rules.md)
+genomics_only <- grepl("^genomics", coding_all$model_class)
+coding <- coding_all[!genomics_only, ]
 glm <- filter(coding, uses_glm_2plus == "y")
 n_emp <- nrow(coding)
 n_glm <- nrow(glm)
-pct <- function(x, n) sprintf("%d/%d (%.0f%%)", x, n, 100 * x / n)
+## count, percentage and exact (Clopper-Pearson) 95% CI
+pct <- function(x, n) {
+  ci <- 100 * binom.test(x, n)$conf.int
+  sprintf("%d/%d (%.0f%%; %.0f–%.0f%%)", x, n, 100 * x / n, ci[1], ci[2])
+}
 ```
 
 ## Background
@@ -52,10 +59,19 @@ pct <- function(x, n) sprintf("%d/%d (%.0f%%)", x, n, 100 * x / n)
   differences from a literal reading of "GLM" are:
   - mixed models count;
   - GAMs and Bayesian regressions do not count;
-  - genomics analyses (e.g. per-gene differential expression) do not count.
+  - genomics analyses (e.g. per-gene differential expression) do not count,
+    and papers whose only analyses are genomic are dropped from the
+    denominator (`r sum(genomics_only)` papers).
+- **Counts with several models per paper:** predictors and terms are taken
+  from the largest model in the paper, and N/k from the model with the
+  smallest N/k.
+- **Treatment-by-covariate interactions:** among experimental studies
+  (including those with both experimental and observational parts), an
+  interaction between a manipulated treatment and a variable that was
+  measured rather than assigned (sex, population, species, site, date, ...).
+  Two borderline cases are counted.
 
-**Status:** `r n_emp` of `r sum(sample_info$sampled == "y")` sampled papers
-coded so far.
+Percentages are followed by exact binomial 95% confidence intervals.
 
 ## Results
 
@@ -70,31 +86,32 @@ coding |>
 
 ```{r summary}
 n_bayes <- sum(coding$uses_glm_2plus == "n" & grepl("^Bayesian", coding$model_class))
-n_genom <- sum(grepl("^genomics", coding$model_class))
-n_explan <- suppressWarnings(as.numeric(sub("^(\\d+).*", "\\1", glm$n_explanatory)))
-n_terms <- suppressWarnings(as.numeric(sub("^~?(\\d+).*", "\\1", glm$n_terms_incl_interactions)))
-n_over_k <- suppressWarnings(as.numeric(sub("^[~<]?(\\d+).*", "\\1", glm$N_over_k)))
-big <- !is.na(n_terms) & n_terms > 5
+many <- glm$n_explanatory_max >= 6
+## N_over_k_min: Inf = "large", NA = unknown
+low_nk <- many & !is.na(glm$N_over_k_min) & glm$N_over_k_min < 3
+big <- glm$n_terms_max > 5
 selected <- !grepl("^none", glm$model_selection) & glm$model_selection != ""
+expt <- filter(glm, design != "observational")
 
 comparison <- tribble(
   ~quantity, ~`2007 (F&S)`, ~`2026`,
-  "Empirical studies using GLMs with >= 2 predictors", "28/50 (56%)", pct(n_glm, n_emp),
+  "Empirical studies using GLMs with >= 2 predictors", pct(28, 50), pct(n_glm, n_emp),
   "... counting Bayesian regressions too", "", pct(n_glm + n_bayes, n_emp),
-  "Studies with 6 or more predictors", "6/28", pct(sum(n_explan >= 6, na.rm = TRUE), n_glm),
-  "... of which N/k < 3", "3/6", sprintf("%d (N/k known for %d)", sum(n_over_k < 3, na.rm = TRUE), sum(!is.na(n_over_k))),
+  "Studies with 6 or more predictors", pct(6, 28), pct(sum(many), n_glm),
+  "... of which N/k < 3", pct(3, 6),
+    sprintf("%d/%d (N/k known for %d)", sum(low_nk), sum(many), sum(many & !is.na(glm$N_over_k_min))),
   "Interactions considered", "80%", pct(sum(glm$interactions == "y"), n_glm),
-  "Models with > 5 terms that were simplified", "16/16", pct(sum(big & selected), sum(big)),
+  "Experimental studies with treatment x covariate interactions", pct(6, 11),
+    pct(sum(grepl("^y", expt$trt_x_covariate)), nrow(expt)),
+  "Models with > 5 terms that were simplified", pct(16, 16), pct(sum(big & selected), sum(big)),
   "Any model selection or simplification", "", pct(sum(selected), n_glm),
-  "Full model presented", "2/28", pct(sum(grepl("^y", glm$full_model_presented)), n_glm),
-  "Multiple-comparison correction used", "not reported", pct(sum(!grepl("^none", glm$mcc) & glm$mcc != ""), n_glm),
-  "... applied only after selection (minimal k)", "", pct(sum(grepl("minimal k", glm$mcc)), n_glm)
+  "Full model presented", pct(2, 28), pct(sum(grepl("^y", glm$full_model_presented)), n_glm),
+  "Multiple-comparison correction across model terms", "not reported", pct(sum(!grepl("^none", glm$mcc) & glm$mcc != ""), n_glm),
+  "Post hoc pairwise adjustment (Tukey, Bonferroni, ...)", "not reported", pct(sum(!grepl("^none", glm$posthoc_adjustment) & glm$posthoc_adjustment != ""), n_glm),
+  "Either correction applied only after selection (minimal k)", "", pct(sum(grepl("minimal k", paste(glm$mcc, glm$posthoc_adjustment))), n_glm)
 )
 kable(comparison)
 ```
-
-`r n_genom` empirical papers contained only genomics analyses and are coded
-as not using a GLM with two or more predictors.
 
 ### Model selection methods (2026)
 
