@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# git-audit: find git repositories under a directory (default $HOME) and
+# report uncommitted changes, untracked files, stashes, and commits that are
+# not on any remote.
+#
+# usage: git-audit [-a] [-f] [-u] [-x PATTERN]... [DIR...]
+#   -a          list every repo, including clean ones
+#   -f          run `git fetch` first, so ahead counts are current (slow)
+#   -u          ignore untracked files
+#   -x PATTERN  extra fdfind exclude glob (repeatable)
+#   -h          help
+
+set -u
+
+show_all=0 do_fetch=0 skip_untracked=0
+excludes=(snap .cache .local/share/Trash node_modules .Rproj.user .cargo .rustup gopath)
+
+while getopts "afux:h" opt; do
+    case $opt in
+        a) show_all=1 ;;
+        f) do_fetch=1 ;;
+        u) skip_untracked=1 ;;
+        x) excludes+=("$OPTARG") ;;
+        h) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) exit 2 ;;
+    esac
+done
+shift $((OPTIND - 1))
+[ $# -eq 0 ] && set -- "$HOME"
+
+if command -v fdfind >/dev/null; then fd=fdfind
+elif command -v fd >/dev/null; then fd=fd
+else fd=""; fi
+
+find_repos() {
+    if [ -n "$fd" ]; then
+        local ex=()
+        for e in "${excludes[@]}"; do ex+=(--exclude "$e"); done
+        ## .git is a file (not a directory) in worktrees and submodules
+        "$fd" --hidden --no-ignore --type d --type f "${ex[@]}" '^\.git$' "$@"
+    else
+        local prune=()
+        for e in "${excludes[@]}"; do prune+=(-name "$e" -o); done
+        find "$@" \( "${prune[@]}" -false \) -prune -o -name .git -print 2>/dev/null
+    fi
+}
+
+## home-directory shortcuts are often symlinks into ~/Documents, so dedupe by
+## real path
+mapfile -t repos < <(find_repos "$@" | sed 's:/\.git/\{0,1\}$::' |
+                     xargs -r -d '\n' realpath -e 2>/dev/null | sort -u)
+
+if [ -t 1 ]; then red=$'\e[31m' yel=$'\e[33m' grn=$'\e[32m' off=$'\e[0m'
+else red="" yel="" grn="" off=""; fi
+
+n_dirty=0
+for r in "${repos[@]}"; do
+    git -C "$r" rev-parse --is-inside-work-tree >/dev/null 2>&1 || continue
+    [ $do_fetch -eq 1 ] && git -C "$r" fetch --all --quiet 2>/dev/null
+
+    issues=()
+
+    st=$(git -C "$r" status --porcelain=v1 2>/dev/null)
+    n_mod=$(grep -vc '^??' <<<"$st")
+    n_untr=$(grep -c '^??' <<<"$st")
+    [ -z "$st" ] && n_mod=0 n_untr=0
+    [ "$n_mod" -gt 0 ] && issues+=("${red}${n_mod} uncommitted${off}")
+    [ $skip_untracked -eq 0 ] && [ "$n_untr" -gt 0 ] &&
+        issues+=("${yel}${n_untr} untracked${off}")
+
+    n_stash=$(git -C "$r" stash list 2>/dev/null | wc -l)
+    [ "$n_stash" -gt 0 ] && issues+=("${yel}${n_stash} stash${off}")
+
+    if [ -z "$(git -C "$r" remote)" ]; then
+        issues+=("${red}no remote${off}")
+    else
+        ## per local branch: ahead/behind its upstream, or no upstream at all
+        while IFS='|' read -r br up track; do
+            if [ -z "$up" ]; then
+                ## commits on this branch that are on no remote branch
+                n=$(git -C "$r" rev-list --count "$br" --not --remotes 2>/dev/null)
+                [ "${n:-0}" -gt 0 ] &&
+                    issues+=("${red}${br}: no upstream, ${n} unpushed${off}")
+            else
+                case $track in
+                    *gone*) issues+=("${red}${br}: upstream gone${off}") ;;
+                    ## behind-only is not local work at risk, so skip it
+                    *ahead*)
+                        issues+=("${red}${br}: ${track//[\[\]]/}${off}") ;;
+                esac
+            fi
+        done < <(git -C "$r" for-each-ref refs/heads \
+                     --format='%(refname:short)|%(upstream:short)|%(upstream:track)')
+    fi
+
+    if [ ${#issues[@]} -gt 0 ]; then
+        n_dirty=$((n_dirty + 1))
+        printf '%s\n' "${r/#$HOME/\~}: $(IFS=';'; echo "${issues[*]}" | sed 's/;/, /g')"
+    elif [ $show_all -eq 1 ]; then
+        printf '%s\n' "${r/#$HOME/\~}: ${grn}clean${off}"
+    fi
+done
+
+echo "-- ${#repos[@]} repos checked, ${n_dirty} need attention" \
+     "$([ $do_fetch -eq 0 ] && echo '(no fetch: remote state as of last fetch)')" >&2
